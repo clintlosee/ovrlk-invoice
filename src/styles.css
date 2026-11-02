@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-danger: var(--danger);
+  --font-sans: "Segoe UI", system-ui, sans-serif;
+  --font-serif: "Iowan Old Style", Palatino, Georgia, serif;
+}
+
+:root {
+  --background: #f4f0e8;
+  --foreground: #1c1917;
+  --card: #fffdf8;
+  --muted: #78716c;
+  --border: #e6dfd2;
+  --danger: #9f1239;
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+a {
+  color: inherit;
+}
