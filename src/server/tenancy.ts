@@ -11,7 +11,9 @@ import {
   taxRate,
 } from "../db/schema";
 import { assertTimeZone } from "../lib/config";
+import { keyOwnedBy } from "../lib/files";
 import { type Cents, cents } from "../lib/money";
+import { categoryMethods, expenseMethods } from "./expense-store";
 import { invoiceMethods } from "./invoice-store";
 import { paymentMethods } from "./payment-store";
 
@@ -284,6 +286,35 @@ export function forBusiness(db: AppDb, businessId: string) {
           .returning();
         return rows[0] ?? null;
       },
+      async setLogo(input: { key: string | null; contentType: string | null }) {
+        if (input.key !== null) {
+          if (!keyOwnedBy(businessId, input.key, "logos")) {
+            throw new Error("That file does not belong to this Business");
+          }
+          if (
+            input.contentType !== "image/jpeg" &&
+            input.contentType !== "image/png"
+          ) {
+            throw new Error("Logo must be a JPEG or PNG");
+          }
+        }
+        const current = await db
+          .select({ logoKey: business.logoKey })
+          .from(business)
+          .where(scoped)
+          .limit(1);
+        const rows = await db
+          .update(business)
+          .set({
+            logoKey: input.key,
+            logoContentType: input.key ? input.contentType : null,
+            updatedAt: new Date(),
+          })
+          .where(scoped)
+          .returning({ id: business.id });
+        if (!rows[0]) throw new Error("A signed-in Business is required");
+        return current[0]?.logoKey ?? null;
+      },
     },
     members: {
       async list() {
@@ -550,6 +581,8 @@ export function forBusiness(db: AppDb, businessId: string) {
     },
     invoices: invoiceMethods(db, businessId),
     payments: paymentMethods(db, businessId),
+    categories: categoryMethods(db, businessId),
+    expenses: expenseMethods(db, businessId),
     audit: {
       async list() {
         return db

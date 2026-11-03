@@ -2,7 +2,7 @@ import { createHmac } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getDb } from "../src/db/client";
-import { auditLog, payment, stripeEvent } from "../src/db/schema";
+import { auditLog, expense, payment, stripeEvent } from "../src/db/schema";
 import { cents } from "../src/lib/money";
 import { verifyStripeEvent } from "../src/lib/stripe";
 import type { InvoiceInput } from "../src/server/invoice-store";
@@ -254,6 +254,9 @@ describe("payments", () => {
     expect(card?.payments).toHaveLength(1);
     expect(card?.payments[0]?.feeCents).toBeNull();
     expect(card?.payments[0]?.manual).toBe(false);
+    expect(
+      await scope.expenses.list({ from: null, to: null, categoryId: null }),
+    ).toEqual([]);
     const cardId = card?.payments[0]?.id;
     if (!cardId) throw new Error("card");
     await expect(
@@ -326,6 +329,42 @@ describe("payments", () => {
       feeCents: 175,
     });
     expect(JSON.stringify(stored)).not.toMatch(/4242|card_number|bank/);
+    const feeRows = await scope.expenses.list({
+      from: null,
+      to: null,
+      categoryId: null,
+    });
+    expect(feeRows).toHaveLength(1);
+    expect(feeRows[0]).toMatchObject({
+      merchant: "Stripe",
+      amountCents: 175,
+      paymentId: card?.payments[0]?.id,
+      categoryName: "Merchant fees",
+    });
+    expect(
+      (
+        await handleStripeWebhook(
+          webhook({
+            id: "evt_card_fee_again",
+            type: "payment_intent.succeeded",
+            account: "acct_payprints",
+            created: 1_780_000_150,
+            data: {
+              object: {
+                id: "pi_card5000",
+                status: "succeeded",
+                amount: 5000,
+                currency: "usd",
+                metadata: { invoice_id: sent.invoice.id },
+              },
+            },
+          }),
+        )
+      ).status,
+    ).toBe(200);
+    expect(
+      await scope.expenses.list({ from: null, to: null, categoryId: null }),
+    ).toHaveLength(1);
 
     expect(
       (
@@ -335,17 +374,66 @@ describe("payments", () => {
             type: "charge.refunded",
             account: "acct_payprints",
             created: 1_780_000_200,
-            data: { object: { id: "ch_card5000", amount_refunded: 5000 } },
+            data: {
+              object: {
+                id: "ch_card5000",
+                amount_refunded: 5000,
+                currency: "usd",
+                refunds: { data: [{ id: "re_card5000", amount: 5000 }] },
+              },
+            },
           }),
         )
       ).status,
     ).toBe(200);
-    expect((await scope.invoices.get(sent.invoice.id))?.paidCents).toBe(5000);
+    expect(
+      (
+        await handleStripeWebhook(
+          webhook({
+            id: "evt_refund_created",
+            type: "refund.created",
+            account: "acct_payprints",
+            created: 1_780_000_210,
+            data: {
+              object: {
+                id: "re_card5000",
+                amount: 5000,
+                currency: "usd",
+                status: "succeeded",
+                charge: "ch_card5000",
+              },
+            },
+          }),
+        )
+      ).status,
+    ).toBe(200);
+    const refunded = await scope.invoices.get(sent.invoice.id);
+    expect(refunded?.paidCents).toBe(0);
+    expect(refunded?.status).toBe("sent");
+    expect(refunded?.payments[0]?.refundedCents).toBe(5000);
+    const feeAfter = await db
+      .select()
+      .from(expense)
+      .where(eq(expense.paymentId, card?.payments[0]?.id ?? ""));
+    expect(feeAfter).toHaveLength(1);
+    expect(feeAfter[0]?.amountCents).toBe(175);
     const refunds = await db
       .select()
       .from(auditLog)
-      .where(eq(auditLog.action, "payment.refund_ignored"));
+      .where(eq(auditLog.action, "payment.refunded"));
     expect(refunds.length).toBeGreaterThan(0);
+    expect(
+      await db
+        .select()
+        .from(auditLog)
+        .where(eq(auditLog.action, "payment.refund_ignored")),
+    ).toEqual([]);
+    const voided = await scope.invoices.voidInvoice(
+      sent.invoice.id,
+      "Refunded in full",
+      owner.userId,
+    );
+    expect(voided?.status).toBe("void");
   });
 
   it("keeps a webhook for one Connected Account off another Business's Invoice", async () => {
@@ -519,6 +607,183 @@ describe("payments", () => {
     ).toBe(200);
     expect((await a.business.get())?.stripeAccountId).toBeNull();
     expect((await b.business.get())?.stripeAccountId).toBe("acct_beta");
+  });
+
+  it("applies a partial refund once and adjusts the Merchant Fee from the balance transaction", async () => {
+    const db = getDb();
+    const owner = await insertOwner("pay-refund@example.com", "Refund Prints");
+    const scope = forBusiness(db, owner.businessId);
+    const client = await scope.clients.create({
+      name: "Cara",
+      email: "cara-refund@example.com",
+      phone: null,
+      address: null,
+      taxExempt: true,
+      note: null,
+    });
+    const sent = await scope.invoices.send(
+      (await scope.invoices.create(input(client.id, 5000))).id,
+      owner.userId,
+    );
+    if (!sent) throw new Error("send");
+    await scope.business.setConnectedAccount({
+      accountId: "acct_refund",
+      chargesEnabled: true,
+      detailsSubmitted: true,
+    });
+    process.env.STRIPE_SECRET_KEY = "sk_test_refund";
+    process.env.STRIPE_WEBHOOK_SECRET = SECRET;
+    let charge = {
+      id: "ch_part",
+      amount: 5000,
+      amount_refunded: 0,
+      currency: "usd",
+      payment_intent: "pi_part",
+      balance_transaction: { id: "txn_part", fee: 175, currency: "usd" },
+      refunds: {
+        data: [] as {
+          id: string;
+          amount: number;
+          balance_transaction: { fee: number; currency: string };
+        }[],
+      },
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        const href = String(url);
+        if (href.includes("/charges/")) return Response.json(charge);
+        return Response.json({
+          id: "pi_part",
+          latest_charge: {
+            id: "ch_part",
+            balance_transaction: { id: "txn_part", fee: 175, currency: "usd" },
+          },
+        });
+      }),
+    );
+    expect(
+      (
+        await handleStripeWebhook(
+          webhook(
+            checkoutEvent({
+              id: "evt_part_pay",
+              account: "acct_refund",
+              invoiceId: sent.invoice.id,
+              amount: 5000,
+              paymentIntentId: "pi_part",
+              sessionId: "cs_part",
+            }),
+          ),
+        )
+      ).status,
+    ).toBe(200);
+    charge = {
+      ...charge,
+      amount_refunded: 2000,
+      refunds: {
+        data: [
+          {
+            id: "re_part",
+            amount: 2000,
+            balance_transaction: { fee: 0, currency: "usd" },
+          },
+        ],
+      },
+    };
+    const refundEvent = {
+      id: "evt_part_refund",
+      type: "charge.refunded",
+      account: "acct_refund",
+      created: 1_780_000_300,
+      data: {
+        object: {
+          id: "ch_part",
+          amount_refunded: 2000,
+          currency: "usd",
+          payment_intent: "pi_part",
+        },
+      },
+    };
+    expect((await handleStripeWebhook(webhook(refundEvent))).status).toBe(200);
+    expect((await handleStripeWebhook(webhook(refundEvent))).status).toBe(200);
+    expect(
+      (
+        await handleStripeWebhook(
+          webhook({
+            id: "evt_part_refund_created",
+            type: "refund.created",
+            account: "acct_refund",
+            created: 1_780_000_310,
+            data: {
+              object: {
+                id: "re_part",
+                amount: 2000,
+                currency: "usd",
+                status: "succeeded",
+                charge: "ch_part",
+                payment_intent: "pi_part",
+              },
+            },
+          }),
+        )
+      ).status,
+    ).toBe(200);
+    const partial = await scope.invoices.get(sent.invoice.id);
+    expect(partial?.status).toBe("partial");
+    expect(partial?.paidCents).toBe(3000);
+    expect(partial?.payments[0]?.refundedCents).toBe(2000);
+    const fee = await scope.expenses.list({
+      from: null,
+      to: null,
+      categoryId: null,
+    });
+    expect(fee).toHaveLength(1);
+    expect(fee[0]?.amountCents).toBe(175);
+
+    charge = {
+      ...charge,
+      amount_refunded: 5000,
+      refunds: {
+        data: [
+          {
+            id: "re_part",
+            amount: 2000,
+            balance_transaction: { fee: 0, currency: "usd" },
+          },
+          {
+            id: "re_rest",
+            amount: 3000,
+            balance_transaction: { fee: -175, currency: "usd" },
+          },
+        ],
+      },
+    };
+    expect(
+      (
+        await handleStripeWebhook(
+          webhook({
+            id: "evt_part_rest",
+            type: "charge.refunded",
+            account: "acct_refund",
+            created: 1_780_000_400,
+            data: {
+              object: {
+                id: "ch_part",
+                amount_refunded: 5000,
+                currency: "usd",
+              },
+            },
+          }),
+        )
+      ).status,
+    ).toBe(200);
+    const cleared = await scope.invoices.get(sent.invoice.id);
+    expect(cleared?.status).toBe("sent");
+    expect(cleared?.paidCents).toBe(0);
+    expect(
+      await scope.expenses.list({ from: null, to: null, categoryId: null }),
+    ).toEqual([]);
   });
 
   it("hides the pay button unless the Invoice can take a card payment", async () => {

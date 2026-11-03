@@ -30,6 +30,12 @@ declare module "pdfkit" {
     stroke(): this;
     rect(x: number, y: number, w: number, h: number): this;
     fill(color?: string): this;
+    image(
+      src: Buffer,
+      x?: number,
+      y?: number,
+      options?: { fit?: [number, number] },
+    ): this;
     on(event: "data", listener: (chunk: Buffer) => void): this;
     on(event: "end", listener: () => void): this;
     on(event: "error", listener: (error: Error) => void): this;

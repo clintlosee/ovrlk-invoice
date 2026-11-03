@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { business, member, OWNER_ROLE } from "../db/schema";
 import { assertTimeZone } from "../lib/config";
+import { seedExpenseCategories } from "./expense-store";
 
 const USD = "USD";
 
@@ -39,6 +40,7 @@ export async function provisionOwner(input: {
     role: OWNER_ROLE,
     createdAt: now,
   });
+  await seedExpenseCategories(db, businessId);
   return { businessId };
 }
 

@@ -27,11 +27,13 @@ export type PublicInvoice =
       amountDueCents: number;
       paidCents: number;
       canPay: boolean;
+      hasLogo: boolean;
       payments: {
         id: string;
         paidOn: string;
         method: string;
         amountCents: number;
+        refundedCents: number;
       }[];
     }
   | { status: 404 }
@@ -86,11 +88,13 @@ export async function openPublicInvoice(
       status: current.status,
       amountDueCents: current.amountDueCents,
     }),
+    hasLogo: Boolean(row.logoKey),
     payments: current.payments.map((item) => ({
       id: item.id,
       paidOn: item.paidOn,
       method: item.method,
       amountCents: item.amountCents,
+      refundedCents: item.refundedCents,
     })),
   };
 }

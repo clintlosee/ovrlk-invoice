@@ -2,6 +2,7 @@ import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import type { AppDb } from "../db/client";
 import {
   auditLog,
+  expense,
   invoice,
   member,
   OWNER_ROLE,
@@ -18,6 +19,8 @@ import {
 } from "../lib/invoice";
 import { cents } from "../lib/money";
 import type { StripeFee } from "../lib/stripe";
+import { syncMerchantFee } from "./expense-store";
+import { discardObject } from "./storage";
 
 export type PaymentView = {
   id: string;
@@ -26,6 +29,7 @@ export type PaymentView = {
   method: string;
   note: string | null;
   feeCents: number | null;
+  refundedCents: number;
   manual: boolean;
 };
 
@@ -45,6 +49,16 @@ export type StripePaymentInput = {
   checkoutSessionId: string | null;
   paymentIntentId: string;
   fee: StripeFee;
+};
+
+export type RefundInput = {
+  chargeId: string | null;
+  paymentIntentId: string | null;
+  absoluteRefundedCents: number | null;
+  refundId: string | null;
+  refundAmountCents: number | null;
+  refundIds: string[];
+  feeCents: number | null;
 };
 
 type StripeRecord = "recorded" | "updated" | "ignored";
@@ -173,7 +187,7 @@ export function paymentMethods(db: AppDb, businessId: string) {
       });
     },
     async removeManual(paymentId: string, actorUserId: string) {
-      await mutate(db, async (tx) => {
+      const deletedReceiptKey = await mutate(db, async (tx) => {
         const current = await onePayment(tx, businessId, paymentId);
         if (!current) throw new Error("That Payment does not exist");
         if (current.method === "stripe") {
@@ -181,6 +195,26 @@ export function paymentMethods(db: AppDb, businessId: string) {
         }
         const target = await payableInvoice(tx, businessId, current.invoiceId);
         const now = new Date();
+        const linked = await tx
+          .select({ receiptKey: expense.receiptKey })
+          .from(expense)
+          .where(
+            and(
+              eq(expense.businessId, businessId),
+              eq(expense.paymentId, current.id),
+            ),
+          )
+          .limit(1);
+        if (linked[0]) {
+          await tx
+            .delete(expense)
+            .where(
+              and(
+                eq(expense.businessId, businessId),
+                eq(expense.paymentId, current.id),
+              ),
+            );
+        }
         const removed = await tx
           .delete(payment)
           .where(
@@ -203,8 +237,9 @@ export function paymentMethods(db: AppDb, businessId: string) {
           metadata: { method: current.method, number: target.number },
           at: now,
         });
-        return current.id;
+        return linked[0]?.receiptKey ?? null;
       });
+      await discardObject(deletedReceiptKey);
     },
     async recordStripe(input: StripePaymentInput): Promise<StripeRecord> {
       const outcome = await db.transaction(async (tx) => {
@@ -258,17 +293,23 @@ export function paymentMethods(db: AppDb, businessId: string) {
               stripeBalanceTransactionId:
                 prior.stripeBalanceTransactionId ??
                 input.fee.balanceTransactionId,
-              feeCents: prior.feeCents ?? input.fee.feeCents,
+              feeCents: input.fee.feeCents ?? prior.feeCents,
               updatedAt: now,
             })
             .where(
               and(eq(payment.id, prior.id), eq(payment.businessId, businessId)),
             );
-          return "updated" as const;
+          const deletedReceiptKey = await syncMerchantFee(
+            tx,
+            businessId,
+            prior.id,
+          );
+          return { kind: "updated" as const, deletedReceiptKey };
         }
         const already = await sumPayments(tx, businessId, target.id);
+        const id = crypto.randomUUID();
         await tx.insert(payment).values({
-          id: crypto.randomUUID(),
+          id,
           businessId,
           invoiceId: target.id,
           amountCents: amount,
@@ -298,25 +339,115 @@ export function paymentMethods(db: AppDb, businessId: string) {
           },
           at: now,
         });
+        const deletedReceiptKey = await syncMerchantFee(tx, businessId, id);
         return {
           kind: "recorded" as const,
           paid: already + amount,
           target,
           paidOn,
           amount,
+          deletedReceiptKey,
         };
       });
       if (typeof outcome !== "string") {
-        await receipt(db, businessId, {
-          target: outcome.target,
-          paid: outcome.paid,
-          paidOn: outcome.paidOn,
-          method: "stripe",
-          amount: outcome.amount,
-        });
-        return "recorded";
+        await discardObject(outcome.deletedReceiptKey);
+        if (outcome.kind === "recorded") {
+          await receipt(db, businessId, {
+            target: outcome.target,
+            paid: outcome.paid,
+            paidOn: outcome.paidOn,
+            method: "stripe",
+            amount: outcome.amount,
+          });
+          return "recorded";
+        }
+        return "updated";
       }
       return outcome;
+    },
+    async applyRefund(input: RefundInput): Promise<"applied" | "missing"> {
+      const outcome = await db.transaction(async (tx) => {
+        const row = await findCardPayment(tx, businessId, input);
+        if (!row) return { kind: "missing" as const, deletedReceiptKey: null };
+        const ids = new Set(parseRefundIds(row.stripeRefundIds));
+        for (const refundId of input.refundIds) ids.add(refundId);
+        let refunded = row.refundedCents;
+        if (input.absoluteRefundedCents != null) {
+          refunded = Math.max(
+            refunded,
+            clampRefund(input.absoluteRefundedCents, row.amountCents),
+          );
+        }
+        if (input.refundId && !ids.has(input.refundId)) {
+          if (
+            input.absoluteRefundedCents == null &&
+            input.refundAmountCents != null
+          ) {
+            refunded = Math.min(
+              row.amountCents,
+              refunded + clampRefund(input.refundAmountCents, row.amountCents),
+            );
+          }
+          ids.add(input.refundId);
+        }
+        const now = new Date();
+        await tx
+          .update(payment)
+          .set({
+            refundedCents: refunded,
+            stripeRefundIds: JSON.stringify([...ids]),
+            stripeChargeId: row.stripeChargeId ?? input.chargeId,
+            feeCents: input.feeCents ?? row.feeCents,
+            updatedAt: now,
+          })
+          .where(
+            and(eq(payment.id, row.id), eq(payment.businessId, businessId)),
+          );
+        const invoices = await tx
+          .select({
+            id: invoice.id,
+            number: invoice.number,
+            status: invoice.status,
+            totalCents: invoice.totalCents,
+            snapshot: invoice.snapshot,
+          })
+          .from(invoice)
+          .where(
+            and(
+              eq(invoice.id, row.invoiceId),
+              eq(invoice.businessId, businessId),
+            ),
+          )
+          .limit(1);
+        const target = invoices[0];
+        if (
+          target &&
+          isInvoiceStatus(target.status) &&
+          (target.status === "sent" ||
+            target.status === "partial" ||
+            target.status === "paid")
+        ) {
+          const paid = await sumPayments(tx, businessId, target.id);
+          await writeStatus(tx, businessId, target, paid, now);
+        }
+        await writeAudit(tx, {
+          businessId,
+          actorUserId: null,
+          action: "payment.refunded",
+          invoiceId: row.invoiceId,
+          amountCents: refunded,
+          metadata: {
+            chargeId: input.chargeId,
+            refundedCents: refunded,
+            feeCents: input.feeCents ?? row.feeCents,
+          },
+          at: now,
+        });
+        const deletedReceiptKey = await syncMerchantFee(tx, businessId, row.id);
+        return { kind: "applied" as const, deletedReceiptKey };
+      });
+      await discardObject(outcome.deletedReceiptKey);
+      return outcome.kind;
     },
   };
 }
@@ -329,8 +460,18 @@ function toView(row: typeof payment.$inferSelect): PaymentView {
     method: row.method,
     note: row.note,
     feeCents: row.feeCents,
+    refundedCents: row.refundedCents,
     manual: row.method !== "stripe",
   };
+}
+
+export function netPaidCents(
+  payments: { amountCents: number; refundedCents: number }[],
+): number {
+  return payments.reduce(
+    (sum, item) => sum + item.amountCents - item.refundedCents,
+    0,
+  );
 }
 
 type Tx = Parameters<Parameters<AppDb["transaction"]>[0]>[0];
@@ -389,7 +530,7 @@ async function sumPayments(
 ) {
   const rows = await tx
     .select({
-      total: sql<number>`coalesce(sum(${payment.amountCents}), 0)`,
+      total: sql<number>`coalesce(sum(${payment.amountCents} - ${payment.refundedCents}), 0)`,
     })
     .from(payment)
     .where(
@@ -404,6 +545,50 @@ async function sumPayments(
     throw new Error("Payment total is not valid");
   }
   return total;
+}
+
+async function findCardPayment(tx: Tx, businessId: string, input: RefundInput) {
+  if (input.chargeId) {
+    const byCharge = await tx
+      .select()
+      .from(payment)
+      .where(
+        and(
+          eq(payment.businessId, businessId),
+          eq(payment.stripeChargeId, input.chargeId),
+        ),
+      )
+      .limit(1);
+    if (byCharge[0]) return byCharge[0];
+  }
+  if (!input.paymentIntentId) return null;
+  const byIntent = await tx
+    .select()
+    .from(payment)
+    .where(
+      and(
+        eq(payment.businessId, businessId),
+        eq(payment.stripePaymentIntentId, input.paymentIntentId),
+      ),
+    )
+    .limit(1);
+  return byIntent[0] ?? null;
+}
+
+function parseRefundIds(value: string | null): string[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item): item is string => typeof item === "string");
+  } catch {
+    return [];
+  }
+}
+
+function clampRefund(value: number, amountCents: number) {
+  if (!Number.isSafeInteger(value) || value < 0) return 0;
+  return Math.min(value, amountCents);
 }
 
 function positiveCents(value: number) {

@@ -27,6 +27,9 @@ export const business = sqliteTable(
     defaultTerms: text("default_terms"),
     footer: text("footer"),
     accentColor: text("accent_color"),
+    /** Object key in the private bucket. Never a public URL. */
+    logoKey: text("logo_key"),
+    logoContentType: text("logo_content_type"),
     /** Connected Account id only. Never a bank number, card number, or raw Stripe object. */
     stripeAccountId: text("stripe_account_id"),
     stripeChargesEnabled: integer("stripe_charges_enabled", { mode: "boolean" })
@@ -347,9 +350,9 @@ export const invoiceLink = sqliteTable(
 
 /**
  * Money received against one Invoice. Several rows are allowed.
- * fee_cents is the Stripe processing fee from the balance transaction.
- * ponytail: PR 5 creates the Merchant Fee Expense from fee_cents on stripe
- * Payments. Do not copy the fee into another table before that.
+ * fee_cents is the net Stripe processing fee from balance transactions.
+ * refunded_cents is the cumulative amount returned to the payer.
+ * A Merchant Fee Expense points at a card Payment and follows fee_cents.
  */
 export const payment = sqliteTable(
   "payment",
@@ -370,6 +373,9 @@ export const payment = sqliteTable(
     stripeChargeId: text("stripe_charge_id"),
     stripeBalanceTransactionId: text("stripe_balance_transaction_id"),
     feeCents: integer("fee_cents"),
+    refundedCents: integer("refunded_cents").notNull().default(0),
+    /** JSON array of Stripe refund ids already applied. */
+    stripeRefundIds: text("stripe_refund_ids"),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
   },
@@ -386,6 +392,10 @@ export const payment = sqliteTable(
     check(
       "payment_fee_cents",
       sql`${table.feeCents} IS NULL OR (${table.feeCents} >= 0 AND typeof(${table.feeCents}) = 'integer')`,
+    ),
+    check(
+      "payment_refunded_cents",
+      sql`${table.refundedCents} >= 0 AND ${table.refundedCents} <= ${table.amountCents} AND typeof(${table.refundedCents}) = 'integer'`,
     ),
     check(
       "payment_method",
@@ -409,3 +419,74 @@ export const stripeEvent = sqliteTable("stripe_event", {
   id: text("id").primaryKey(),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
 });
+
+/**
+ * Expense classification. Schedule C defaults plus a Cost of Goods Sold group.
+ * system_key stays put when the Owner renames the row. Archived, not deleted, once used.
+ */
+export const expenseCategory = sqliteTable(
+  "expense_category",
+  {
+    id: text("id").primaryKey(),
+    businessId: text("business_id")
+      .notNull()
+      .references(() => business.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    categoryGroup: text("category_group").notNull(),
+    systemKey: text("system_key"),
+    archivedAt: integer("archived_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    index("expense_category_business_idx").on(table.businessId),
+    uniqueIndex("expense_category_system_idx")
+      .on(table.businessId, table.systemKey)
+      .where(sql`${table.systemKey} IS NOT NULL`),
+    check(
+      "expense_category_group",
+      sql`${table.categoryGroup} in ('schedule_c', 'cogs')`,
+    ),
+  ],
+);
+
+/** Money the Business spent. receipt_key is an object key, never a public URL. */
+export const expense = sqliteTable(
+  "expense",
+  {
+    id: text("id").primaryKey(),
+    businessId: text("business_id")
+      .notNull()
+      .references(() => business.id, { onDelete: "cascade" }),
+    spentOn: text("spent_on").notNull(),
+    merchant: text("merchant").notNull(),
+    amountCents: integer("amount_cents").notNull(),
+    categoryId: text("category_id")
+      .notNull()
+      .references(() => expenseCategory.id),
+    clientId: text("client_id").references(() => client.id),
+    taxPaidCents: integer("tax_paid_cents").notNull().default(0),
+    note: text("note"),
+    receiptKey: text("receipt_key"),
+    receiptContentType: text("receipt_content_type"),
+    /** Set when this row is the Merchant Fee for a card Payment. */
+    paymentId: text("payment_id").references(() => payment.id, {
+      onDelete: "cascade",
+    }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    index("expense_business_date_idx").on(table.businessId, table.spentOn),
+    index("expense_category_idx").on(table.categoryId),
+    uniqueIndex("expense_payment_idx").on(table.paymentId),
+    check(
+      "expense_amount_cents",
+      sql`${table.amountCents} > 0 AND typeof(${table.amountCents}) = 'integer'`,
+    ),
+    check(
+      "expense_tax_paid_cents",
+      sql`${table.taxPaidCents} >= 0 AND typeof(${table.taxPaidCents}) = 'integer'`,
+    ),
+  ],
+);

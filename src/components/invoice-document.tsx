@@ -13,12 +13,14 @@ export function InvoiceDocument({
   voidReason,
   amountDueCents,
   paidCents = 0,
+  logoUrl = null,
 }: {
   document: InvoiceSnapshot;
   displayStatus: InvoiceDisplayStatus;
   voidReason: string | null;
   amountDueCents: number;
   paidCents?: number;
+  logoUrl?: string | null;
 }) {
   const accent = document.business.accentColor;
   return (
@@ -27,6 +29,13 @@ export function InvoiceDocument({
       <div className="space-y-6 p-6">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt=""
+                className="mb-3 h-12 w-auto object-contain"
+              />
+            ) : null}
             <h1 className="font-serif text-3xl">{document.business.name}</h1>
             {document.business.address ? (
               <p className="mt-2 whitespace-pre-wrap text-sm text-muted">

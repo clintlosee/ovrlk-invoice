@@ -15,7 +15,9 @@ import {
   createStandardAccount,
   deauthorizeConnectedAccount,
   exchangeOAuthCode,
+  fetchChargeRefund,
   fetchStripeFee,
+  refundFromEvent,
   retrieveConnectedAccount,
   type StripeEvent,
   type StripeFee,
@@ -27,7 +29,7 @@ import {
 import { hashInvoiceToken, isInvoiceToken } from "./invoice-token";
 import { signedInBusiness } from "./membership";
 import { openPublicInvoice } from "./public-invoice";
-import { forBusiness, recordAudit } from "./tenancy";
+import { forBusiness } from "./tenancy";
 
 const HANDLED = new Set([
   "checkout.session.completed",
@@ -212,7 +214,7 @@ async function dispatch(event: StripeEvent) {
     return;
   }
   if (event.type === "charge.refunded" || event.type === "refund.created") {
-    await ignoreRefund(event);
+    await applyRefund(event);
     return;
   }
   await recordFromEvent(event);
@@ -242,26 +244,36 @@ async function deauthorize(event: StripeEvent) {
   });
 }
 
-async function ignoreRefund(event: StripeEvent) {
-  // ponytail: refunds are acknowledged so Stripe stops retrying, and not applied.
-  // Apply them when a refund can reduce paid cents and create the fee adjustment.
+async function applyRefund(event: StripeEvent) {
   if (!event.account) return;
   const businessId = await businessIdForAccount(event.account);
   if (!businessId) return;
-  const amount = event.object.amount_refunded;
-  await recordAudit(getDb(), {
-    businessId,
-    action: "payment.refund_ignored",
-    entityType: "payment",
-    amountCents:
-      typeof amount === "number" && Number.isSafeInteger(amount)
-        ? amount
-        : null,
-    metadata: {
-      eventType: event.type,
-      chargeId: typeof event.object.id === "string" ? event.object.id : null,
-    },
-  });
+  const parsed = refundFromEvent(event);
+  if (!parsed) return;
+  let next = parsed;
+  if (parsed.chargeId && stripeConfigured()) {
+    try {
+      const fetched = await fetchChargeRefund(event.account, parsed.chargeId);
+      if (fetched) {
+        next = {
+          ...parsed,
+          paymentIntentId: fetched.paymentIntentId ?? parsed.paymentIntentId,
+          absoluteRefundedCents: fetched.refundedCents,
+          refundIds: [...new Set([...parsed.refundIds, ...fetched.refundIds])],
+          feeCents: fetched.feeCents,
+        };
+      }
+    } catch {
+      // The event payload still applies. A missing fee must not drop the refund.
+    }
+  }
+  const result = await forBusiness(getDb(), businessId).payments.applyRefund(
+    next,
+  );
+  if (result === "missing") {
+    // The Payment webhook may not have landed. Stripe retries while this throws.
+    throw new Error("Refund arrived before the Payment");
+  }
 }
 
 async function recordFromEvent(event: StripeEvent) {

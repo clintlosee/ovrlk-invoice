@@ -3,7 +3,9 @@ import { z } from "zod";
 import { getDb } from "../db/client";
 import { addCalendarDays, todayInTimeZone } from "../lib/invoice";
 import { stripeConfigured, stripeOauthConfigured } from "../lib/stripe";
+import { clearLogo } from "./files";
 import { signedInBusiness } from "./membership";
+import { storageConfigured } from "./storage";
 import {
   beginStripeOAuth,
   beginStripeOnboarding,
@@ -63,6 +65,7 @@ function present(row: {
   stripeChargesEnabled: boolean;
   stripeDetailsSubmitted: boolean;
   stripeConnectMethod: string | null;
+  logoKey: string | null;
 }) {
   const today = todayInTimeZone(row.timeZone);
   return {
@@ -82,6 +85,8 @@ function present(row: {
     stripeChargesEnabled: row.stripeChargesEnabled,
     stripeDetailsSubmitted: row.stripeDetailsSubmitted,
     stripeConnectMethod: row.stripeConnectMethod,
+    storageConfigured: storageConfigured(),
+    hasLogo: Boolean(row.logoKey),
   };
 }
 
@@ -192,3 +197,12 @@ export const disconnectConnectedAccount = createServerFn({
   await disconnectStripe(current.businessId, current.session.user.id);
   return { ok: true as const };
 });
+
+export const clearBusinessLogo = createServerFn({ method: "POST" }).handler(
+  async () => {
+    const current = await signedInBusiness();
+    if (!current) return { ok: false as const, message: "Sign in again." };
+    await clearLogo(current.businessId);
+    return { ok: true as const };
+  },
+);

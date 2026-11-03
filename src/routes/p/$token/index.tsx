@@ -66,6 +66,7 @@ function PublicInvoicePage() {
             voidReason={result.voidReason}
             amountDueCents={result.amountDueCents}
             paidCents={result.paidCents}
+            logoUrl={result.hasLogo ? `/p/${token}/logo` : null}
           />
           {result.payments.length > 0 ? (
             <section className="mt-4">
@@ -74,7 +75,10 @@ function PublicInvoicePage() {
                 {result.payments.map((item) => (
                   <li key={item.id}>
                     {item.paidOn} · {paymentMethodLabel(item.method)} ·{" "}
-                    {formatUsd(item.amountCents)}
+                    {formatUsd(item.amountCents - item.refundedCents)}
+                    {item.refundedCents > 0
+                      ? ` · ${formatUsd(item.refundedCents)} refunded`
+                      : ""}
                   </li>
                 ))}
               </ul>
