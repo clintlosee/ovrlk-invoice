@@ -29,3 +29,11 @@ export function formatCents(value: number): string {
   const frac = String(abs % 100).padStart(2, "0");
   return `${negative ? "-" : ""}${dollars}.${frac}`;
 }
+
+/** 1250 → "$12.50". v1 currency is USD. */
+export function formatUsd(value: number): string {
+  const formatted = formatCents(value);
+  return formatted.startsWith("-")
+    ? `-$${formatted.slice(1)}`
+    : `$${formatted}`;
+}

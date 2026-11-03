@@ -8,5 +8,10 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
-  plugins: [tanstackStart(), viteReact(), tailwindcss(), nitro()],
+  plugins: [
+    tanstackStart(),
+    viteReact(),
+    tailwindcss(),
+    nitro({ traceDeps: ["pdfkit"] }),
+  ],
 });

@@ -4,7 +4,7 @@ Invoicing, expense tracking, and reporting for small businesses, starting with o
 
 Terms used in this project are defined in [GLOSSARY.md](./GLOSSARY.md). Architecture decisions are recorded in [docs/adr](./docs/adr).
 
-This repository is the first slice: the TanStack Start app, Owner sign-in, Business tenancy, and the security baseline. Clients, invoices, Stripe, expenses, and reports come in later pull requests.
+This repository includes Owner sign-in, Business tenancy, Clients, Items, Tax Rates, and Invoices (PDF, email, and a public Invoice Link). Stripe, expenses, and reports come in later pull requests.
 
 ## Local setup
 
@@ -15,7 +15,7 @@ pnpm install
 cp .env.example .env
 ```
 
-Fill in `.env`. `BETTER_AUTH_SECRET` must be at least 32 characters (`openssl rand -base64 32`). Leave `RESEND_API_KEY` empty locally and the sign-in code is printed in the server log. Real values for production live in the Render service environment, not in git.
+Fill in `.env`. `BETTER_AUTH_SECRET` must be at least 32 characters (`openssl rand -base64 32`). Leave `RESEND_API_KEY` empty locally and the sign-in code, and any Invoice email, is printed in the server log. Real values for production live in the Render service environment, not in git.
 
 ```sh
 pnpm db:migrate

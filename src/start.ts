@@ -6,8 +6,15 @@ import {
 } from "@tanstack/react-start";
 import { migrateDb } from "./db/client";
 import { isProduction } from "./lib/config";
-import { clientIp, consumePublicRateLimit } from "./server/rate-limit";
-import { securityHeaders } from "./server/security-headers";
+import {
+  clientIp,
+  consumePublicRateLimit,
+  runPublicRateLimitCounted,
+} from "./server/rate-limit";
+import {
+  publicDocumentHeaders,
+  securityHeaders,
+} from "./server/security-headers";
 
 const publicError = createSerializationAdapter({
   key: "ovrlk/public-error",
@@ -21,24 +28,32 @@ let migrating: Promise<void> | undefined;
 const gate = createMiddleware().server(async ({ next, pathname, request }) => {
   migrating ??= migrateDb();
   await migrating;
-  if (pathname.startsWith("/p/")) {
+  const limited = pathname.startsWith("/p/");
+  if (limited) {
     const limit = await consumePublicRateLimit(clientIp(request));
     if (!limit.allowed) {
-      const headers = new Headers(
-        securityHeaders({ dev: !isProduction(), https: isProduction() }),
-      );
+      const headers = new Headers({
+        ...securityHeaders({ dev: !isProduction(), https: isProduction() }),
+        ...publicDocumentHeaders(),
+      });
       headers.set("content-type", "text/plain; charset=utf-8");
       headers.set("retry-after", String(Math.ceil(limit.retryAfterMs / 1000)));
-      headers.set("cache-control", "no-store");
       return new Response("Too many requests", { status: 429, headers });
     }
   }
-  const result = await next();
+  const result = limited
+    ? await runPublicRateLimitCounted(() => next())
+    : await next();
   const headers = new Headers(result.response.headers);
   for (const [key, value] of Object.entries(
     securityHeaders({ dev: !isProduction(), https: isProduction() }),
   )) {
     headers.set(key, value);
+  }
+  if (limited) {
+    for (const [key, value] of Object.entries(publicDocumentHeaders())) {
+      headers.set(key, value);
+    }
   }
   return {
     ...result,

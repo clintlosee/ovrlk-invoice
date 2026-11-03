@@ -32,6 +32,15 @@ export function securityHeaders(options: {
   return headers;
 }
 
+/** Public Invoice Links: no referrer, no index, no shared cache. */
+export function publicDocumentHeaders(): Record<string, string> {
+  return {
+    "referrer-policy": "no-referrer",
+    "x-robots-tag": "noindex, nofollow",
+    "cache-control": "private, no-store",
+  };
+}
+
 export function withSecurityHeaders(
   response: Response,
   options: { dev: boolean; https: boolean },

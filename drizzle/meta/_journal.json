@@ -15,6 +15,13 @@
       "when": 1793671643615,
       "tag": "0001_clients_items_tax_rates",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793678209205,
+      "tag": "0002_invoices",
+      "breakpoints": true
     }
   ]
 }
