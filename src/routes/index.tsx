@@ -42,7 +42,7 @@ function Home() {
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
         {OVERVIEW.map((block) => (
           <Card key={block.title} className="p-4">
-            <h2 className="font-serif text-xl text-primary">{block.title}</h2>
+            <h2 className="font-serif text-xl text-brass-ink">{block.title}</h2>
             <p className="mt-2 text-sm text-muted-foreground">{block.body}</p>
           </Card>
         ))}

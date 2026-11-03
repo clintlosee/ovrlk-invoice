@@ -72,6 +72,7 @@ export type InvoiceView = {
   locked: boolean;
   amountDueCents: number;
   paidCents: number;
+  updatedAt: Date;
   hasLogo: boolean;
   payments: PaymentView[];
   document: InvoiceSnapshot;
@@ -408,6 +409,7 @@ export function invoiceMethods(db: AppDb, businessId: string) {
             paidCents,
           ),
           paidCents,
+          updatedAt: row.updatedAt,
           payments,
           document,
           editorLines: null,
@@ -508,6 +510,7 @@ export function invoiceMethods(db: AppDb, businessId: string) {
           paidCents,
         ),
         paidCents,
+        updatedAt: row.updatedAt,
         payments,
         document,
         editorLines,

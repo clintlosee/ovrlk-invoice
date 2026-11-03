@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { type InvoiceDisplayStatus, statusLabel } from "@/lib/invoice";
+import { cn } from "@/lib/utils";
 
 const statusClass = cva("border-transparent", {
   variants: {
@@ -44,12 +45,14 @@ const ICONS: Record<InvoiceDisplayStatus, LucideIcon> = {
 
 export function InvoiceStatusBadge({
   status,
+  className,
 }: {
   status: InvoiceDisplayStatus;
+  className?: string;
 }) {
   const Icon = ICONS[status];
   return (
-    <Badge className={statusClass({ status })}>
+    <Badge className={cn(statusClass({ status }), className)}>
       <Icon aria-hidden className="size-3.5" />
       {statusLabel(status)}
     </Badge>

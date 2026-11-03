@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { InvoiceStatusBadge } from "@/components/invoice-status-badge";
 import { MonthBars } from "@/components/reports";
-import { Card } from "@/components/ui/card";
+import { Card, cardList } from "@/components/ui/card";
 import { formatUsd } from "@/lib/money";
 import { NO_BUSINESS_LABEL } from "@/lib/nav";
 import type { ReportPreset, ReportQuery } from "@/lib/reports";
+import { cn } from "@/lib/utils";
 import { getDashboard } from "@/server/reports";
 
 export const Route = createFileRoute("/app/")({
@@ -34,7 +35,7 @@ function AppHome() {
       </p>
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         <Card className="p-4">
-          <h2 className="text-xs font-medium text-primary">Outstanding</h2>
+          <h2 className="text-xs font-medium text-brass-ink">Outstanding</h2>
           <p className="mt-2 font-serif text-2xl">
             {formatUsd(home.outstandingCents)}
           </p>
@@ -44,7 +45,7 @@ function AppHome() {
           </p>
         </Card>
         <Card className="p-4">
-          <h2 className="text-xs font-medium text-primary">Overdue</h2>
+          <h2 className="text-xs font-medium text-brass-ink">Overdue</h2>
           <p className="mt-2 font-serif text-2xl">
             {formatUsd(home.overdueCents)}
           </p>
@@ -54,7 +55,7 @@ function AppHome() {
           </p>
         </Card>
         <Card className="p-4">
-          <h2 className="text-xs font-medium text-primary">Paid</h2>
+          <h2 className="text-xs font-medium text-brass-ink">Paid</h2>
           <p className="mt-2 font-serif text-2xl">
             {formatUsd(home.paidThisMonthCents)}
           </p>
@@ -83,7 +84,7 @@ function AppHome() {
           </p>
         </Card>
         <Card className="p-4">
-          <h2 className="text-xs font-medium text-primary">Expenses</h2>
+          <h2 className="text-xs font-medium text-brass-ink">Expenses</h2>
           <p className="mt-2 font-serif text-2xl">
             {formatUsd(home.expensesThisMonthCents)}
           </p>
@@ -111,7 +112,7 @@ function AppHome() {
           </p>
         </Card>
         <Card className="p-4 sm:col-span-2">
-          <h2 className="text-xs font-medium text-primary">
+          <h2 className="text-xs font-medium text-brass-ink">
             Net profit, year to date
           </h2>
           <p className="mt-2 font-serif text-2xl">
@@ -136,7 +137,7 @@ function AppHome() {
         {home.recentInvoices.length === 0 ? (
           <p className="mt-3 text-sm">No Invoices yet.</p>
         ) : (
-          <ul className="mt-3 divide-y divide-border overflow-hidden rounded-lg border border-border border-t-[6px] border-t-brass bg-card">
+          <ul className={cn("mt-3", cardList)}>
             {home.recentInvoices.map((invoice) => (
               <li key={invoice.id} className="px-4 py-3">
                 <Link
@@ -162,7 +163,7 @@ function AppHome() {
         {home.recentPayments.length === 0 ? (
           <p className="mt-3 text-sm">No Payments yet.</p>
         ) : (
-          <ul className="mt-3 divide-y divide-border overflow-hidden rounded-lg border border-border border-t-[6px] border-t-brass bg-card">
+          <ul className={cn("mt-3", cardList)}>
             {home.recentPayments.map((payment) => (
               <li key={payment.id} className="px-4 py-3">
                 <Link

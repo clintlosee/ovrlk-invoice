@@ -25,7 +25,7 @@ type Letterhead = {
 const selectClass =
   "h-9 rounded-md border border-input bg-card px-2 text-sm text-foreground outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
-const labelClass = "text-xs font-medium text-primary";
+const labelClass = "text-xs font-medium text-brass-ink";
 
 export function InvoiceForm({
   title,
@@ -484,7 +484,7 @@ export function InvoiceForm({
               <dd>{formatUsd(totalCents)}</dd>
             </div>
             <div className="flex justify-between gap-6 px-2 font-medium">
-              <dt className="text-primary">Amount due</dt>
+              <dt className="text-brass-ink">Amount due</dt>
               <dd>{formatUsd(totalCents)}</dd>
             </div>
           </dl>

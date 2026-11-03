@@ -1,4 +1,5 @@
 import { InvoiceStatusBadge } from "@/components/invoice-status-badge";
+import { cardSurface } from "@/components/ui/card";
 import {
   formatInvoiceNumber,
   type InvoiceDisplayStatus,
@@ -6,6 +7,7 @@ import {
 } from "@/lib/invoice";
 import { formatUsd } from "@/lib/money";
 import { formatBps } from "@/lib/tax";
+import { cn } from "@/lib/utils";
 
 export function InvoiceDocument({
   document,
@@ -24,7 +26,7 @@ export function InvoiceDocument({
 }) {
   const accent = document.business.accentColor;
   return (
-    <article className="overflow-hidden rounded-lg border border-border bg-card">
+    <article className={cn(cardSurface, "overflow-hidden")}>
       <div className="h-2" style={{ backgroundColor: accent }} />
       <div className="space-y-6 p-6">
         <header className="flex flex-wrap items-start justify-between gap-4">

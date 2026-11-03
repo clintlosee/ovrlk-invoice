@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
+import { cardList } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { getItems } from "@/server/catalog";
 
 export const Route = createFileRoute("/app/items/")({
@@ -25,7 +27,7 @@ function ItemsPage() {
       {items.length === 0 ? (
         <p className="mt-6 text-sm">No Items yet.</p>
       ) : (
-        <ul className="mt-6 divide-y divide-border overflow-hidden rounded-lg border border-border border-t-[6px] border-t-brass bg-card">
+        <ul className={cn("mt-6", cardList)}>
           {items.map((item) => (
             <li key={item.id} className="px-4 py-3">
               <div className="flex items-baseline justify-between gap-4">

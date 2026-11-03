@@ -23,6 +23,9 @@
   --color-ring: var(--ring);
   --color-brass: var(--brass);
   --color-brass-foreground: var(--brass-foreground);
+  --color-brass-ink: var(--brass-ink);
+  --color-card-line: var(--card-line);
+  --shadow-card: var(--card-shadow);
   --color-status-paid: var(--status-paid);
   --color-status-paid-foreground: var(--status-paid-foreground);
   --color-status-paid-bg: var(--status-paid-bg);
@@ -55,7 +58,8 @@
   Light values live on :root and .light. Dark values live on .dark.
   System (or a missing cookie) does not run a script: the media query below
   copies the dark values onto html.system. Keep that block identical to .dark.
-  Brass is a fill. Text on it uses --brass-foreground, never brass as text.
+  Brass is a fill. Text on it uses --brass-foreground.
+  Labels and card titles use --brass-ink, which stays readable on the card.
 */
 
 /* token-block: light */
@@ -66,6 +70,8 @@
   --foreground: #17211d;
   --card: #ffffff;
   --card-foreground: #17211d;
+  --card-shadow:
+    0 1px 2px rgb(23 33 29 / 0.04), 0 10px 24px -14px rgb(23 33 29 / 0.18);
   --popover: #ffffff;
   --popover-foreground: #17211d;
   --primary: #1f5f4a;
@@ -84,6 +90,8 @@
   --ring: #1f5f4a;
   --brass: #c9973a;
   --brass-foreground: #17211d;
+  --brass-ink: #8f6218;
+  --card-line: color-mix(in srgb, var(--brass) 55%, var(--border));
   --status-paid: #16a34a;
   --status-paid-foreground: #166534;
   --status-paid-bg: color-mix(in srgb, var(--status-paid) 10%, transparent);
@@ -129,6 +137,8 @@
   --foreground: #edeae0;
   --card: #161e1a;
   --card-foreground: #edeae0;
+  --card-shadow:
+    0 1px 2px rgb(0 0 0 / 0.35), 0 12px 28px -14px rgb(0 0 0 / 0.55);
   --popover: #1d2722;
   --popover-foreground: #edeae0;
   --primary: #2f7d61;
@@ -147,6 +157,8 @@
   --ring: #6fcba8;
   --brass: #d9a94a;
   --brass-foreground: #17211d;
+  --brass-ink: #d9a94a;
+  --card-line: color-mix(in srgb, var(--brass) 48%, var(--border));
   --status-paid: #4ade80;
   --status-paid-foreground: #4ade80;
   --status-paid-bg: color-mix(in srgb, var(--status-paid) 16%, transparent);
@@ -193,6 +205,8 @@
     --foreground: #edeae0;
     --card: #161e1a;
     --card-foreground: #edeae0;
+    --card-shadow:
+      0 1px 2px rgb(0 0 0 / 0.35), 0 12px 28px -14px rgb(0 0 0 / 0.55);
     --popover: #1d2722;
     --popover-foreground: #edeae0;
     --primary: #2f7d61;
@@ -211,6 +225,8 @@
     --ring: #6fcba8;
     --brass: #d9a94a;
     --brass-foreground: #17211d;
+    --brass-ink: #d9a94a;
+    --card-line: color-mix(in srgb, var(--brass) 48%, var(--border));
     --status-paid: #4ade80;
     --status-paid-foreground: #4ade80;
     --status-paid-bg: color-mix(in srgb, var(--status-paid) 16%, transparent);

@@ -126,7 +126,7 @@ export function ExpenseTable({
   return (
     <table className="mt-6 w-full text-sm">
       <thead>
-        <tr className="border-b-2 border-brass text-left text-primary">
+        <tr className="border-b-2 border-brass text-left text-brass-ink">
           <th className="py-2 font-medium">Category</th>
           <th className="py-2 text-right font-medium">Amount</th>
           <th className="py-2 text-right font-medium">Tax paid</th>
@@ -188,7 +188,7 @@ export function RevenueTable({
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[40rem] text-sm">
             <thead>
-              <tr className="border-b-2 border-brass text-left text-primary">
+              <tr className="border-b-2 border-brass text-left text-brass-ink">
                 <th className="py-2 font-medium">Client</th>
                 <th className="py-2 text-right font-medium">Invoiced</th>
                 <th className="py-2 text-right font-medium">Paid</th>
@@ -393,7 +393,7 @@ function PeriodBar({ search }: { search: ReportQuery }) {
             });
           }}
         >
-          <label className="text-sm text-primary" htmlFor="report-from">
+          <label className="text-sm text-brass-ink" htmlFor="report-from">
             From
             <Input
               id="report-from"
@@ -403,7 +403,7 @@ function PeriodBar({ search }: { search: ReportQuery }) {
               required
             />
           </label>
-          <label className="text-sm text-primary" htmlFor="report-to">
+          <label className="text-sm text-brass-ink" htmlFor="report-to">
             To
             <Input
               id="report-to"
@@ -448,7 +448,7 @@ function Section({ label, rows }: { label: string; rows: CategoryAmount[] }) {
     <>
       <tr>
         <th
-          className="pt-4 pb-1 text-left font-medium text-primary"
+          className="pt-4 pb-1 text-left font-medium text-brass-ink"
           colSpan={2}
         >
           {label}
@@ -509,7 +509,10 @@ function MoneyRow({
 function GroupHeading({ children }: { children: string }) {
   return (
     <tr>
-      <th className="pt-4 pb-1 text-left font-medium text-primary" colSpan={3}>
+      <th
+        className="pt-4 pb-1 text-left font-medium text-brass-ink"
+        colSpan={3}
+      >
         {children}
       </th>
     </tr>

@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
+import { cardList } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { getTaxRates } from "@/server/catalog";
 
 export const Route = createFileRoute("/app/tax-rates/")({
@@ -25,7 +27,7 @@ function TaxRatesPage() {
       {taxRates.length === 0 ? (
         <p className="mt-6 text-sm">No Tax Rates yet.</p>
       ) : (
-        <ul className="mt-6 divide-y divide-border overflow-hidden rounded-lg border border-border border-t-[6px] border-t-brass bg-card">
+        <ul className={cn("mt-6", cardList)}>
           {taxRates.map((rate) => (
             <li
               key={rate.id}

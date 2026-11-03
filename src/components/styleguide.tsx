@@ -39,6 +39,7 @@ const SWATCHES = [
   ["accent", "bg-accent text-accent-foreground"],
   ["destructive", "bg-destructive text-destructive-foreground"],
   ["brass", "bg-brass text-brass-foreground"],
+  ["brass-ink", "bg-card text-brass-ink"],
   ["border", "border-2 border-border bg-background text-foreground"],
   ["input", "border-2 border-input bg-background text-foreground"],
   ["ring", "border-2 border-ring bg-background text-foreground"],

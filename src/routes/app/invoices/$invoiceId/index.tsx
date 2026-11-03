@@ -464,7 +464,7 @@ function PaymentForm({
       }}
     >
       <label
-        className="text-sm text-primary"
+        className="text-sm text-brass-ink"
         htmlFor={`amount-${payment?.id ?? "new"}`}
       >
         Amount
@@ -477,7 +477,7 @@ function PaymentForm({
         />
       </label>
       <label
-        className="text-sm text-primary"
+        className="text-sm text-brass-ink"
         htmlFor={`date-${payment?.id ?? "new"}`}
       >
         Date in the Business time zone
@@ -490,7 +490,7 @@ function PaymentForm({
         />
       </label>
       <label
-        className="text-sm text-primary"
+        className="text-sm text-brass-ink"
         htmlFor={`method-${payment?.id ?? "new"}`}
       >
         Method
@@ -507,7 +507,7 @@ function PaymentForm({
         </select>
       </label>
       <label
-        className="text-sm text-primary"
+        className="text-sm text-brass-ink"
         htmlFor={`note-${payment?.id ?? "new"}`}
       >
         Note

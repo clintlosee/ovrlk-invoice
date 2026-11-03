@@ -3,7 +3,11 @@ import { z } from "zod";
 import { getDb } from "../db/client";
 import { appUrl } from "../lib/config";
 import { sendInvoiceEmail } from "../lib/email";
-import { paymentMethodLabel, statusLabel } from "../lib/invoice";
+import {
+  paymentMethodLabel,
+  statusLabel,
+  todayInTimeZone,
+} from "../lib/invoice";
 import { renderInvoicePdf } from "../lib/invoice-pdf";
 import { formatCents, parseDollarsToCents } from "../lib/money";
 import type { InvoiceInput, InvoiceView } from "./invoice-store";
@@ -166,21 +170,41 @@ async function scope() {
   };
 }
 
+function lineSummary(view: InvoiceView): string {
+  const line = view.document.lines[0];
+  const detail = line
+    ? [line.name, line.description].filter(Boolean).join(" — ")
+    : "";
+  const reference = view.document.reference;
+  if (reference && detail) return `${reference} — ${detail}`;
+  return reference || detail;
+}
+
 export const getInvoices = createServerFn({ method: "GET" }).handler(
   async () => {
     const scoped = await scope();
     if (!scoped) return null;
-    const rows = await scoped.db.invoices.list();
-    return rows.map((view) => ({
-      id: view.id,
-      numberLabel: view.numberLabel,
-      statusLabel: statusLabel(view.displayStatus),
-      displayStatus: view.displayStatus,
-      clientName: view.document.client.name,
-      totalCents: view.document.totalCents,
-      amountDueCents: view.amountDueCents,
-      dueDate: view.document.dueDate,
-    }));
+    const [rows, biz] = await Promise.all([
+      scoped.db.invoices.list(),
+      scoped.db.business.get(),
+    ]);
+    if (!biz) return null;
+    return {
+      today: todayInTimeZone(biz.timeZone),
+      invoices: rows.map((view) => ({
+        id: view.id,
+        numberLabel: view.numberLabel,
+        statusLabel: statusLabel(view.displayStatus),
+        displayStatus: view.displayStatus,
+        clientName: view.document.client.name,
+        summary: lineSummary(view),
+        totalCents: view.document.totalCents,
+        amountDueCents: view.amountDueCents,
+        issueDate: view.document.issueDate,
+        dueDate: view.document.dueDate,
+        updatedAt: view.updatedAt.toISOString(),
+      })),
+    };
   },
 );
 
