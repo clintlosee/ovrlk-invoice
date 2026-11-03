@@ -17,8 +17,20 @@ import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AppIndexRouteImport } from './routes/app/index'
+import { Route as AppClientsRouteRouteImport } from './routes/app/clients/route'
+import { Route as AppItemsRouteRouteImport } from './routes/app/items/route'
 import { Route as AppSecurityRouteImport } from './routes/app/security'
+import { Route as AppTaxRatesRouteRouteImport } from './routes/app/tax-rates/route'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as AppClientsIndexRouteImport } from './routes/app/clients/index'
+import { Route as AppClientsClientIdRouteImport } from './routes/app/clients/$clientId'
+import { Route as AppClientsNewRouteImport } from './routes/app/clients/new'
+import { Route as AppItemsIndexRouteImport } from './routes/app/items/index'
+import { Route as AppItemsItemIdRouteImport } from './routes/app/items/$itemId'
+import { Route as AppItemsNewRouteImport } from './routes/app/items/new'
+import { Route as AppTaxRatesIndexRouteImport } from './routes/app/tax-rates/index'
+import { Route as AppTaxRatesTaxRateIdRouteImport } from './routes/app/tax-rates/$taxRateId'
+import { Route as AppTaxRatesNewRouteImport } from './routes/app/tax-rates/new'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -60,15 +72,75 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppClientsRouteRoute = AppClientsRouteRouteImport.update({
+  id: '/clients',
+  path: '/clients',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppItemsRouteRoute = AppItemsRouteRouteImport.update({
+  id: '/items',
+  path: '/items',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppSecurityRoute = AppSecurityRouteImport.update({
   id: '/security',
   path: '/security',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppTaxRatesRouteRoute = AppTaxRatesRouteRouteImport.update({
+  id: '/tax-rates',
+  path: '/tax-rates',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppClientsIndexRoute = AppClientsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppClientsRouteRoute,
+} as any)
+const AppClientsClientIdRoute = AppClientsClientIdRouteImport.update({
+  id: '/$clientId',
+  path: '/$clientId',
+  getParentRoute: () => AppClientsRouteRoute,
+} as any)
+const AppClientsNewRoute = AppClientsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AppClientsRouteRoute,
+} as any)
+const AppItemsIndexRoute = AppItemsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppItemsRouteRoute,
+} as any)
+const AppItemsItemIdRoute = AppItemsItemIdRouteImport.update({
+  id: '/$itemId',
+  path: '/$itemId',
+  getParentRoute: () => AppItemsRouteRoute,
+} as any)
+const AppItemsNewRoute = AppItemsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AppItemsRouteRoute,
+} as any)
+const AppTaxRatesIndexRoute = AppTaxRatesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppTaxRatesRouteRoute,
+} as any)
+const AppTaxRatesTaxRateIdRoute = AppTaxRatesTaxRateIdRouteImport.update({
+  id: '/$taxRateId',
+  path: '/$taxRateId',
+  getParentRoute: () => AppTaxRatesRouteRoute,
+} as any)
+const AppTaxRatesNewRoute = AppTaxRatesNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AppTaxRatesRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -79,9 +151,21 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/terms': typeof TermsRoute
+  '/app/clients': typeof AppClientsRouteRouteWithChildren
+  '/app/items': typeof AppItemsRouteRouteWithChildren
+  '/app/tax-rates': typeof AppTaxRatesRouteRouteWithChildren
   '/app/security': typeof AppSecurityRoute
   '/app/': typeof AppIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/app/clients/$clientId': typeof AppClientsClientIdRoute
+  '/app/clients/new': typeof AppClientsNewRoute
+  '/app/items/$itemId': typeof AppItemsItemIdRoute
+  '/app/items/new': typeof AppItemsNewRoute
+  '/app/tax-rates/$taxRateId': typeof AppTaxRatesTaxRateIdRoute
+  '/app/tax-rates/new': typeof AppTaxRatesNewRoute
+  '/app/clients/': typeof AppClientsIndexRoute
+  '/app/items/': typeof AppItemsIndexRoute
+  '/app/tax-rates/': typeof AppTaxRatesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -93,6 +177,15 @@ export interface FileRoutesByTo {
   '/app/security': typeof AppSecurityRoute
   '/app': typeof AppIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/app/clients/$clientId': typeof AppClientsClientIdRoute
+  '/app/clients/new': typeof AppClientsNewRoute
+  '/app/items/$itemId': typeof AppItemsItemIdRoute
+  '/app/items/new': typeof AppItemsNewRoute
+  '/app/tax-rates/$taxRateId': typeof AppTaxRatesTaxRateIdRoute
+  '/app/tax-rates/new': typeof AppTaxRatesNewRoute
+  '/app/clients': typeof AppClientsIndexRoute
+  '/app/items': typeof AppItemsIndexRoute
+  '/app/tax-rates': typeof AppTaxRatesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -103,9 +196,21 @@ export interface FileRoutesById {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/terms': typeof TermsRoute
+  '/app/clients': typeof AppClientsRouteRouteWithChildren
+  '/app/items': typeof AppItemsRouteRouteWithChildren
+  '/app/tax-rates': typeof AppTaxRatesRouteRouteWithChildren
   '/app/security': typeof AppSecurityRoute
   '/app/': typeof AppIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/app/clients/$clientId': typeof AppClientsClientIdRoute
+  '/app/clients/new': typeof AppClientsNewRoute
+  '/app/items/$itemId': typeof AppItemsItemIdRoute
+  '/app/items/new': typeof AppItemsNewRoute
+  '/app/tax-rates/$taxRateId': typeof AppTaxRatesTaxRateIdRoute
+  '/app/tax-rates/new': typeof AppTaxRatesNewRoute
+  '/app/clients/': typeof AppClientsIndexRoute
+  '/app/items/': typeof AppItemsIndexRoute
+  '/app/tax-rates/': typeof AppTaxRatesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -117,9 +222,21 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/terms'
+    | '/app/clients'
+    | '/app/items'
+    | '/app/tax-rates'
     | '/app/security'
     | '/app/'
     | '/api/auth/$'
+    | '/app/clients/$clientId'
+    | '/app/clients/new'
+    | '/app/items/$itemId'
+    | '/app/items/new'
+    | '/app/tax-rates/$taxRateId'
+    | '/app/tax-rates/new'
+    | '/app/clients/'
+    | '/app/items/'
+    | '/app/tax-rates/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -131,6 +248,15 @@ export interface FileRouteTypes {
     | '/app/security'
     | '/app'
     | '/api/auth/$'
+    | '/app/clients/$clientId'
+    | '/app/clients/new'
+    | '/app/items/$itemId'
+    | '/app/items/new'
+    | '/app/tax-rates/$taxRateId'
+    | '/app/tax-rates/new'
+    | '/app/clients'
+    | '/app/items'
+    | '/app/tax-rates'
   id:
     | '__root__'
     | '/'
@@ -140,9 +266,21 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/terms'
+    | '/app/clients'
+    | '/app/items'
+    | '/app/tax-rates'
     | '/app/security'
     | '/app/'
     | '/api/auth/$'
+    | '/app/clients/$clientId'
+    | '/app/clients/new'
+    | '/app/items/$itemId'
+    | '/app/items/new'
+    | '/app/tax-rates/$taxRateId'
+    | '/app/tax-rates/new'
+    | '/app/clients/'
+    | '/app/items/'
+    | '/app/tax-rates/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -214,11 +352,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/app/clients': {
+      id: '/app/clients'
+      path: '/clients'
+      fullPath: '/app/clients'
+      preLoaderRoute: typeof AppClientsRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/items': {
+      id: '/app/items'
+      path: '/items'
+      fullPath: '/app/items'
+      preLoaderRoute: typeof AppItemsRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/app/security': {
       id: '/app/security'
       path: '/security'
       fullPath: '/app/security'
       preLoaderRoute: typeof AppSecurityRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/tax-rates': {
+      id: '/app/tax-rates'
+      path: '/tax-rates'
+      fullPath: '/app/tax-rates'
+      preLoaderRoute: typeof AppTaxRatesRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/api/auth/$': {
@@ -228,15 +387,131 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/clients/': {
+      id: '/app/clients/'
+      path: '/'
+      fullPath: '/app/clients/'
+      preLoaderRoute: typeof AppClientsIndexRouteImport
+      parentRoute: typeof AppClientsRouteRoute
+    }
+    '/app/clients/$clientId': {
+      id: '/app/clients/$clientId'
+      path: '/$clientId'
+      fullPath: '/app/clients/$clientId'
+      preLoaderRoute: typeof AppClientsClientIdRouteImport
+      parentRoute: typeof AppClientsRouteRoute
+    }
+    '/app/clients/new': {
+      id: '/app/clients/new'
+      path: '/new'
+      fullPath: '/app/clients/new'
+      preLoaderRoute: typeof AppClientsNewRouteImport
+      parentRoute: typeof AppClientsRouteRoute
+    }
+    '/app/items/': {
+      id: '/app/items/'
+      path: '/'
+      fullPath: '/app/items/'
+      preLoaderRoute: typeof AppItemsIndexRouteImport
+      parentRoute: typeof AppItemsRouteRoute
+    }
+    '/app/items/$itemId': {
+      id: '/app/items/$itemId'
+      path: '/$itemId'
+      fullPath: '/app/items/$itemId'
+      preLoaderRoute: typeof AppItemsItemIdRouteImport
+      parentRoute: typeof AppItemsRouteRoute
+    }
+    '/app/items/new': {
+      id: '/app/items/new'
+      path: '/new'
+      fullPath: '/app/items/new'
+      preLoaderRoute: typeof AppItemsNewRouteImport
+      parentRoute: typeof AppItemsRouteRoute
+    }
+    '/app/tax-rates/': {
+      id: '/app/tax-rates/'
+      path: '/'
+      fullPath: '/app/tax-rates/'
+      preLoaderRoute: typeof AppTaxRatesIndexRouteImport
+      parentRoute: typeof AppTaxRatesRouteRoute
+    }
+    '/app/tax-rates/$taxRateId': {
+      id: '/app/tax-rates/$taxRateId'
+      path: '/$taxRateId'
+      fullPath: '/app/tax-rates/$taxRateId'
+      preLoaderRoute: typeof AppTaxRatesTaxRateIdRouteImport
+      parentRoute: typeof AppTaxRatesRouteRoute
+    }
+    '/app/tax-rates/new': {
+      id: '/app/tax-rates/new'
+      path: '/new'
+      fullPath: '/app/tax-rates/new'
+      preLoaderRoute: typeof AppTaxRatesNewRouteImport
+      parentRoute: typeof AppTaxRatesRouteRoute
+    }
   }
 }
 
+interface AppClientsRouteRouteChildren {
+  AppClientsClientIdRoute: typeof AppClientsClientIdRoute
+  AppClientsNewRoute: typeof AppClientsNewRoute
+  AppClientsIndexRoute: typeof AppClientsIndexRoute
+}
+
+const AppClientsRouteRouteChildren: AppClientsRouteRouteChildren = {
+  AppClientsClientIdRoute: AppClientsClientIdRoute,
+  AppClientsNewRoute: AppClientsNewRoute,
+  AppClientsIndexRoute: AppClientsIndexRoute,
+}
+
+const AppClientsRouteRouteWithChildren = AppClientsRouteRoute._addFileChildren(
+  AppClientsRouteRouteChildren,
+)
+
+interface AppItemsRouteRouteChildren {
+  AppItemsItemIdRoute: typeof AppItemsItemIdRoute
+  AppItemsNewRoute: typeof AppItemsNewRoute
+  AppItemsIndexRoute: typeof AppItemsIndexRoute
+}
+
+const AppItemsRouteRouteChildren: AppItemsRouteRouteChildren = {
+  AppItemsItemIdRoute: AppItemsItemIdRoute,
+  AppItemsNewRoute: AppItemsNewRoute,
+  AppItemsIndexRoute: AppItemsIndexRoute,
+}
+
+const AppItemsRouteRouteWithChildren = AppItemsRouteRoute._addFileChildren(
+  AppItemsRouteRouteChildren,
+)
+
+interface AppTaxRatesRouteRouteChildren {
+  AppTaxRatesTaxRateIdRoute: typeof AppTaxRatesTaxRateIdRoute
+  AppTaxRatesNewRoute: typeof AppTaxRatesNewRoute
+  AppTaxRatesIndexRoute: typeof AppTaxRatesIndexRoute
+}
+
+const AppTaxRatesRouteRouteChildren: AppTaxRatesRouteRouteChildren = {
+  AppTaxRatesTaxRateIdRoute: AppTaxRatesTaxRateIdRoute,
+  AppTaxRatesNewRoute: AppTaxRatesNewRoute,
+  AppTaxRatesIndexRoute: AppTaxRatesIndexRoute,
+}
+
+const AppTaxRatesRouteRouteWithChildren =
+  AppTaxRatesRouteRoute._addFileChildren(AppTaxRatesRouteRouteChildren)
+
 interface AppRouteRouteChildren {
+  AppClientsRouteRoute: typeof AppClientsRouteRouteWithChildren
+  AppItemsRouteRoute: typeof AppItemsRouteRouteWithChildren
+  AppTaxRatesRouteRoute: typeof AppTaxRatesRouteRouteWithChildren
   AppSecurityRoute: typeof AppSecurityRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
+  AppClientsRouteRoute: AppClientsRouteRouteWithChildren,
+  AppItemsRouteRoute: AppItemsRouteRouteWithChildren,
+  AppTaxRatesRouteRoute: AppTaxRatesRouteRouteWithChildren,
   AppSecurityRoute: AppSecurityRoute,
   AppIndexRoute: AppIndexRoute,
 }

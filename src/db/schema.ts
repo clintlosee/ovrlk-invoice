@@ -3,6 +3,7 @@ import {
   check,
   index,
   integer,
+  primaryKey,
   sqliteTable,
   text,
   uniqueIndex,
@@ -75,3 +76,99 @@ export const requestLimit = sqliteTable("request_limit", {
   count: integer("count").notNull(),
   windowStart: integer("window_start").notNull(),
 });
+
+/**
+ * A Client the Business bills. Clients never sign in.
+ * Archived instead of deleted so a later Invoice can keep its Client (ADR 0005).
+ */
+export const client = sqliteTable(
+  "client",
+  {
+    id: text("id").primaryKey(),
+    businessId: text("business_id")
+      .notNull()
+      .references(() => business.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    phone: text("phone"),
+    address: text("address"),
+    taxExempt: integer("tax_exempt", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    note: text("note"),
+    archivedAt: integer("archived_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [index("client_business_idx").on(table.businessId)],
+);
+
+/**
+ * Named percentage for one Business.
+ * Stored as basis points: 100 bps = 1%, so 725 is 7.25%. Never a float.
+ * ponytail: 0.01% resolution. Switch this column to millionths of the rate if a Tax Rate needs a third decimal.
+ */
+export const taxRate = sqliteTable(
+  "tax_rate",
+  {
+    id: text("id").primaryKey(),
+    businessId: text("business_id")
+      .notNull()
+      .references(() => business.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    rateBps: integer("rate_bps").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    index("tax_rate_business_idx").on(table.businessId),
+    check(
+      "tax_rate_bps_integer",
+      sql`${table.rateBps} >= 0 AND ${table.rateBps} <= 10000 AND typeof(${table.rateBps}) = 'integer'`,
+    ),
+  ],
+);
+
+/** Saved Item. Invoice Lines copy it; they do not reference it (ADR 0005). */
+export const item = sqliteTable(
+  "item",
+  {
+    id: text("id").primaryKey(),
+    businessId: text("business_id")
+      .notNull()
+      .references(() => business.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    unitPriceCents: integer("unit_price_cents").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    index("item_business_idx").on(table.businessId),
+    check(
+      "item_unit_price_cents_integer",
+      sql`typeof(${table.unitPriceCents}) = 'integer'`,
+    ),
+  ],
+);
+
+/** An Item's default Tax Rates. Both sides belong to the same Business. */
+export const itemTaxRate = sqliteTable(
+  "item_tax_rate",
+  {
+    itemId: text("item_id")
+      .notNull()
+      .references(() => item.id, { onDelete: "cascade" }),
+    taxRateId: text("tax_rate_id")
+      .notNull()
+      .references(() => taxRate.id, { onDelete: "cascade" }),
+    businessId: text("business_id")
+      .notNull()
+      .references(() => business.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.itemId, table.taxRateId] }),
+    index("item_tax_rate_business_idx").on(table.businessId),
+    index("item_tax_rate_tax_rate_idx").on(table.taxRateId),
+  ],
+);

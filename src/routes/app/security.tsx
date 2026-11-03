@@ -1,6 +1,5 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
-import { Shell } from "@/components/shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,12 +22,7 @@ function SecurityPage() {
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [pending, setPending] = useState(false);
 
-  if (!security)
-    return (
-      <Shell>
-        <p>Sign in again.</p>
-      </Shell>
-    );
+  if (!security) return <p>Sign in again.</p>;
 
   async function onEnable(event: React.FormEvent) {
     event.preventDefault();
@@ -95,7 +89,7 @@ function SecurityPage() {
   }
 
   return (
-    <Shell>
+    <>
       <h1 className="font-serif text-3xl">Security</h1>
       <p className="mt-2 text-sm text-muted">
         Email codes are required and cannot be turned off.
@@ -194,6 +188,6 @@ function SecurityPage() {
         </ul>
       </Card>
       {message ? <p className="mt-4 text-sm">{message}</p> : null}
-    </Shell>
+    </>
   );
 }

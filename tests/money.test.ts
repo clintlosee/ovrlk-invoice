@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { getDb } from "../src/db/client";
 import { auditLog } from "../src/db/schema";
-import { cents } from "../src/lib/money";
+import { cents, formatCents, parseDollarsToCents } from "../src/lib/money";
 import { forBusiness } from "../src/server/tenancy";
 import { insertOwner } from "./helpers";
 
@@ -39,5 +39,13 @@ describe("money", () => {
       .from(auditLog)
       .where(eq(auditLog.id, row?.id ?? ""));
     expect(stored[0]?.amountCents).toBe(2500);
+    expect(parseDollarsToCents("12.50")).toBe(1250);
+    expect(parseDollarsToCents("12.5")).toBe(1250);
+    expect(parseDollarsToCents("0.01")).toBe(1);
+    expect(formatCents(1250)).toBe("12.50");
+    expect(formatCents(0)).toBe("0.00");
+    expect(parseDollarsToCents(formatCents(1250))).toBe(1250);
+    expect(() => parseDollarsToCents("12.345")).toThrow(/12\.50/);
+    expect(() => parseDollarsToCents("-1")).toThrow(/12\.50/);
   });
 });

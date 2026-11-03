@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { AppNav, Shell } from "@/components/shell";
 import { getSessionUser } from "@/server/session";
 
 export const Route = createFileRoute("/app")({
@@ -8,5 +9,12 @@ export const Route = createFileRoute("/app")({
     return { session };
   },
   headers: () => ({ "cache-control": "no-store" }),
-  component: () => <Outlet />,
+  component: function AppLayout() {
+    return (
+      <Shell wide>
+        <AppNav />
+        <Outlet />
+      </Shell>
+    );
+  },
 });

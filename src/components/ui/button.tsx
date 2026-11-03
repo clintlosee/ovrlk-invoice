@@ -8,7 +8,8 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-foreground text-background hover:opacity-90",
+        // Unlayered `a { color: inherit }` would hide this label when the control is a link.
+        default: "bg-foreground text-background! hover:opacity-90",
         outline: "border border-border bg-card hover:bg-background",
         ghost: "hover:bg-card",
       },
