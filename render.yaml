@@ -6,6 +6,7 @@ services:
     runtime: node
     plan: starter
     buildCommand: pnpm install --frozen-lockfile --prod=false && pnpm build
+    preDeployCommand: pnpm db:migrate
     startCommand: pnpm start
     healthCheckPath: /health
     envVars:
