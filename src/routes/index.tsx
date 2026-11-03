@@ -13,10 +13,10 @@ function Home() {
   return (
     <Shell>
       <h1 className="font-serif text-4xl tracking-tight">
-        Invoices for the print shop.
+        Invoicer by OVRLK Labs.
       </h1>
       <p className="mt-4 text-muted-foreground">
-        Clients, invoices, expenses, and reports for one photography business,
+        Clients, invoices, expenses, and reports for your business,
         walled off so other businesses can be opened later.
       </p>
       <div className="mt-8">

@@ -50,18 +50,21 @@ function SignInPage() {
     setPending(true);
     setMessage(null);
     const result = await authClient.signIn.email({ email, password });
-    setPending(false);
     if (result.error) {
+      setPending(false);
       setMessage("Email or password is incorrect.");
       return;
     }
+    // The auth client reloads /sign-in?step=code. That page sends the code.
+    // Navigating here as well mounts the code step first and sends a second one.
     if (
       result.data &&
       "twoFactorRedirect" in result.data &&
       result.data.twoFactorRedirect
     ) {
-      await navigate({ to: "/sign-in", search: { step: "code" } });
+      return;
     }
+    setPending(false);
   }
 
   async function onCode(event: React.FormEvent) {
