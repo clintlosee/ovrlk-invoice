@@ -1,5 +1,7 @@
 import { Resend } from "resend";
 import { isProduction } from "./config";
+import { formatInvoiceNumber } from "./invoice";
+import { formatUsd } from "./money";
 
 type CapturedEmail = { to: string; code: string };
 
@@ -9,16 +11,41 @@ export function takeEmails(): CapturedEmail[] {
   return inbox.splice(0, inbox.length);
 }
 
-export async function sendOtpEmail(to: string, code: string): Promise<void> {
+type Outbound = {
+  to: string;
+  subject: string;
+  text: string;
+  replyTo?: string;
+  fromName?: string;
+  attachments?: { filename: string; content: Buffer | Uint8Array }[];
+  /** Sign-in codes are captured so tests can read them when Resend is not configured. */
+  captureCode?: string;
+};
+
+export function formatFrom(name: string, emailFrom: string): string {
+  const address = /<([^>]+)>/.exec(emailFrom)?.[1]?.trim() ?? emailFrom.trim();
+  const safe =
+    name
+      .replace(/[\r\n<>"]/g, "")
+      .trim()
+      .slice(0, 200) || "Invoice";
+  return `${safe} <${address}>`;
+}
+
+export async function deliverEmail(message: Outbound): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
-  if (process.env.VITEST === "1" || !apiKey) {
-    inbox.push({ to, code });
+  if (!apiKey) {
+    if (message.captureCode) {
+      inbox.push({ to: message.to, code: message.captureCode });
+    }
     if (process.env.VITEST !== "1" && !isProduction()) {
-      console.info(`Sign-in code for ${to}: ${code}`);
+      console.info(
+        message.captureCode
+          ? `Sign-in code for ${message.to}: ${message.captureCode}`
+          : `Email to ${message.to}: ${message.subject}\n${message.text}`,
+      );
     }
-    if (isProduction() && !apiKey) {
-      throw new Error("RESEND_API_KEY is not set");
-    }
+    if (isProduction()) throw new Error("RESEND_API_KEY is not set");
     return;
   }
 
@@ -27,10 +54,56 @@ export async function sendOtpEmail(to: string, code: string): Promise<void> {
 
   const resend = new Resend(apiKey);
   const { error } = await resend.emails.send({
-    from,
+    from: message.fromName ? formatFrom(message.fromName, from) : from,
+    to: message.to,
+    subject: message.subject,
+    text: message.text,
+    replyTo: message.replyTo,
+    attachments: message.attachments?.map((file) => ({
+      filename: file.filename,
+      content: file.content,
+      contentType: "application/pdf",
+    })),
+  });
+  if (error) throw new Error("Could not send the email");
+}
+
+export async function sendOtpEmail(to: string, code: string): Promise<void> {
+  await deliverEmail({
     to,
     subject: "Your ovrlk-invoice sign-in code",
     text: `Your sign-in code is ${code}. It expires in 10 minutes. If you did not try to sign in, you can ignore this email.`,
+    captureCode: code,
   });
-  if (error) throw new Error("Could not send the sign-in code");
+}
+
+export async function sendInvoiceEmail(input: {
+  to: string;
+  replyTo: string;
+  businessName: string;
+  number: number;
+  totalCents: number;
+  dueDate: string;
+  url: string;
+  pdf: Uint8Array;
+  reminder: boolean;
+}): Promise<void> {
+  const numberLabel = formatInvoiceNumber(input.number);
+  const amount = formatUsd(input.totalCents);
+  const subject = input.reminder
+    ? `Reminder: Invoice ${numberLabel} from ${input.businessName}`
+    : `Invoice ${numberLabel} from ${input.businessName}`;
+  const intro = input.reminder
+    ? `${input.businessName} is sending a reminder for invoice ${numberLabel}.`
+    : `${input.businessName} sent you invoice ${numberLabel}.`;
+  await deliverEmail({
+    to: input.to,
+    replyTo: input.replyTo,
+    fromName: input.businessName,
+    subject,
+    text: `${intro}\n\nAmount due: ${amount}\nDue: ${input.dueDate}\n\nView the invoice: ${input.url}\n\nThe PDF is attached.`,
+    attachments: [
+      { filename: `invoice-${numberLabel}.pdf`, content: input.pdf },
+    ],
+  });
 }

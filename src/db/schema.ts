@@ -20,6 +20,11 @@ export const business = sqliteTable("business", {
   name: text("name").notNull(),
   currency: text("currency").notNull().default("USD"),
   timeZone: text("time_zone").notNull(),
+  address: text("address"),
+  taxId: text("tax_id"),
+  defaultTerms: text("default_terms"),
+  footer: text("footer"),
+  accentColor: text("accent_color"),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });
@@ -170,5 +175,150 @@ export const itemTaxRate = sqliteTable(
     primaryKey({ columns: [table.itemId, table.taxRateId] }),
     index("item_tax_rate_business_idx").on(table.businessId),
     index("item_tax_rate_tax_rate_idx").on(table.taxRateId),
+  ],
+);
+
+/** Last Invoice Number issued for a Business. The next insert claims last_number + 1. */
+export const invoiceCounter = sqliteTable("invoice_counter", {
+  businessId: text("business_id")
+    .primaryKey()
+    .references(() => business.id, { onDelete: "cascade" }),
+  lastNumber: integer("last_number").notNull(),
+});
+
+/**
+ * Draft rows are editable. Sent, Paid, and Void rows are not.
+ * Overdue is derived from due_date. snapshot is written on Send and then left alone (ADR 0005).
+ */
+export const invoice = sqliteTable(
+  "invoice",
+  {
+    id: text("id").primaryKey(),
+    businessId: text("business_id")
+      .notNull()
+      .references(() => business.id, { onDelete: "cascade" }),
+    clientId: text("client_id")
+      .notNull()
+      .references(() => client.id),
+    number: integer("number").notNull(),
+    status: text("status").notNull(),
+    issueDate: text("issue_date").notNull(),
+    dueDate: text("due_date").notNull(),
+    reference: text("reference"),
+    notes: text("notes"),
+    terms: text("terms"),
+    voidReason: text("void_reason"),
+    voidedAt: integer("voided_at", { mode: "timestamp_ms" }),
+    sentAt: integer("sent_at", { mode: "timestamp_ms" }),
+    firstViewedAt: integer("first_viewed_at", { mode: "timestamp_ms" }),
+    subtotalCents: integer("subtotal_cents").notNull(),
+    taxCents: integer("tax_cents").notNull(),
+    totalCents: integer("total_cents").notNull(),
+    snapshot: text("snapshot"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("invoice_business_number_idx").on(
+      table.businessId,
+      table.number,
+    ),
+    index("invoice_business_idx").on(table.businessId, table.createdAt),
+    index("invoice_client_idx").on(table.clientId),
+    check(
+      "invoice_status",
+      sql`${table.status} in ('draft', 'sent', 'paid', 'void')`,
+    ),
+    check(
+      "invoice_number_positive",
+      sql`${table.number} > 0 AND typeof(${table.number}) = 'integer'`,
+    ),
+    check(
+      "invoice_cents_integer",
+      sql`typeof(${table.subtotalCents}) = 'integer' AND typeof(${table.taxCents}) = 'integer' AND typeof(${table.totalCents}) = 'integer'`,
+    ),
+  ],
+);
+
+/** Copied onto the Invoice. Not a live reference to an Item (ADR 0005). */
+export const invoiceLine = sqliteTable(
+  "invoice_line",
+  {
+    id: text("id").primaryKey(),
+    invoiceId: text("invoice_id")
+      .notNull()
+      .references(() => invoice.id, { onDelete: "cascade" }),
+    businessId: text("business_id")
+      .notNull()
+      .references(() => business.id, { onDelete: "cascade" }),
+    position: integer("position").notNull(),
+    name: text("name").notNull(),
+    description: text("description"),
+    quantity: integer("quantity").notNull(),
+    unitPriceCents: integer("unit_price_cents").notNull(),
+  },
+  (table) => [
+    index("invoice_line_invoice_idx").on(table.invoiceId, table.position),
+    index("invoice_line_business_idx").on(table.businessId),
+    check(
+      "invoice_line_quantity",
+      sql`${table.quantity} > 0 AND typeof(${table.quantity}) = 'integer'`,
+    ),
+    check(
+      "invoice_line_price",
+      sql`${table.unitPriceCents} >= 0 AND typeof(${table.unitPriceCents}) = 'integer'`,
+    ),
+  ],
+);
+
+/** Name and basis points are copied. tax_rate_id is only so a draft can follow a rename before Send. */
+export const invoiceLineTax = sqliteTable(
+  "invoice_line_tax",
+  {
+    id: text("id").primaryKey(),
+    lineId: text("line_id")
+      .notNull()
+      .references(() => invoiceLine.id, { onDelete: "cascade" }),
+    businessId: text("business_id")
+      .notNull()
+      .references(() => business.id, { onDelete: "cascade" }),
+    taxRateId: text("tax_rate_id").references(() => taxRate.id, {
+      onDelete: "set null",
+    }),
+    name: text("name").notNull(),
+    rateBps: integer("rate_bps").notNull(),
+    taxCents: integer("tax_cents").notNull(),
+  },
+  (table) => [
+    index("invoice_line_tax_line_idx").on(table.lineId),
+    index("invoice_line_tax_business_idx").on(table.businessId),
+    check(
+      "invoice_line_tax_bps",
+      sql`${table.rateBps} >= 0 AND ${table.rateBps} <= 10000 AND typeof(${table.rateBps}) = 'integer'`,
+    ),
+    check("invoice_line_tax_cents", sql`typeof(${table.taxCents}) = 'integer'`),
+  ],
+);
+
+/** Stores the hash of an Invoice Link. The token itself is shown once and never written. */
+export const invoiceLink = sqliteTable(
+  "invoice_link",
+  {
+    id: text("id").primaryKey(),
+    businessId: text("business_id")
+      .notNull()
+      .references(() => business.id, { onDelete: "cascade" }),
+    invoiceId: text("invoice_id")
+      .notNull()
+      .references(() => invoice.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+    revokedAt: integer("revoked_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("invoice_link_token_hash_idx").on(table.tokenHash),
+    index("invoice_link_invoice_idx").on(table.invoiceId),
+    index("invoice_link_business_idx").on(table.businessId),
   ],
 );

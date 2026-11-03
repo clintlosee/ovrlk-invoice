@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { sql } from "drizzle-orm";
 import type { AppDb } from "../db/client";
 import { getDb } from "../db/client";
@@ -92,7 +93,7 @@ export async function limitAuthRequest(
   });
 }
 
-/** Future Invoice Links live under /p/ and call this. Also used by request middleware. */
+/** Invoice Link routes under /p/ call this. The request middleware does too. */
 export async function consumePublicRateLimit(
   ip: string,
   now = Date.now(),
@@ -106,4 +107,15 @@ export async function consumePublicRateLimit(
     },
     now,
   );
+}
+
+const publicLimitCounted = new AsyncLocalStorage<true>();
+
+export function publicRateLimitCounted(): boolean {
+  return publicLimitCounted.getStore() === true;
+}
+
+/** Middleware counts the request, then runs the handler in this scope so the route does not count it again. */
+export function runPublicRateLimitCounted<T>(fn: () => T): T {
+  return publicLimitCounted.run(true, fn);
 }

@@ -38,9 +38,12 @@ function AppHome() {
           </Link>
         </p>
       )}
-      <p className="mt-8 text-sm text-muted">
-        Invoices, expenses, and reports are next.
+      <p className="mt-8 text-sm">
+        <Link to="/app/invoices" className="underline">
+          Invoices
+        </Link>
       </p>
+      <p className="mt-4 text-sm text-muted">Expenses and reports are next.</p>
       <button
         type="button"
         className="mt-6 text-sm underline"

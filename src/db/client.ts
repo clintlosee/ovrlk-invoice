@@ -23,4 +23,5 @@ export async function migrateDb(): Promise<void> {
   const db = getDb();
   await migrate(db, { migrationsFolder: path.join(process.cwd(), "drizzle") });
   await client?.execute("PRAGMA foreign_keys = ON");
+  await client?.execute("PRAGMA busy_timeout = 5000");
 }

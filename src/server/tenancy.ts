@@ -12,6 +12,7 @@ import {
 } from "../db/schema";
 import { assertTimeZone } from "../lib/config";
 import { type Cents, cents } from "../lib/money";
+import { invoiceMethods } from "./invoice-store";
 
 type MemberRole = typeof OWNER_ROLE;
 
@@ -148,6 +149,27 @@ const secretKeys = new Set([
   "authorization",
 ]);
 
+function boundedText(
+  value: string | null,
+  max: number,
+  label: string,
+): string | null {
+  if (value === null) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed.length > max) throw new Error(`${label} is too long`);
+  return trimmed;
+}
+
+function accentOrNull(value: string | null): string | null {
+  if (value === null || value.trim() === "") return null;
+  const color = value.trim().toLowerCase();
+  if (!/^#[0-9a-f]{6}$/.test(color)) {
+    throw new Error("Accent color must look like #1c1917");
+  }
+  return color;
+}
+
 function metadataJson(
   metadata: Record<string, unknown> | null | undefined,
 ): string | null {
@@ -174,13 +196,50 @@ export function forBusiness(db: AppDb, businessId: string) {
         const rows = await db.select().from(business).where(scoped).limit(1);
         return rows[0] ?? null;
       },
-      async update(patch: { name?: string; timeZone?: string }) {
-        const next: { name?: string; timeZone?: string; updatedAt: Date } = {
-          updatedAt: new Date(),
-        };
-        if (patch.name !== undefined) next.name = patch.name;
-        if (patch.timeZone !== undefined)
+      async update(patch: {
+        name?: string;
+        timeZone?: string;
+        address?: string | null;
+        taxId?: string | null;
+        defaultTerms?: string | null;
+        footer?: string | null;
+        accentColor?: string | null;
+      }) {
+        const next: {
+          name?: string;
+          timeZone?: string;
+          address?: string | null;
+          taxId?: string | null;
+          defaultTerms?: string | null;
+          footer?: string | null;
+          accentColor?: string | null;
+          updatedAt: Date;
+        } = { updatedAt: new Date() };
+        if (patch.name !== undefined) {
+          const name = patch.name.trim();
+          if (!name || name.length > 200) {
+            throw new Error("Business name is required");
+          }
+          next.name = name;
+        }
+        if (patch.timeZone !== undefined) {
           next.timeZone = assertTimeZone(patch.timeZone);
+        }
+        if (patch.address !== undefined) {
+          next.address = boundedText(patch.address, 500, "Address");
+        }
+        if (patch.taxId !== undefined) {
+          next.taxId = boundedText(patch.taxId, 40, "Tax ID");
+        }
+        if (patch.defaultTerms !== undefined) {
+          next.defaultTerms = boundedText(patch.defaultTerms, 4000, "Terms");
+        }
+        if (patch.footer !== undefined) {
+          next.footer = boundedText(patch.footer, 500, "Footer");
+        }
+        if (patch.accentColor !== undefined) {
+          next.accentColor = accentOrNull(patch.accentColor);
+        }
         const rows = await db
           .update(business)
           .set(next)
@@ -452,6 +511,7 @@ export function forBusiness(db: AppDb, businessId: string) {
         return rows.length;
       },
     },
+    invoices: invoiceMethods(db, businessId),
     audit: {
       async list() {
         return db

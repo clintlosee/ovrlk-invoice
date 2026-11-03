@@ -8,14 +8,20 @@ export function AppNav() {
       <Link to="/app" className="underline">
         Home
       </Link>
+      <Link to="/app/invoices" className="underline">
+        Invoices
+      </Link>
       <Link to="/app/clients" className="underline">
         Clients
+      </Link>
+      <Link to="/app/items" className="underline">
+        Items
       </Link>
       <Link to="/app/tax-rates" className="underline">
         Tax Rates
       </Link>
-      <Link to="/app/items" className="underline">
-        Items
+      <Link to="/app/settings" className="underline">
+        Business
       </Link>
       <Link to="/app/security" className="underline">
         Security
