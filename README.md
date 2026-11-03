@@ -62,6 +62,8 @@ Tests use a throwaway libSQL file under `data/` and do not send email.
 | `RESEND_API_KEY`         | Resend API key for sign-in codes                    |
 | `EMAIL_FROM`             | From address Resend will accept                     |
 | `ALLOW_SIGN_UP`          | `true` opens registration. Anything else rejects it |
+| `STRIPE_SECRET_KEY`      | Platform secret key. Empty hides card Payments      |
+| `STRIPE_WEBHOOK_SECRET`  | Signing secret for `/api/stripe/webhook`            |
 | `SEED_OWNER_EMAIL`       | First Owner email. Seed script only                 |
 | `SEED_OWNER_PASSWORD`    | First Owner password. Seed script only              |
 | `SEED_OWNER_NAME`        | First Owner name. Seed script only                  |
@@ -71,3 +73,5 @@ Tests use a throwaway libSQL file under `data/` and do not send email.
 ## Render
 
 `render.yaml` builds with `pnpm install --frozen-lockfile` and starts with `pnpm start` on Node 24 (`NODE_VERSION`). Set the secret env vars in the Render dashboard (`sync: false` in the blueprint). `ALLOW_SIGN_UP` is `false`. The service runs migrations on boot. Cloudflare R2 is not wired up yet.
+
+Card Payments use Stripe Connect Standard (Account Links) and a direct charge on the Business's Connected Account. Leave `STRIPE_SECRET_KEY` empty and the pay button stays hidden. `fee_cents` on a card Payment is the seam for the Merchant Fee Expense; that Expense is not created yet. Refunds are acknowledged and not applied.

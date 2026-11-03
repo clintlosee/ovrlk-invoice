@@ -22,6 +22,13 @@
       "when": 1793678209205,
       "tag": "0002_invoices",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1793680064704,
+      "tag": "0003_smooth_scorpion",
+      "breakpoints": true
     }
   ]
 }

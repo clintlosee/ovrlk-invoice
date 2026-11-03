@@ -10,6 +10,7 @@ import { InvoiceForm } from "@/components/invoice-form";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { formatCents, formatUsd } from "@/lib/money";
 import { getClients, getItems, getTaxRates } from "@/server/catalog";
 import {
   deleteInvoice,
@@ -22,6 +23,11 @@ import {
   updateInvoice,
   voidInvoice,
 } from "@/server/invoices";
+import {
+  deleteManualPayment,
+  recordManualPayment,
+  updateManualPayment,
+} from "@/server/payments";
 
 export const Route = createFileRoute("/app/invoices/$invoiceId/")({
   loader: async ({ params }) => {
@@ -116,6 +122,14 @@ function InvoicePage() {
             displayStatus={invoice.displayStatus}
             voidReason={invoice.voidReason}
             amountDueCents={invoice.amountDueCents}
+            paidCents={invoice.paidCents}
+          />
+          <Payments
+            invoiceId={invoice.id}
+            payments={invoice.payments}
+            canRecord={
+              invoice.status === "sent" || invoice.status === "partial"
+            }
           />
           {invoice.firstViewedAt ? (
             <p className="text-sm text-muted">
@@ -182,7 +196,7 @@ function InvoicePage() {
             >
               Revoke link
             </Button>
-            {invoice.status === "sent" ? (
+            {invoice.status === "sent" || invoice.status === "partial" ? (
               <Button
                 type="button"
                 variant="outline"
@@ -206,7 +220,7 @@ function InvoicePage() {
               </Button>
             ) : null}
           </div>
-          {invoice.status === "sent" || invoice.status === "paid" ? (
+          {invoice.status === "sent" ? (
             <form
               className="flex flex-wrap items-end gap-2"
               onSubmit={(event) => {
@@ -278,5 +292,196 @@ function InvoicePage() {
         </Card>
       )}
     </>
+  );
+}
+
+type PaymentRow = {
+  id: string;
+  amountCents: number;
+  paidOn: string;
+  method: string;
+  methodLabel: string;
+  note: string | null;
+  feeCents: number | null;
+  manual: boolean;
+};
+
+function Payments({
+  invoiceId,
+  payments,
+  canRecord,
+}: {
+  invoiceId: string;
+  payments: PaymentRow[];
+  canRecord: boolean;
+}) {
+  const router = useRouter();
+  const [message, setMessage] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  async function after(result: { ok: boolean; message?: string }) {
+    setPending(false);
+    if (!result.ok) {
+      setMessage(result.message ?? "Could not save the Payment.");
+      return;
+    }
+    setMessage("Saved.");
+    await router.invalidate();
+  }
+
+  return (
+    <section className="space-y-3">
+      <h2 className="font-serif text-2xl">Payments</h2>
+      {payments.length === 0 ? (
+        <p className="text-sm text-muted">No Payments yet.</p>
+      ) : (
+        <ul className="space-y-3">
+          {payments.map((item) =>
+            item.manual ? (
+              <li key={item.id}>
+                <PaymentForm
+                  invoiceId={invoiceId}
+                  payment={item}
+                  pending={pending}
+                  onPending={setPending}
+                  onDone={(result) => void after(result)}
+                />
+              </li>
+            ) : (
+              <li key={item.id} className="text-sm">
+                {item.paidOn} · {item.methodLabel} ·{" "}
+                {formatUsd(item.amountCents)}
+                {item.feeCents != null
+                  ? ` · Merchant fee ${formatUsd(item.feeCents)}`
+                  : ""}
+              </li>
+            ),
+          )}
+        </ul>
+      )}
+      {canRecord ? (
+        <PaymentForm
+          key={payments.length}
+          invoiceId={invoiceId}
+          pending={pending}
+          onPending={setPending}
+          onDone={(result) => void after(result)}
+        />
+      ) : null}
+      {message ? <p className="text-sm text-danger">{message}</p> : null}
+    </section>
+  );
+}
+
+function PaymentForm({
+  invoiceId,
+  payment,
+  pending,
+  onPending,
+  onDone,
+}: {
+  invoiceId: string;
+  payment?: PaymentRow;
+  pending: boolean;
+  onPending: (value: boolean) => void;
+  onDone: (result: { ok: boolean; message?: string }) => void;
+}) {
+  const [amount, setAmount] = useState(
+    payment ? formatCents(payment.amountCents) : "",
+  );
+  const [paidOn, setPaidOn] = useState(payment?.paidOn ?? "");
+  const [method, setMethod] = useState(payment?.method ?? "check");
+  const [note, setNote] = useState(payment?.note ?? "");
+
+  return (
+    <form
+      className="grid gap-2 rounded-md border border-border p-3 sm:grid-cols-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onPending(true);
+        const data = { invoiceId, amount, paidOn, method, note };
+        const run = payment
+          ? updateManualPayment({ data: { ...data, paymentId: payment.id } })
+          : recordManualPayment({ data });
+        void run
+          .then((result) => onDone(result))
+          .catch(() => {
+            onPending(false);
+            onDone({ ok: false, message: "Could not save the Payment." });
+          });
+      }}
+    >
+      <label className="text-sm" htmlFor={`amount-${payment?.id ?? "new"}`}>
+        Amount
+        <Input
+          id={`amount-${payment?.id ?? "new"}`}
+          inputMode="decimal"
+          required
+          value={amount}
+          onChange={(event) => setAmount(event.target.value)}
+        />
+      </label>
+      <label className="text-sm" htmlFor={`date-${payment?.id ?? "new"}`}>
+        Date in the Business time zone
+        <Input
+          id={`date-${payment?.id ?? "new"}`}
+          type="date"
+          required
+          value={paidOn}
+          onChange={(event) => setPaidOn(event.target.value)}
+        />
+      </label>
+      <label className="text-sm" htmlFor={`method-${payment?.id ?? "new"}`}>
+        Method
+        <select
+          id={`method-${payment?.id ?? "new"}`}
+          className="flex h-10 w-full rounded-md border border-border bg-card px-3 text-sm"
+          value={method}
+          onChange={(event) => setMethod(event.target.value)}
+        >
+          <option value="check">Check</option>
+          <option value="cash">Cash</option>
+          <option value="venmo">Venmo</option>
+          <option value="other">Other</option>
+        </select>
+      </label>
+      <label className="text-sm" htmlFor={`note-${payment?.id ?? "new"}`}>
+        Note
+        <Input
+          id={`note-${payment?.id ?? "new"}`}
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+        />
+      </label>
+      <div className="flex gap-2 sm:col-span-2">
+        <Button type="submit" disabled={pending}>
+          {payment ? "Save Payment" : "Record Payment"}
+        </Button>
+        {payment ? (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pending}
+            onClick={() => {
+              if (!window.confirm("Delete this Payment?")) return;
+              onPending(true);
+              void deleteManualPayment({
+                data: { invoiceId, paymentId: payment.id },
+              })
+                .then((result) => onDone(result))
+                .catch(() => {
+                  onPending(false);
+                  onDone({
+                    ok: false,
+                    message: "Could not delete the Payment.",
+                  });
+                });
+            }}
+          >
+            Delete
+          </Button>
+        ) : null}
+      </div>
+    </form>
   );
 }

@@ -9,6 +9,7 @@ import {
   invoiceLine,
   invoiceLineTax,
   invoiceLink,
+  payment,
   taxRate,
 } from "../db/schema";
 import {
@@ -26,6 +27,7 @@ import {
   todayInTimeZone,
 } from "../lib/invoice";
 import { createInvoiceToken } from "./invoice-token";
+import { type PaymentView, paymentsByInvoice } from "./payment-store";
 
 export type InvoiceLineInput = {
   name: string;
@@ -66,6 +68,8 @@ export type InvoiceView = {
   firstViewedAt: Date | null;
   locked: boolean;
   amountDueCents: number;
+  paidCents: number;
+  payments: PaymentView[];
   document: InvoiceSnapshot;
   editorLines: InvoiceEditorLine[] | null;
 };
@@ -269,6 +273,11 @@ export function invoiceMethods(db: AppDb, businessId: string) {
     if (rows.length === 0) return [];
     const biz = await businessRow();
     const today = todayInTimeZone(biz.timeZone);
+    const paymentMap = await paymentsByInvoice(
+      db,
+      businessId,
+      rows.map((row) => row.id),
+    );
     const drafts = rows.filter(
       (row) => row.status === "draft" || !row.snapshot,
     );
@@ -348,6 +357,11 @@ export function invoiceMethods(db: AppDb, businessId: string) {
       if (!isInvoiceStatus(row.status)) {
         throw new Error("Invoice status is not valid");
       }
+      const payments = paymentMap.get(row.id) ?? [];
+      const paidCents = payments.reduce(
+        (sum, item) => sum + item.amountCents,
+        0,
+      );
       if (row.status !== "draft" && row.snapshot) {
         const document = JSON.parse(row.snapshot) as InvoiceSnapshot;
         return {
@@ -355,14 +369,25 @@ export function invoiceMethods(db: AppDb, businessId: string) {
           number: row.number,
           numberLabel: formatInvoiceNumber(row.number),
           status: row.status,
-          displayStatus: displayStatus(row.status, document.dueDate, today),
+          displayStatus: displayStatus(
+            row.status,
+            document.dueDate,
+            today,
+            row.firstViewedAt != null,
+          ),
           clientId: row.clientId,
           voidReason: row.voidReason,
           sentAt: row.sentAt,
           voidedAt: row.voidedAt,
           firstViewedAt: row.firstViewedAt,
           locked: true,
-          amountDueCents: amountDueCents(row.status, document.totalCents),
+          amountDueCents: amountDueCents(
+            row.status,
+            document.totalCents,
+            paidCents,
+          ),
+          paidCents,
+          payments,
           document,
           editorLines: null,
         };
@@ -442,14 +467,25 @@ export function invoiceMethods(db: AppDb, businessId: string) {
         number: row.number,
         numberLabel: formatInvoiceNumber(row.number),
         status: row.status,
-        displayStatus: displayStatus(row.status, document.dueDate, today),
+        displayStatus: displayStatus(
+          row.status,
+          document.dueDate,
+          today,
+          row.firstViewedAt != null,
+        ),
         clientId: row.clientId,
         voidReason: row.voidReason,
         sentAt: row.sentAt,
         voidedAt: row.voidedAt,
         firstViewedAt: row.firstViewedAt,
         locked: false,
-        amountDueCents: amountDueCents(row.status, document.totalCents),
+        amountDueCents: amountDueCents(
+          row.status,
+          document.totalCents,
+          paidCents,
+        ),
+        paidCents,
+        payments,
         document,
         editorLines,
       };
@@ -673,45 +709,74 @@ export function invoiceMethods(db: AppDb, businessId: string) {
         throw new Error("A void reason is required");
       }
       const now = new Date();
-      const rows = await db
-        .update(invoice)
-        .set({
-          status: "void",
-          voidReason: trimmed,
-          voidedAt: now,
-          updatedAt: now,
-        })
-        .where(
-          and(
-            eq(invoice.id, id),
-            eq(invoice.businessId, businessId),
-            inArray(invoice.status, ["sent", "paid"]),
-          ),
-        )
-        .returning({
-          id: invoice.id,
-          totalCents: invoice.totalCents,
-          number: invoice.number,
+      const row = await db.transaction(async (tx) => {
+        const existing = await tx
+          .select({
+            id: invoice.id,
+            status: invoice.status,
+            totalCents: invoice.totalCents,
+            number: invoice.number,
+          })
+          .from(invoice)
+          .where(and(eq(invoice.id, id), eq(invoice.businessId, businessId)))
+          .limit(1);
+        const current = existing[0];
+        if (!current) return null;
+        const paid = await tx
+          .select({ id: payment.id })
+          .from(payment)
+          .where(
+            and(eq(payment.invoiceId, id), eq(payment.businessId, businessId)),
+          )
+          .limit(1);
+        if (
+          paid[0] ||
+          current.status === "partial" ||
+          current.status === "paid"
+        ) {
+          throw new Error("An Invoice with a Payment cannot be voided");
+        }
+        if (current.status !== "sent") {
+          throw new Error("Only a sent Invoice can be voided");
+        }
+        const updated = await tx
+          .update(invoice)
+          .set({
+            status: "void",
+            voidReason: trimmed,
+            voidedAt: now,
+            updatedAt: now,
+          })
+          .where(
+            and(
+              eq(invoice.id, id),
+              eq(invoice.businessId, businessId),
+              eq(invoice.status, "sent"),
+            ),
+          )
+          .returning({
+            id: invoice.id,
+            totalCents: invoice.totalCents,
+            number: invoice.number,
+          });
+        const saved = updated[0];
+        if (!saved) throw new Error("Only a sent Invoice can be voided");
+        await tx.insert(auditLog).values({
+          id: crypto.randomUUID(),
+          businessId,
+          actorUserId,
+          action: "invoice.voided",
+          entityType: "invoice",
+          entityId: id,
+          amountCents: saved.totalCents,
+          metadata: JSON.stringify({ number: saved.number, reason: trimmed }),
+          ip: null,
+          userAgent: null,
+          createdAt: now,
         });
-      const row = rows[0];
-      if (!row) {
-        const existing = await load(id);
-        if (!existing) return null;
-        throw new Error("Only a sent Invoice can be voided");
-      }
-      await db.insert(auditLog).values({
-        id: crypto.randomUUID(),
-        businessId,
-        actorUserId,
-        action: "invoice.voided",
-        entityType: "invoice",
-        entityId: id,
-        amountCents: row.totalCents,
-        metadata: JSON.stringify({ number: row.number, reason: trimmed }),
-        ip: null,
-        userAgent: null,
-        createdAt: now,
+        return saved;
       });
+      if (!row) return null;
       return load(id);
     },
     async issueLink(id: string, replace: boolean) {

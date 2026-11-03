@@ -15,19 +15,35 @@ export * from "./auth-schema";
 /** v1 has exactly one Owner per Business. The column stays text so later roles are data, not a migration. */
 export const OWNER_ROLE = "owner";
 
-export const business = sqliteTable("business", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  currency: text("currency").notNull().default("USD"),
-  timeZone: text("time_zone").notNull(),
-  address: text("address"),
-  taxId: text("tax_id"),
-  defaultTerms: text("default_terms"),
-  footer: text("footer"),
-  accentColor: text("accent_color"),
-  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
-});
+export const business = sqliteTable(
+  "business",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    currency: text("currency").notNull().default("USD"),
+    timeZone: text("time_zone").notNull(),
+    address: text("address"),
+    taxId: text("tax_id"),
+    defaultTerms: text("default_terms"),
+    footer: text("footer"),
+    accentColor: text("accent_color"),
+    /** Connected Account id only. Never a bank number, card number, or raw Stripe object. */
+    stripeAccountId: text("stripe_account_id"),
+    stripeChargesEnabled: integer("stripe_charges_enabled", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    stripeDetailsSubmitted: integer("stripe_details_submitted", {
+      mode: "boolean",
+    })
+      .notNull()
+      .default(false),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("business_stripe_account_idx").on(table.stripeAccountId),
+  ],
+);
 
 export const member = sqliteTable(
   "member",
@@ -187,7 +203,7 @@ export const invoiceCounter = sqliteTable("invoice_counter", {
 });
 
 /**
- * Draft rows are editable. Sent, Paid, and Void rows are not.
+ * Draft rows are editable. Sent, Partially Paid, Paid, and Void rows are not.
  * Overdue is derived from due_date. snapshot is written on Send and then left alone (ADR 0005).
  */
 export const invoice = sqliteTable(
@@ -227,7 +243,7 @@ export const invoice = sqliteTable(
     index("invoice_client_idx").on(table.clientId),
     check(
       "invoice_status",
-      sql`${table.status} in ('draft', 'sent', 'paid', 'void')`,
+      sql`${table.status} in ('draft', 'sent', 'partial', 'paid', 'void')`,
     ),
     check(
       "invoice_number_positive",
@@ -322,3 +338,58 @@ export const invoiceLink = sqliteTable(
     index("invoice_link_business_idx").on(table.businessId),
   ],
 );
+
+/**
+ * Money received against one Invoice. Several rows are allowed.
+ * fee_cents is the Stripe processing fee from the balance transaction.
+ * ponytail: PR 5 creates the Merchant Fee Expense from fee_cents on stripe
+ * Payments. Do not copy the fee into another table before that.
+ */
+export const payment = sqliteTable(
+  "payment",
+  {
+    id: text("id").primaryKey(),
+    businessId: text("business_id")
+      .notNull()
+      .references(() => business.id, { onDelete: "cascade" }),
+    invoiceId: text("invoice_id")
+      .notNull()
+      .references(() => invoice.id, { onDelete: "cascade" }),
+    amountCents: integer("amount_cents").notNull(),
+    paidOn: text("paid_on").notNull(),
+    method: text("method").notNull(),
+    note: text("note"),
+    stripeCheckoutSessionId: text("stripe_checkout_session_id"),
+    stripePaymentIntentId: text("stripe_payment_intent_id"),
+    stripeChargeId: text("stripe_charge_id"),
+    stripeBalanceTransactionId: text("stripe_balance_transaction_id"),
+    feeCents: integer("fee_cents"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    index("payment_invoice_idx").on(table.businessId, table.invoiceId),
+    uniqueIndex("payment_checkout_session_idx").on(
+      table.stripeCheckoutSessionId,
+    ),
+    uniqueIndex("payment_intent_idx").on(table.stripePaymentIntentId),
+    check(
+      "payment_amount_cents",
+      sql`${table.amountCents} > 0 AND typeof(${table.amountCents}) = 'integer'`,
+    ),
+    check(
+      "payment_fee_cents",
+      sql`${table.feeCents} IS NULL OR (${table.feeCents} >= 0 AND typeof(${table.feeCents}) = 'integer')`,
+    ),
+    check(
+      "payment_method",
+      sql`${table.method} in ('stripe', 'check', 'cash', 'venmo', 'other')`,
+    ),
+  ],
+);
+
+/** Processed Stripe event id. The payload is not stored; it can contain PII. */
+export const stripeEvent = sqliteTable("stripe_event", {
+  id: text("id").primaryKey(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+});

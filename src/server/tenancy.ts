@@ -13,6 +13,7 @@ import {
 import { assertTimeZone } from "../lib/config";
 import { type Cents, cents } from "../lib/money";
 import { invoiceMethods } from "./invoice-store";
+import { paymentMethods } from "./payment-store";
 
 type MemberRole = typeof OWNER_ROLE;
 
@@ -243,6 +244,28 @@ export function forBusiness(db: AppDb, businessId: string) {
         const rows = await db
           .update(business)
           .set(next)
+          .where(scoped)
+          .returning();
+        return rows[0] ?? null;
+      },
+      async setConnectedAccount(
+        input: {
+          accountId: string;
+          chargesEnabled: boolean;
+          detailsSubmitted: boolean;
+        } | null,
+      ) {
+        if (input && !/^acct_[A-Za-z0-9_]{1,255}$/.test(input.accountId)) {
+          throw new Error("Connected Account id is not valid");
+        }
+        const rows = await db
+          .update(business)
+          .set({
+            stripeAccountId: input?.accountId ?? null,
+            stripeChargesEnabled: input?.chargesEnabled ?? false,
+            stripeDetailsSubmitted: input?.detailsSubmitted ?? false,
+            updatedAt: new Date(),
+          })
           .where(scoped)
           .returning();
         return rows[0] ?? null;
@@ -512,6 +535,7 @@ export function forBusiness(db: AppDb, businessId: string) {
       },
     },
     invoices: invoiceMethods(db, businessId),
+    payments: paymentMethods(db, businessId),
     audit: {
       async list() {
         return db

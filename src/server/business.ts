@@ -2,7 +2,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getDb } from "../db/client";
 import { addCalendarDays, todayInTimeZone } from "../lib/invoice";
+import { stripeConfigured } from "../lib/stripe";
 import { signedInBusiness } from "./membership";
+import { beginStripeOnboarding, disconnectStripe } from "./stripe";
 import { forBusiness } from "./tenancy";
 
 const optional = (max: number, label: string) =>
@@ -53,6 +55,9 @@ function present(row: {
   accentColor: string | null;
   timeZone: string;
   currency: string;
+  stripeAccountId: string | null;
+  stripeChargesEnabled: boolean;
+  stripeDetailsSubmitted: boolean;
 }) {
   const today = todayInTimeZone(row.timeZone);
   return {
@@ -66,6 +71,10 @@ function present(row: {
     currency: row.currency,
     today,
     dueDate: addCalendarDays(today, 30),
+    stripeConfigured: stripeConfigured(),
+    stripeAccountId: row.stripeAccountId,
+    stripeChargesEnabled: row.stripeChargesEnabled,
+    stripeDetailsSubmitted: row.stripeDetailsSubmitted,
   };
 }
 
@@ -106,3 +115,41 @@ export const updateBusinessSettings = createServerFn({ method: "POST" })
       return saveError(error);
     }
   });
+
+export const startStripeConnect = createServerFn({ method: "POST" }).handler(
+  async () => {
+    const current = await signedInBusiness();
+    if (!current) return { ok: false as const, message: "Sign in again." };
+    try {
+      const url = await beginStripeOnboarding(
+        current.businessId,
+        current.session.user.id,
+      );
+      return { ok: true as const, url };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (message.includes("not configured")) {
+        return { ok: false as const, message: "Stripe is not configured." };
+      }
+      if (message.includes("UNIQUE") || message.includes("stripe_account")) {
+        return {
+          ok: false as const,
+          message: "That Connected Account is already linked.",
+        };
+      }
+      return {
+        ok: false as const,
+        message: "Could not open Stripe. Try again.",
+      };
+    }
+  },
+);
+
+export const disconnectConnectedAccount = createServerFn({
+  method: "POST",
+}).handler(async () => {
+  const current = await signedInBusiness();
+  if (!current) return { ok: false as const, message: "Sign in again." };
+  await disconnectStripe(current.businessId, current.session.user.id);
+  return { ok: true as const };
+});

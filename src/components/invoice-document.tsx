@@ -12,11 +12,13 @@ export function InvoiceDocument({
   displayStatus,
   voidReason,
   amountDueCents,
+  paidCents = 0,
 }: {
   document: InvoiceSnapshot;
   displayStatus: InvoiceDisplayStatus;
   voidReason: string | null;
   amountDueCents: number;
+  paidCents?: number;
 }) {
   const accent = document.business.accentColor;
   return (
@@ -116,8 +118,14 @@ export function InvoiceDocument({
             <dt>Total</dt>
             <dd>{formatUsd(document.totalCents)}</dd>
           </div>
+          {paidCents > 0 ? (
+            <div className="flex justify-between gap-6">
+              <dt>Paid</dt>
+              <dd>{formatUsd(paidCents)}</dd>
+            </div>
+          ) : null}
           <div className="flex justify-between gap-6 font-medium">
-            <dt>Amount due</dt>
+            <dt>Balance</dt>
             <dd>{formatUsd(amountDueCents)}</dd>
           </div>
         </dl>

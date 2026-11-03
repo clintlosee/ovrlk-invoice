@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 import { isProduction } from "./config";
-import { formatInvoiceNumber } from "./invoice";
+import { formatInvoiceNumber, paymentMethodLabel } from "./invoice";
 import { formatUsd } from "./money";
 
 type CapturedEmail = { to: string; code: string };
@@ -105,5 +105,29 @@ export async function sendInvoiceEmail(input: {
     attachments: [
       { filename: `invoice-${numberLabel}.pdf`, content: input.pdf },
     ],
+  });
+}
+
+export async function sendReceiptEmail(input: {
+  to: string;
+  replyTo?: string;
+  businessName: string;
+  number: number;
+  amountCents: number;
+  paidOn: string;
+  method: string;
+  balanceCents: number;
+}): Promise<void> {
+  const numberLabel = formatInvoiceNumber(input.number);
+  const balance =
+    input.balanceCents > 0
+      ? `Balance due: ${formatUsd(input.balanceCents)}`
+      : "This invoice is paid.";
+  await deliverEmail({
+    to: input.to,
+    replyTo: input.replyTo,
+    fromName: input.businessName,
+    subject: `Receipt for invoice ${numberLabel}`,
+    text: `${input.businessName} received ${formatUsd(input.amountCents)} by ${paymentMethodLabel(input.method).toLowerCase()} on ${input.paidOn} for invoice ${numberLabel}.\n\n${balance}`,
   });
 }
