@@ -8,6 +8,8 @@ const EVENT_ID = id("evt");
 const SESSION_ID = id("cs");
 const CHARGE_ID = id("ch");
 const BALANCE_ID = id("txn");
+const INTENT_ID = id("pi");
+const REFUND_ID = id("re");
 
 export type StripeEvent = {
   id: string;
@@ -209,6 +211,89 @@ export async function fetchStripeFee(
   };
 }
 
+export type ChargeRefund = {
+  chargeId: string;
+  paymentIntentId: string | null;
+  refundedCents: number;
+  refundIds: string[];
+  /** Net fee after refund balance transactions. Null when Stripe has not posted one. */
+  feeCents: number | null;
+};
+
+export type RefundEvent = {
+  chargeId: string | null;
+  paymentIntentId: string | null;
+  absoluteRefundedCents: number | null;
+  refundId: string | null;
+  refundAmountCents: number | null;
+  refundIds: string[];
+  feeCents: number | null;
+};
+
+/**
+ * charge.refunded carries the cumulative amount_refunded.
+ * refund.created carries one refund. Fee comes only from expanded balance transactions.
+ */
+export function refundFromEvent(event: StripeEvent): RefundEvent | null {
+  if (event.type !== "charge.refunded" && event.type !== "refund.created") {
+    return null;
+  }
+  const object = event.object;
+  if (object.currency !== undefined && object.currency !== "usd") return null;
+  if (event.type === "charge.refunded") {
+    const chargeId = idOrNull(object.id, CHARGE_ID);
+    if (!chargeId) return null;
+    return {
+      chargeId,
+      paymentIntentId: intentOf(object.payment_intent),
+      absoluteRefundedCents: integerOrNull(object.amount_refunded),
+      refundId: null,
+      refundAmountCents: null,
+      refundIds: refundIdsFrom(object.refunds),
+      feeCents: netFee(object),
+    };
+  }
+  const status = object.status;
+  if (status !== undefined && status !== "succeeded" && status !== "pending") {
+    return null;
+  }
+  const refundId = idOrNull(object.id, REFUND_ID);
+  const chargeId = idOrNull(object.charge, CHARGE_ID);
+  if (!refundId || !chargeId) return null;
+  return {
+    chargeId,
+    paymentIntentId: intentOf(object.payment_intent),
+    absoluteRefundedCents: null,
+    refundId,
+    refundAmountCents: integerOrNull(object.amount),
+    refundIds: [refundId],
+    feeCents: null,
+  };
+}
+
+/** Authoritative refund total and net fee from the connected account's charge. */
+export async function fetchChargeRefund(
+  accountId: string,
+  chargeId: string,
+): Promise<ChargeRefund | null> {
+  const payload = await stripeRequest(
+    `/charges/${chargeId}?expand[]=balance_transaction&expand[]=refunds.data.balance_transaction`,
+    { method: "GET", account: accountId },
+  );
+  if (!payload || typeof payload !== "object") return null;
+  const row = payload as Record<string, unknown>;
+  if (row.currency !== undefined && row.currency !== "usd") return null;
+  const refunded = integerOrNull(row.amount_refunded);
+  if (refunded === null) return null;
+  return {
+    chargeId,
+    paymentIntentId: intentOf(row.payment_intent),
+    refundedCents: refunded,
+    refundIds: refundIdsFrom(row.refunds),
+    feeCents: netFee(row),
+  };
+}
+
 function parseEvent(payload: string): StripeEvent | null {
   let value: unknown;
   try {
@@ -331,6 +416,54 @@ function objectField(
 
 function idOrNull(value: unknown, pattern: RegExp): string | null {
   return typeof value === "string" && pattern.test(value) ? value : null;
+}
+
+function intentOf(value: unknown): string | null {
+  if (typeof value === "string") return idOrNull(value, INTENT_ID);
+  if (value && typeof value === "object") {
+    return idOrNull((value as Record<string, unknown>).id, INTENT_ID);
+  }
+  return null;
+}
+
+function refundIdsFrom(value: unknown): string[] {
+  if (!value || typeof value !== "object") return [];
+  const data = (value as Record<string, unknown>).data;
+  if (!Array.isArray(data)) return [];
+  const ids: string[] = [];
+  for (const item of data) {
+    if (!item || typeof item !== "object") continue;
+    const refundId = idOrNull((item as Record<string, unknown>).id, REFUND_ID);
+    if (refundId) ids.push(refundId);
+  }
+  return ids;
+}
+
+function netFee(charge: Record<string, unknown>): number | null {
+  const chargeFee = feeOf(objectField(charge, "balance_transaction"));
+  const refunds = charge.refunds;
+  const rows = Array.isArray((refunds as { data?: unknown } | null)?.data)
+    ? ((refunds as { data: unknown[] }).data ?? [])
+    : [];
+  let fee = chargeFee;
+  let known = chargeFee !== null;
+  for (const item of rows) {
+    if (!item || typeof item !== "object") continue;
+    const refundFee = feeOf(
+      objectField(item as Record<string, unknown>, "balance_transaction"),
+    );
+    if (refundFee === null) continue;
+    fee = (fee ?? 0) + refundFee;
+    known = true;
+  }
+  if (!known || fee === null) return null;
+  return Math.max(fee, 0);
+}
+
+function feeOf(balance: Record<string, unknown> | null): number | null {
+  if (balance?.currency !== "usd") return null;
+  const fee = balance.fee;
+  return typeof fee === "number" && Number.isSafeInteger(fee) ? fee : null;
 }
 
 function integerOrNull(value: unknown): number | null {

@@ -4,7 +4,7 @@ Invoicing, expense tracking, and reporting for small businesses, starting with o
 
 Terms used in this project are defined in [GLOSSARY.md](./GLOSSARY.md). Architecture decisions are recorded in [docs/adr](./docs/adr).
 
-This repository includes Owner sign-in, Business tenancy, Clients, Items, Tax Rates, and Invoices (PDF, email, and a public Invoice Link). Stripe, expenses, and reports come in later pull requests.
+This repository includes Owner sign-in, Business tenancy, Clients, Items, Tax Rates, Invoices (PDF, email, and a public Invoice Link), Stripe Connect Payments, and Expenses. Reports come in a later pull request.
 
 ## Local setup
 
@@ -53,26 +53,30 @@ Tests use a throwaway libSQL file under `data/` and do not send email.
 
 ## Environment variables
 
-| Name                       | Purpose                                                                     |
-| -------------------------- | --------------------------------------------------------------------------- |
-| `DATABASE_URL`             | `file:local.db` locally, `libsql://...` on Turso                            |
-| `TURSO_AUTH_TOKEN`         | Turso token. Empty for a local file                                         |
-| `BETTER_AUTH_SECRET`       | Session signing secret, 32+ characters                                      |
-| `BETTER_AUTH_URL`          | Public origin, no trailing slash                                            |
-| `RESEND_API_KEY`           | Resend API key for sign-in codes                                            |
-| `EMAIL_FROM`               | From address Resend will accept                                             |
-| `ALLOW_SIGN_UP`            | `true` opens registration. Anything else rejects it                         |
-| `STRIPE_SECRET_KEY`        | Platform secret key. Empty hides card Payments                              |
-| `STRIPE_WEBHOOK_SECRET`    | Signing secret for `/api/stripe/webhook`                                    |
-| `STRIPE_CONNECT_CLIENT_ID` | Connect OAuth client id (`ca_...`). Empty hides linking an existing account |
-| `SEED_OWNER_EMAIL`         | First Owner email. Seed script only                                         |
-| `SEED_OWNER_PASSWORD`      | First Owner password. Seed script only                                      |
-| `SEED_OWNER_NAME`          | First Owner name. Seed script only                                          |
-| `SEED_BUSINESS_NAME`       | First Business name. Seed script only                                       |
-| `SEED_BUSINESS_TIMEZONE`   | IANA time zone. Defaults to `America/Denver`                                |
+| Name                       | Purpose                                                                      |
+| -------------------------- | ---------------------------------------------------------------------------- |
+| `DATABASE_URL`             | `file:local.db` locally, `libsql://...` on Turso                             |
+| `TURSO_AUTH_TOKEN`         | Turso token. Empty for a local file                                          |
+| `BETTER_AUTH_SECRET`       | Session signing secret, 32+ characters                                       |
+| `BETTER_AUTH_URL`          | Public origin, no trailing slash                                             |
+| `RESEND_API_KEY`           | Resend API key for sign-in codes                                             |
+| `EMAIL_FROM`               | From address Resend will accept                                              |
+| `ALLOW_SIGN_UP`            | `true` opens registration. Anything else rejects it                          |
+| `STRIPE_SECRET_KEY`        | Platform secret key. Empty hides card Payments                               |
+| `STRIPE_WEBHOOK_SECRET`    | Signing secret for `/api/stripe/webhook`                                     |
+| `STRIPE_CONNECT_CLIENT_ID` | Connect OAuth client id (`ca_...`). Empty hides linking an existing account  |
+| `R2_ACCOUNT_ID`            | Cloudflare account id. Receipts and the logo stay off if any R2 var is unset |
+| `R2_ACCESS_KEY_ID`         | R2 API token access key id                                                   |
+| `R2_SECRET_ACCESS_KEY`     | R2 API token secret                                                          |
+| `R2_BUCKET`                | Private R2 bucket name                                                       |
+| `SEED_OWNER_EMAIL`         | First Owner email. Seed script only                                          |
+| `SEED_OWNER_PASSWORD`      | First Owner password. Seed script only                                       |
+| `SEED_OWNER_NAME`          | First Owner name. Seed script only                                           |
+| `SEED_BUSINESS_NAME`       | First Business name. Seed script only                                        |
+| `SEED_BUSINESS_TIMEZONE`   | IANA time zone. Defaults to `America/Denver`                                 |
 
 ## Render
 
-`render.yaml` builds with `pnpm install --frozen-lockfile` and starts with `pnpm start` on Node 24 (`NODE_VERSION`). Set the secret env vars in the Render dashboard (`sync: false` in the blueprint). `ALLOW_SIGN_UP` is `false`. The service runs migrations on boot. Cloudflare R2 is not wired up yet.
+`render.yaml` builds with `pnpm install --frozen-lockfile` and starts with `pnpm start` on Node 24 (`NODE_VERSION`). Set the secret env vars in the Render dashboard (`sync: false` in the blueprint). `ALLOW_SIGN_UP` is `false`. The service runs migrations on boot. Leave the R2 variables unset and the app still boots; Receipt and logo upload stay hidden.
 
-Card Payments use Stripe Connect Standard and a direct charge on the Business's Connected Account. Account Links create a new Standard account. OAuth links an existing one when `STRIPE_CONNECT_CLIENT_ID` is set. Leave `STRIPE_SECRET_KEY` empty and the pay button stays hidden. `fee_cents` on a card Payment is the seam for the Merchant Fee Expense; that Expense is not created yet. Refunds are acknowledged and not applied. A Payment above the Invoice total is kept and the Invoice shows Overpaid.
+Card Payments use Stripe Connect Standard and a direct charge on the Business's Connected Account. Account Links create a new Standard account. OAuth links an existing one when `STRIPE_CONNECT_CLIENT_ID` is set. Leave `STRIPE_SECRET_KEY` empty and the pay button stays hidden. A card Payment with `fee_cents` creates one Merchant Fee Expense. A later event with the same fee does not create another. Refunds reduce the Payment and move the Invoice back to Partially Paid or Sent. The Merchant Fee amount follows the net balance-transaction fee, which usually stays put because Stripe keeps the original processing fee. A Payment above the Invoice total is kept and the Invoice shows Overpaid. Void is blocked while any Payment still has an unrefunded balance.

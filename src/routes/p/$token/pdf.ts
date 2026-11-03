@@ -32,7 +32,13 @@ export const Route = createFileRoute("/p/$token/pdf")({
             },
           });
         }
-        const pdf = await renderInvoicePdf(opened.document, opened.statusValue);
+        const { readPublicLogo } = await import("@/server/files");
+        const logo = await readPublicLogo(params.token);
+        const pdf = await renderInvoicePdf(
+          opened.document,
+          opened.statusValue,
+          logo?.body ?? null,
+        );
         return invoicePdfResponse(
           pdf,
           `invoice-${formatInvoiceNumber(opened.document.number)}.pdf`,

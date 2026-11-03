@@ -11,6 +11,13 @@ export function AppNav() {
       <Link to="/app/invoices" className="underline">
         Invoices
       </Link>
+      <Link
+        to="/app/expenses"
+        search={{ from: "", to: "", category: "" }}
+        className="underline"
+      >
+        Expenses
+      </Link>
       <Link to="/app/clients" className="underline">
         Clients
       </Link>

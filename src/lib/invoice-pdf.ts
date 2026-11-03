@@ -33,6 +33,7 @@ export function invoicePdfResponse(
 export function renderInvoicePdf(
   snapshot: InvoiceSnapshot,
   status: InvoiceStatus,
+  logo?: Uint8Array | null,
 ): Promise<Uint8Array> {
   return new Promise((resolve, reject) => {
     const numberLabel = formatInvoiceNumber(snapshot.number);
@@ -52,7 +53,7 @@ export function renderInvoicePdf(
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
     try {
-      draw(doc, snapshot, status, numberLabel);
+      draw(doc, snapshot, status, numberLabel, logo ?? null);
       doc.end();
     } catch (error) {
       reject(error);
@@ -65,6 +66,7 @@ function draw(
   snapshot: InvoiceSnapshot,
   status: InvoiceStatus,
   numberLabel: string,
+  logo: Uint8Array | null,
 ) {
   const accent = accentOrDefault(snapshot.business.accentColor);
   const left = 48;
@@ -72,8 +74,19 @@ function draw(
   const width = right - left;
 
   doc.rect(0, 0, doc.page.width, 8).fill(accent);
+  let nameX = left;
+  if (logo) {
+    try {
+      doc.image(Buffer.from(logo), left, 24, { fit: [96, 48] });
+      nameX = left + 108;
+    } catch {
+      nameX = left;
+    }
+  }
   doc.fillColor("#1c1917").font("Helvetica-Bold").fontSize(20);
-  doc.text(snapshot.business.name, left, 28, { width: width * 0.62 });
+  doc.text(snapshot.business.name, nameX, 28, {
+    width: width * 0.62 - (nameX - left),
+  });
   doc.font("Helvetica-Bold").fontSize(16).fillColor(accent);
   doc.text(`Invoice ${numberLabel}`, left, 32, { width, align: "right" });
 

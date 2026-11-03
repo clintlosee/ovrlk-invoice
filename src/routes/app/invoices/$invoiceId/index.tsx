@@ -123,6 +123,7 @@ function InvoicePage() {
             voidReason={invoice.voidReason}
             amountDueCents={invoice.amountDueCents}
             paidCents={invoice.paidCents}
+            logoUrl={invoice.hasLogo ? "/app/logo" : null}
           />
           <Payments
             invoiceId={invoice.id}
@@ -305,6 +306,7 @@ type PaymentRow = {
   methodLabel: string;
   note: string | null;
   feeCents: number | null;
+  refundedCents: number;
   manual: boolean;
 };
 
@@ -352,7 +354,10 @@ function Payments({
             ) : (
               <li key={item.id} className="text-sm">
                 {item.paidOn} · {item.methodLabel} ·{" "}
-                {formatUsd(item.amountCents)}
+                {formatUsd(item.amountCents - item.refundedCents)}
+                {item.refundedCents > 0
+                  ? ` · ${formatUsd(item.refundedCents)} refunded`
+                  : ""}
                 {item.feeCents != null
                   ? ` · Merchant fee ${formatUsd(item.feeCents)}`
                   : ""}

@@ -22,9 +22,14 @@ export const Route = createFileRoute("/app/invoices/$invoiceId/pdf")({
             headers: { "cache-control": "no-store" },
           });
         }
+        const { readLogo } = await import("@/server/files");
+        const { signedInBusiness } = await import("@/server/membership");
+        const current = await signedInBusiness();
+        const logo = current ? await readLogo(current.businessId) : null;
         const pdf = await renderInvoicePdf(
           found.view.document,
           found.view.status,
+          logo?.body ?? null,
         );
         return invoicePdfResponse(
           pdf,

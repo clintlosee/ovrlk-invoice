@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   type BusinessFormValues,
+  clearBusinessLogo,
   disconnectConnectedAccount,
   getBusinessSettings,
   startStripeConnect,
@@ -65,8 +66,110 @@ function SettingsPage() {
           onSubmit={(values) => void onSubmit(values)}
         />
       </Card>
+      <Logo settings={settings} />
       <StripeConnect settings={settings} />
     </>
+  );
+}
+
+function Logo({
+  settings,
+}: {
+  settings: NonNullable<ReturnType<typeof Route.useLoaderData>>;
+}) {
+  const router = useRouter();
+  const [message, setMessage] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  if (!settings.storageConfigured) {
+    return (
+      <section className="mt-8">
+        <h2 className="font-serif text-2xl">Logo</h2>
+        <p className="mt-2 text-sm">
+          Logo upload needs Cloudflare R2, which is not configured.
+        </p>
+      </section>
+    );
+  }
+  return (
+    <section className="mt-8">
+      <h2 className="font-serif text-2xl">Logo</h2>
+      <p className="mt-2 text-sm text-muted">
+        JPEG or PNG, up to 10 MB. Shown on the Invoice and its PDF.
+      </p>
+      <Card>
+        {settings.hasLogo ? (
+          <img src="/app/logo" alt="" className="mb-4 h-16 w-auto" />
+        ) : (
+          <p className="text-sm">No logo yet.</p>
+        )}
+        <form
+          className="mt-4 flex flex-wrap items-center gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const input = event.currentTarget.elements.namedItem("logo");
+            if (!(input instanceof HTMLInputElement) || !input.files?.[0]) {
+              return;
+            }
+            const form = event.currentTarget;
+            const body = new FormData();
+            body.set("logo", input.files[0]);
+            setPending(true);
+            setMessage(null);
+            void fetch("/app/logo", { method: "POST", body })
+              .then(async (response) => {
+                const result = (await response.json()) as {
+                  ok: boolean;
+                  message?: string;
+                };
+                setPending(false);
+                setMessage(
+                  result.ok
+                    ? "Saved."
+                    : (result.message ?? "Could not upload."),
+                );
+                if (result.ok) {
+                  form.reset();
+                  await router.invalidate();
+                }
+              })
+              .catch(() => {
+                setPending(false);
+                setMessage("Could not upload.");
+              });
+          }}
+        >
+          <input
+            name="logo"
+            type="file"
+            accept="image/jpeg,image/png"
+            required
+            className="text-sm"
+          />
+          <Button type="submit" disabled={pending}>
+            Upload logo
+          </Button>
+        </form>
+        {settings.hasLogo ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-3"
+            disabled={pending}
+            onClick={() => {
+              setPending(true);
+              void clearBusinessLogo().then(async (result) => {
+                setPending(false);
+                setMessage(result.ok ? "Removed." : result.message);
+                if (result.ok) await router.invalidate();
+              });
+            }}
+          >
+            Remove logo
+          </Button>
+        ) : null}
+        {message ? <p className="mt-3 text-sm">{message}</p> : null}
+      </Card>
+    </section>
   );
 }
 

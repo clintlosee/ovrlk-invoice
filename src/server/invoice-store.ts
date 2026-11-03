@@ -27,7 +27,11 @@ import {
   todayInTimeZone,
 } from "../lib/invoice";
 import { createInvoiceToken } from "./invoice-token";
-import { type PaymentView, paymentsByInvoice } from "./payment-store";
+import {
+  netPaidCents,
+  type PaymentView,
+  paymentsByInvoice,
+} from "./payment-store";
 
 export type InvoiceLineInput = {
   name: string;
@@ -69,6 +73,7 @@ export type InvoiceView = {
   locked: boolean;
   amountDueCents: number;
   paidCents: number;
+  hasLogo: boolean;
   payments: PaymentView[];
   document: InvoiceSnapshot;
   editorLines: InvoiceEditorLine[] | null;
@@ -358,10 +363,7 @@ export function invoiceMethods(db: AppDb, businessId: string) {
         throw new Error("Invoice status is not valid");
       }
       const payments = paymentMap.get(row.id) ?? [];
-      const paidCents = payments.reduce(
-        (sum, item) => sum + item.amountCents,
-        0,
-      );
+      const paidCents = netPaidCents(payments);
       if (row.status !== "draft" && row.snapshot) {
         const document = JSON.parse(row.snapshot) as InvoiceSnapshot;
         return {
@@ -383,6 +385,7 @@ export function invoiceMethods(db: AppDb, businessId: string) {
           voidedAt: row.voidedAt,
           firstViewedAt: row.firstViewedAt,
           locked: true,
+          hasLogo: Boolean(biz.logoKey),
           amountDueCents: amountDueCents(
             row.status,
             document.totalCents,
@@ -483,6 +486,7 @@ export function invoiceMethods(db: AppDb, businessId: string) {
         voidedAt: row.voidedAt,
         firstViewedAt: row.firstViewedAt,
         locked: false,
+        hasLogo: Boolean(biz.logoKey),
         amountDueCents: amountDueCents(
           row.status,
           document.totalCents,
@@ -726,15 +730,19 @@ export function invoiceMethods(db: AppDb, businessId: string) {
           .limit(1);
         const current = existing[0];
         if (!current) return null;
-        const paid = await tx
-          .select({ id: payment.id })
+        // Void stays blocked while any Payment still has an unrefunded balance.
+        // A fully refunded Payment does not block Void.
+        const remaining = await tx
+          .select({
+            total: sql<number>`coalesce(sum(${payment.amountCents} - ${payment.refundedCents}), 0)`,
+          })
           .from(payment)
           .where(
             and(eq(payment.invoiceId, id), eq(payment.businessId, businessId)),
-          )
-          .limit(1);
+          );
+        const applied = Number(remaining[0]?.total ?? 0);
         if (
-          paid[0] ||
+          applied > 0 ||
           current.status === "partial" ||
           current.status === "paid"
         ) {

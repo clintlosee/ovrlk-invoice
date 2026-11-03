@@ -134,6 +134,7 @@ function present(view: InvoiceView) {
     locked: view.locked,
     amountDueCents: view.amountDueCents,
     paidCents: view.paidCents,
+    hasLogo: view.hasLogo,
     payments: view.payments.map((item) => ({
       id: item.id,
       amountCents: item.amountCents,
@@ -142,6 +143,7 @@ function present(view: InvoiceView) {
       methodLabel: paymentMethodLabel(item.method),
       note: item.note,
       feeCents: item.feeCents,
+      refundedCents: item.refundedCents,
       manual: item.manual,
     })),
     document: view.document,
