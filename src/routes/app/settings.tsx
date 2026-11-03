@@ -48,7 +48,9 @@ function SettingsPage() {
 
   return (
     <>
-      <h1 className="font-serif text-3xl">Business</h1>
+      <h1 className="border-b-2 border-brass pb-3 font-serif text-3xl">
+        Business
+      </h1>
       <p className="mt-2 text-sm text-muted-foreground">
         Shown on Invoices. {settings.currency} · {settings.timeZone}
       </p>

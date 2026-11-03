@@ -13,7 +13,7 @@ function ItemsPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 border-b-2 border-brass pb-3">
         <h1 className="font-serif text-3xl">Items</h1>
         <Button asChild>
           <Link to="/app/items/new">New Item</Link>
@@ -25,14 +25,14 @@ function ItemsPage() {
       {items.length === 0 ? (
         <p className="mt-6 text-sm">No Items yet.</p>
       ) : (
-        <ul className="mt-6 divide-y divide-border rounded-lg border border-border bg-card">
+        <ul className="mt-6 divide-y divide-border overflow-hidden rounded-lg border border-border border-t-[6px] border-t-brass bg-card">
           {items.map((item) => (
             <li key={item.id} className="px-4 py-3">
               <div className="flex items-baseline justify-between gap-4">
                 <Link
                   to="/app/items/$itemId"
                   params={{ itemId: item.id }}
-                  className="font-medium underline"
+                  className="font-medium text-primary underline"
                 >
                   {item.name}
                 </Link>

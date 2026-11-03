@@ -3,71 +3,29 @@ import type { ReactNode } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 
-export function AppNav() {
-  return (
-    <nav className="mb-8 flex flex-wrap gap-x-4 gap-y-2 text-sm">
-      <Link to="/app" className="underline">
-        Home
-      </Link>
-      <Link to="/app/invoices" className="underline">
-        Invoices
-      </Link>
-      <Link
-        to="/app/expenses"
-        search={{ from: "", to: "", category: "" }}
-        className="underline"
-      >
-        Expenses
-      </Link>
-      <Link
-        to="/app/reports"
-        search={{ preset: "this_month", basis: "cash", from: "", to: "" }}
-        className="underline"
-      >
-        Reports
-      </Link>
-      <Link to="/app/clients" className="underline">
-        Clients
-      </Link>
-      <Link to="/app/items" className="underline">
-        Items
-      </Link>
-      <Link to="/app/tax-rates" className="underline">
-        Tax Rates
-      </Link>
-      <Link
-        to="/app/settings"
-        search={{ stripe: undefined }}
-        className="underline"
-      >
-        Business
-      </Link>
-      <Link to="/app/security" className="underline">
-        Security
-      </Link>
-    </nav>
-  );
-}
+const MEASURE = {
+  narrow: "max-w-lg",
+  wide: "max-w-2xl",
+  landing: "max-w-3xl",
+} as const;
 
 export function Shell({
   children,
-  wide = false,
-  broad = false,
+  size = "narrow",
   themeToggle = false,
 }: {
   children: ReactNode;
-  wide?: boolean;
-  broad?: boolean;
+  size?: keyof typeof MEASURE;
   themeToggle?: boolean;
 }) {
   return (
     <div
       className={cn(
         "mx-auto flex min-h-screen flex-col px-6 py-10",
-        broad ? "max-w-5xl" : wide ? "max-w-2xl" : "max-w-lg",
+        MEASURE[size],
       )}
     >
-      <header className="mb-10 flex items-center justify-between gap-4">
+      <header className="mb-10 flex items-center justify-between gap-4 border-b-2 border-brass pb-4">
         <Link to="/" className="font-serif text-lg tracking-tight">
           ovrlk-invoice
         </Link>

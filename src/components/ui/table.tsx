@@ -19,7 +19,12 @@ export function TableHeader({
   className,
   ...props
 }: HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className={cn("[&_tr]:border-b", className)} {...props} />;
+  return (
+    <thead
+      className={cn("[&_tr]:border-b-2 [&_tr]:border-brass", className)}
+      {...props}
+    />
+  );
 }
 
 export function TableBody({
@@ -50,7 +55,7 @@ export function TableHead({
   return (
     <th
       className={cn(
-        "h-10 px-3 text-left align-middle text-sm font-medium text-muted-foreground",
+        "h-10 px-3 text-left align-middle text-sm font-medium text-primary",
         className,
       )}
       {...props}

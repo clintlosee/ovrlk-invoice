@@ -14,6 +14,12 @@ import {
 } from "@/lib/reports";
 import { cn } from "@/lib/utils";
 
+function choiceClass(current: boolean) {
+  return current
+    ? "border-b-2 border-brass font-medium text-primary"
+    : "text-primary underline";
+}
+
 export function saveCsv(filename: string, csv: string) {
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -50,7 +56,7 @@ export function ReportChrome({
   return (
     <>
       <ReportNav search={search} />
-      <div className="mt-6 flex flex-wrap items-start justify-between gap-4">
+      <div className="mt-6 flex flex-wrap items-start justify-between gap-4 border-b-2 border-brass pb-3">
         <h1 className="font-serif text-3xl">{title}</h1>
         <Button
           type="button"
@@ -120,7 +126,7 @@ export function ExpenseTable({
   return (
     <table className="mt-6 w-full text-sm">
       <thead>
-        <tr className="border-b border-border text-left text-muted-foreground">
+        <tr className="border-b-2 border-brass text-left text-primary">
           <th className="py-2 font-medium">Category</th>
           <th className="py-2 text-right font-medium">Amount</th>
           <th className="py-2 text-right font-medium">Tax paid</th>
@@ -182,7 +188,7 @@ export function RevenueTable({
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[40rem] text-sm">
             <thead>
-              <tr className="border-b border-border text-left text-muted-foreground">
+              <tr className="border-b-2 border-brass text-left text-primary">
                 <th className="py-2 font-medium">Client</th>
                 <th className="py-2 text-right font-medium">Invoiced</th>
                 <th className="py-2 text-right font-medium">Paid</th>
@@ -252,10 +258,10 @@ export function MonthBars({ months }: { months: MonthBucket[] }) {
       </p>
       <div className="mt-3 flex gap-4 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1">
-          <span className="inline-block h-2 w-2 bg-foreground" /> Income
+          <span className="inline-block h-2 w-2 bg-primary" /> Income
         </span>
         <span className="inline-flex items-center gap-1">
-          <span className="inline-block h-2 w-2 bg-muted-foreground" /> Expenses
+          <span className="inline-block h-2 w-2 bg-brass" /> Expenses
         </span>
       </div>
       <div className="mt-4 flex h-40 items-end gap-1">
@@ -268,13 +274,13 @@ export function MonthBars({ months }: { months: MonthBucket[] }) {
               <Bar
                 cents={month.incomeCents}
                 peak={peak}
-                className="bg-foreground"
+                className="bg-primary"
                 label={`${month.label} income ${formatUsd(month.incomeCents)}`}
               />
               <Bar
                 cents={month.expenseCents}
                 peak={peak}
-                className="bg-muted-foreground"
+                className="bg-brass"
                 label={`${month.label} expenses ${formatUsd(month.expenseCents)}`}
               />
             </div>
@@ -339,7 +345,7 @@ function ReportNav({ search }: { search: ReportQuery }) {
             to={link.to}
             search={search}
             aria-current={current ? "page" : undefined}
-            className={current ? "font-medium" : "underline"}
+            className={choiceClass(current)}
           >
             {link.label}
           </Link>
@@ -370,7 +376,7 @@ function PeriodBar({ search }: { search: ReportQuery }) {
             to="."
             search={{ ...search, preset }}
             aria-current={search.preset === preset ? "page" : undefined}
-            className={search.preset === preset ? "font-medium" : "underline"}
+            className={choiceClass(search.preset === preset)}
           >
             {PRESET_LABELS[preset]}
           </Link>
@@ -387,7 +393,7 @@ function PeriodBar({ search }: { search: ReportQuery }) {
             });
           }}
         >
-          <label className="text-sm" htmlFor="report-from">
+          <label className="text-sm text-primary" htmlFor="report-from">
             From
             <Input
               id="report-from"
@@ -397,7 +403,7 @@ function PeriodBar({ search }: { search: ReportQuery }) {
               required
             />
           </label>
-          <label className="text-sm" htmlFor="report-to">
+          <label className="text-sm text-primary" htmlFor="report-to">
             To
             <Input
               id="report-to"
@@ -421,7 +427,7 @@ function BasisBar({ search }: { search: ReportQuery }) {
         to="."
         search={{ ...search, basis: "cash" }}
         aria-current={search.basis === "cash" ? "page" : undefined}
-        className={search.basis === "cash" ? "font-medium" : "underline"}
+        className={choiceClass(search.basis === "cash")}
       >
         Cash basis
       </Link>
@@ -429,7 +435,7 @@ function BasisBar({ search }: { search: ReportQuery }) {
         to="."
         search={{ ...search, basis: "accrual" }}
         aria-current={search.basis === "accrual" ? "page" : undefined}
-        className={search.basis === "accrual" ? "font-medium" : "underline"}
+        className={choiceClass(search.basis === "accrual")}
       >
         Accrual basis
       </Link>
@@ -441,7 +447,10 @@ function Section({ label, rows }: { label: string; rows: CategoryAmount[] }) {
   return (
     <>
       <tr>
-        <th className="pt-4 pb-1 text-left font-medium" colSpan={2}>
+        <th
+          className="pt-4 pb-1 text-left font-medium text-primary"
+          colSpan={2}
+        >
           {label}
         </th>
       </tr>
@@ -476,9 +485,21 @@ function MoneyRow({
   strong?: boolean;
 }) {
   return (
-    <tr className="border-b border-border">
-      <th className={cn("py-2 text-left", strong && "font-medium")}>{label}</th>
-      <td className={cn("py-2 text-right", strong && "font-medium")}>
+    <tr className={cn("border-b border-border", strong && "border-0")}>
+      <th
+        className={cn(
+          "py-2 text-left",
+          strong && "bg-brass font-medium text-brass-foreground",
+        )}
+      >
+        {label}
+      </th>
+      <td
+        className={cn(
+          "py-2 text-right",
+          strong && "bg-brass font-medium text-brass-foreground",
+        )}
+      >
         {formatUsd(cents)}
       </td>
     </tr>
@@ -488,7 +509,7 @@ function MoneyRow({
 function GroupHeading({ children }: { children: string }) {
   return (
     <tr>
-      <th className="pt-4 pb-1 text-left font-medium" colSpan={3}>
+      <th className="pt-4 pb-1 text-left font-medium text-primary" colSpan={3}>
         {children}
       </th>
     </tr>
@@ -520,12 +541,29 @@ function TotalRow({
   strong?: boolean;
 }) {
   return (
-    <tr className="border-b border-border">
-      <td className={cn("py-2", strong && "font-medium")}>{label}</td>
-      <td className={cn("py-2 text-right", strong && "font-medium")}>
+    <tr className={cn("border-b border-border", strong && "border-0")}>
+      <td
+        className={cn(
+          "py-2",
+          strong && "bg-brass font-medium text-brass-foreground",
+        )}
+      >
+        {label}
+      </td>
+      <td
+        className={cn(
+          "py-2 text-right",
+          strong && "bg-brass font-medium text-brass-foreground",
+        )}
+      >
         {formatUsd(amount)}
       </td>
-      <td className={cn("py-2 text-right", strong && "font-medium")}>
+      <td
+        className={cn(
+          "py-2 text-right",
+          strong && "bg-brass font-medium text-brass-foreground",
+        )}
+      >
         {formatUsd(tax)}
       </td>
     </tr>

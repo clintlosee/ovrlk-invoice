@@ -67,7 +67,7 @@ export function DropdownMenuRadioItem({
     >
       <span className="absolute left-2 flex size-3.5 items-center justify-center">
         <DropdownMenuPrimitive.ItemIndicator>
-          <Check aria-hidden className="size-4" />
+          <Check aria-hidden className="size-4 text-primary" />
         </DropdownMenuPrimitive.ItemIndicator>
       </span>
       {children}

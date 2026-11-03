@@ -85,7 +85,7 @@ export function ItemForm({
         {taxRates.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             No Tax Rates yet.{" "}
-            <Link to="/app/tax-rates" className="underline">
+            <Link to="/app/tax-rates" className="text-primary underline">
               Add one
             </Link>
           </p>

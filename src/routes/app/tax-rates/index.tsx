@@ -13,7 +13,7 @@ function TaxRatesPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 border-b-2 border-brass pb-3">
         <h1 className="font-serif text-3xl">Tax Rates</h1>
         <Button asChild>
           <Link to="/app/tax-rates/new">New Tax Rate</Link>
@@ -25,7 +25,7 @@ function TaxRatesPage() {
       {taxRates.length === 0 ? (
         <p className="mt-6 text-sm">No Tax Rates yet.</p>
       ) : (
-        <ul className="mt-6 divide-y divide-border rounded-lg border border-border bg-card">
+        <ul className="mt-6 divide-y divide-border overflow-hidden rounded-lg border border-border border-t-[6px] border-t-brass bg-card">
           {taxRates.map((rate) => (
             <li
               key={rate.id}
@@ -34,7 +34,7 @@ function TaxRatesPage() {
               <Link
                 to="/app/tax-rates/$taxRateId"
                 params={{ taxRateId: rate.id }}
-                className="font-medium underline"
+                className="font-medium text-primary underline"
               >
                 {rate.name}
               </Link>

@@ -198,6 +198,16 @@ export const disconnectConnectedAccount = createServerFn({
   return { ok: true as const };
 });
 
+export const getShellBusiness = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const db = await scope();
+    if (!db) return null;
+    const row = await db.business.get();
+    if (!row) return null;
+    return { name: row.name };
+  },
+);
+
 export const clearBusinessLogo = createServerFn({ method: "POST" }).handler(
   async () => {
     const current = await signedInBusiness();

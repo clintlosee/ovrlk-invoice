@@ -54,11 +54,13 @@ function ExpensePage() {
       <Link
         to="/app/expenses"
         search={{ from: "", to: "", category: "" }}
-        className="text-sm underline"
+        className="text-sm text-primary underline"
       >
         Expenses
       </Link>
-      <h1 className="mt-3 font-serif text-3xl">{expense.merchant}</h1>
+      <h1 className="mt-3 border-b-2 border-brass pb-3 font-serif text-3xl">
+        {expense.merchant}
+      </h1>
       <Card>
         <ExpenseForm
           initial={{
@@ -145,7 +147,7 @@ function Receipt({
         <div className="flex gap-3">
           <button
             type="button"
-            className="text-sm underline"
+            className="text-sm text-primary underline"
             onClick={() => {
               void receiptUrl({ data: { id: expenseId } }).then((result) => {
                 if (result.ok) window.open(result.url, "_blank", "noopener");
@@ -157,7 +159,7 @@ function Receipt({
           </button>
           <button
             type="button"
-            className="text-sm underline"
+            className="text-sm text-primary underline"
             disabled={pending}
             onClick={() => {
               setPending(true);

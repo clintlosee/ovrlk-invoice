@@ -12,8 +12,10 @@ export const Route = createFileRoute("/dev/styleguide")({
 
 function StyleguidePage() {
   return (
-    <Shell wide themeToggle>
-      <h1 className="font-serif text-3xl">Styleguide</h1>
+    <Shell size="wide" themeToggle>
+      <h1 className="border-b-2 border-brass pb-3 font-serif text-3xl">
+        Styleguide
+      </h1>
       <p className="mt-2 text-sm text-muted-foreground">
         Dev only. Tokens, components, and status badges in both modes.
       </p>

@@ -41,10 +41,12 @@ function NewClientPage() {
 
   return (
     <>
-      <Link to="/app/clients" className="text-sm underline">
+      <Link to="/app/clients" className="text-sm text-primary underline">
         Clients
       </Link>
-      <h1 className="mt-3 font-serif text-3xl">New Client</h1>
+      <h1 className="mt-3 border-b-2 border-brass pb-3 font-serif text-3xl">
+        New Client
+      </h1>
       <Card>
         <ClientForm
           initial={empty}

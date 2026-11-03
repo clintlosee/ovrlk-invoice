@@ -92,7 +92,10 @@ function PublicInvoicePage() {
             </form>
           ) : null}
           <p className="mt-4">
-            <a className="text-sm underline" href={`/p/${token}/pdf`}>
+            <a
+              className="text-sm text-primary underline"
+              href={`/p/${token}/pdf`}
+            >
               Download PDF
             </a>
           </p>

@@ -90,7 +90,9 @@ function SecurityPage() {
 
   return (
     <>
-      <h1 className="font-serif text-3xl">Security</h1>
+      <h1 className="border-b-2 border-brass pb-3 font-serif text-3xl">
+        Security
+      </h1>
       <p className="mt-2 text-sm text-muted-foreground">
         Email codes are required and cannot be turned off.
       </p>

@@ -9,7 +9,9 @@ function TermsPage() {
   return (
     <Shell>
       <DraftNotice />
-      <h1 className="font-serif text-3xl">Terms of Service</h1>
+      <h1 className="border-b-2 border-brass pb-3 font-serif text-3xl">
+        Terms of Service
+      </h1>
       <div className="mt-6 space-y-4 text-sm leading-6">
         <p>
           These terms are a draft for the owner of a photography print business

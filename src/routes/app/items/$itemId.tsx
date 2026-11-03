@@ -65,10 +65,12 @@ function EditItemPage() {
 
   return (
     <>
-      <Link to="/app/items" className="text-sm underline">
+      <Link to="/app/items" className="text-sm text-primary underline">
         Items
       </Link>
-      <h1 className="mt-3 font-serif text-3xl">{item.name}</h1>
+      <h1 className="mt-3 border-b-2 border-brass pb-3 font-serif text-3xl">
+        {item.name}
+      </h1>
       <Card>
         <ItemForm
           key={item.id}

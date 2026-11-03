@@ -35,10 +35,12 @@ function NewTaxRatePage() {
 
   return (
     <>
-      <Link to="/app/tax-rates" className="text-sm underline">
+      <Link to="/app/tax-rates" className="text-sm text-primary underline">
         Tax Rates
       </Link>
-      <h1 className="mt-3 font-serif text-3xl">New Tax Rate</h1>
+      <h1 className="mt-3 border-b-2 border-brass pb-3 font-serif text-3xl">
+        New Tax Rate
+      </h1>
       <Card>
         <TaxRateForm
           initial={{ name: "", rate: "" }}

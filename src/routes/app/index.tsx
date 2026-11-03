@@ -2,8 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { InvoiceStatusBadge } from "@/components/invoice-status-badge";
 import { MonthBars } from "@/components/reports";
 import { Card } from "@/components/ui/card";
-import { authClient } from "@/lib/auth-client";
 import { formatUsd } from "@/lib/money";
+import { NO_BUSINESS_LABEL } from "@/lib/nav";
 import type { ReportPreset, ReportQuery } from "@/lib/reports";
 import { getDashboard } from "@/server/reports";
 
@@ -18,12 +18,14 @@ function reportSearch(preset: ReportPreset): ReportQuery {
 
 function AppHome() {
   const home = Route.useLoaderData();
-  if (!home) return <p>This account is not an Owner of a Business.</p>;
+  if (!home) return <p>{NO_BUSINESS_LABEL}</p>;
   const nudge = !home.totpEnabled || home.passkeyCount === 0;
   const overdueLabel = home.overdueCount === 1 ? "Invoice" : "Invoices";
   return (
     <>
-      <h1 className="font-serif text-3xl">{home.businessName}</h1>
+      <h1 className="border-b-2 border-brass pb-3 font-serif text-3xl">
+        Dashboard
+      </h1>
       <p className="mt-2 text-sm text-muted-foreground">
         Cash basis · {home.currency} · {home.timeZone}
       </p>
@@ -32,7 +34,7 @@ function AppHome() {
       </p>
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         <Card className="p-4">
-          <h2 className="text-sm text-muted-foreground">Outstanding</h2>
+          <h2 className="text-xs font-medium text-primary">Outstanding</h2>
           <p className="mt-2 font-serif text-2xl">
             {formatUsd(home.outstandingCents)}
           </p>
@@ -42,7 +44,7 @@ function AppHome() {
           </p>
         </Card>
         <Card className="p-4">
-          <h2 className="text-sm text-muted-foreground">Overdue</h2>
+          <h2 className="text-xs font-medium text-primary">Overdue</h2>
           <p className="mt-2 font-serif text-2xl">
             {formatUsd(home.overdueCents)}
           </p>
@@ -52,7 +54,7 @@ function AppHome() {
           </p>
         </Card>
         <Card className="p-4">
-          <h2 className="text-sm text-muted-foreground">Paid</h2>
+          <h2 className="text-xs font-medium text-primary">Paid</h2>
           <p className="mt-2 font-serif text-2xl">
             {formatUsd(home.paidThisMonthCents)}
           </p>
@@ -60,7 +62,7 @@ function AppHome() {
             <Link
               to="/app/reports"
               search={reportSearch("this_month")}
-              className="underline"
+              className="text-primary underline"
             >
               This month
             </Link>{" "}
@@ -73,7 +75,7 @@ function AppHome() {
             <Link
               to="/app/reports"
               search={reportSearch("year_to_date")}
-              className="underline"
+              className="text-primary underline"
             >
               Year to date
             </Link>{" "}
@@ -81,7 +83,7 @@ function AppHome() {
           </p>
         </Card>
         <Card className="p-4">
-          <h2 className="text-sm text-muted-foreground">Expenses</h2>
+          <h2 className="text-xs font-medium text-primary">Expenses</h2>
           <p className="mt-2 font-serif text-2xl">
             {formatUsd(home.expensesThisMonthCents)}
           </p>
@@ -89,7 +91,7 @@ function AppHome() {
             <Link
               to="/app/reports/expenses"
               search={reportSearch("this_month")}
-              className="underline"
+              className="text-primary underline"
             >
               This month
             </Link>{" "}
@@ -102,14 +104,14 @@ function AppHome() {
             <Link
               to="/app/reports/expenses"
               search={reportSearch("year_to_date")}
-              className="underline"
+              className="text-primary underline"
             >
               Year to date
             </Link>
           </p>
         </Card>
         <Card className="p-4 sm:col-span-2">
-          <h2 className="text-sm text-muted-foreground">
+          <h2 className="text-xs font-medium text-primary">
             Net profit, year to date
           </h2>
           <p className="mt-2 font-serif text-2xl">
@@ -121,7 +123,7 @@ function AppHome() {
             <Link
               to="/app/reports"
               search={reportSearch("year_to_date")}
-              className="underline"
+              className="text-primary underline"
             >
               Profit and Loss
             </Link>
@@ -134,13 +136,13 @@ function AppHome() {
         {home.recentInvoices.length === 0 ? (
           <p className="mt-3 text-sm">No Invoices yet.</p>
         ) : (
-          <ul className="mt-3 divide-y divide-border rounded-lg border border-border bg-card">
+          <ul className="mt-3 divide-y divide-border overflow-hidden rounded-lg border border-border border-t-[6px] border-t-brass bg-card">
             {home.recentInvoices.map((invoice) => (
               <li key={invoice.id} className="px-4 py-3">
                 <Link
                   to="/app/invoices/$invoiceId"
                   params={{ invoiceId: invoice.id }}
-                  className="font-medium underline"
+                  className="font-medium text-primary underline"
                 >
                   {invoice.numberLabel} · {invoice.clientName}
                 </Link>
@@ -160,13 +162,13 @@ function AppHome() {
         {home.recentPayments.length === 0 ? (
           <p className="mt-3 text-sm">No Payments yet.</p>
         ) : (
-          <ul className="mt-3 divide-y divide-border rounded-lg border border-border bg-card">
+          <ul className="mt-3 divide-y divide-border overflow-hidden rounded-lg border border-border border-t-[6px] border-t-brass bg-card">
             {home.recentPayments.map((payment) => (
               <li key={payment.id} className="px-4 py-3">
                 <Link
                   to="/app/invoices/$invoiceId"
                   params={{ invoiceId: payment.invoiceId }}
-                  className="font-medium underline"
+                  className="font-medium text-primary underline"
                 >
                   {payment.numberLabel} · {payment.clientName}
                 </Link>
@@ -189,29 +191,18 @@ function AppHome() {
           </p>
           <Link
             to="/app/security"
-            className="mt-3 inline-block text-sm underline"
+            className="mt-3 inline-block text-sm text-primary underline"
           >
             Security settings
           </Link>
         </Card>
       ) : (
         <p className="mt-8 text-sm">
-          <Link to="/app/security" className="underline">
+          <Link to="/app/security" className="text-primary underline">
             Security settings
           </Link>
         </p>
       )}
-      <button
-        type="button"
-        className="mt-6 text-sm underline"
-        onClick={() => {
-          void authClient.signOut().then(() => {
-            window.location.href = "/";
-          });
-        }}
-      >
-        Sign out
-      </button>
     </>
   );
 }

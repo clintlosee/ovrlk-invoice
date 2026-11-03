@@ -27,7 +27,7 @@ function ExpensesPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 border-b-2 border-brass pb-3">
         <h1 className="font-serif text-3xl">Expenses</h1>
         <Button asChild>
           <Link to="/app/expenses/new">New Expense</Link>
@@ -35,7 +35,7 @@ function ExpensesPage() {
       </div>
       <p className="mt-2 text-sm text-muted-foreground">
         Dates are in this Business's time zone.{" "}
-        <Link to="/app/expenses/categories" className="underline">
+        <Link to="/app/expenses/categories" className="text-primary underline">
           Categories
         </Link>
       </p>
@@ -54,7 +54,7 @@ function ExpensesPage() {
           });
         }}
       >
-        <label className="text-sm" htmlFor="expense-from">
+        <label className="text-sm text-primary" htmlFor="expense-from">
           From
           <Input
             id="expense-from"
@@ -63,7 +63,7 @@ function ExpensesPage() {
             onChange={(event) => setFrom(event.target.value)}
           />
         </label>
-        <label className="text-sm" htmlFor="expense-to">
+        <label className="text-sm text-primary" htmlFor="expense-to">
           To
           <Input
             id="expense-to"
@@ -72,7 +72,7 @@ function ExpensesPage() {
             onChange={(event) => setTo(event.target.value)}
           />
         </label>
-        <label className="text-sm" htmlFor="expense-category">
+        <label className="text-sm text-primary" htmlFor="expense-category">
           Category
           <select
             id="expense-category"
@@ -94,14 +94,14 @@ function ExpensesPage() {
       {data.expenses.length === 0 ? (
         <p className="mt-6 text-sm">No Expenses in this filter.</p>
       ) : (
-        <ul className="mt-6 divide-y divide-border rounded-lg border border-border bg-card">
+        <ul className="mt-6 divide-y divide-border overflow-hidden rounded-lg border border-border border-t-[6px] border-t-brass bg-card">
           {data.expenses.map((expense) => (
             <li key={expense.id} className="px-4 py-3">
               <div className="flex items-baseline justify-between gap-4">
                 <Link
                   to="/app/expenses/$expenseId"
                   params={{ expenseId: expense.id }}
-                  className="font-medium underline"
+                  className="font-medium text-primary underline"
                 >
                   {expense.merchant}
                 </Link>
@@ -118,7 +118,7 @@ function ExpensesPage() {
               {expense.receiptKey ? (
                 <button
                   type="button"
-                  className="mt-1 text-sm underline"
+                  className="mt-1 text-sm text-primary underline"
                   onClick={() => {
                     void receiptUrl({ data: { id: expense.id } }).then(
                       (result) => {

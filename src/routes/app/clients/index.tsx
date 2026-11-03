@@ -15,7 +15,7 @@ function ClientsPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 border-b-2 border-brass pb-3">
         <h1 className="font-serif text-3xl">Clients</h1>
         <Button asChild>
           <Link to="/app/clients/new">New Client</Link>
@@ -27,7 +27,7 @@ function ClientsPage() {
       <ClientList clients={active} empty="No Clients yet." />
       {archived.length > 0 ? (
         <section className="mt-10">
-          <h2 className="font-medium">Archived</h2>
+          <h2 className="font-medium text-primary">Archived</h2>
           <ClientList clients={archived} empty="" />
         </section>
       ) : null}
@@ -49,13 +49,13 @@ function ClientList({
 }) {
   if (clients.length === 0) return <p className="mt-6 text-sm">{empty}</p>;
   return (
-    <ul className="mt-6 divide-y divide-border rounded-lg border border-border bg-card">
+    <ul className="mt-6 divide-y divide-border overflow-hidden rounded-lg border border-border border-t-[6px] border-t-brass bg-card">
       {clients.map((client) => (
         <li key={client.id} className="px-4 py-3">
           <Link
             to="/app/clients/$clientId"
             params={{ clientId: client.id }}
-            className="font-medium underline"
+            className="font-medium text-primary underline"
           >
             {client.name}
           </Link>
