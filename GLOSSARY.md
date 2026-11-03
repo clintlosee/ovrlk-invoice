@@ -82,10 +82,13 @@ An Expense auto-created from a Stripe Payment's processing fee.
 An image or PDF attached to an Expense, stored privately.
 
 **Cash Basis**:
-Reporting income on the date Payments arrive and expenses on their Expense date. The Owner's primary view.
+Reporting income when Payments arrive and expenses on the Expense date, in the Business time zone. A period's income is each Payment's amount minus refunded cents, dated on that Payment's business-local date. A refund reduces the original Payment; it does not get its own date. Expenses in the period include Merchant fees. Gross profit is income minus Cost of Goods Sold. Net profit is gross profit minus Schedule C expenses. This is the Owner's primary view.
 
 **Accrual Basis**:
-Reporting income on the Invoice date regardless of payment. Also called invoice-based.
+Reporting income on the Invoice issue date, whether or not a Payment has arrived. Income is the total of Sent Invoices that are not Void. Draft and Void Invoices count for nothing. Expenses match Cash Basis. Also called invoice-based.
+
+**Outstanding**:
+The unpaid balance on Sent, non-void Invoices. A partial Payment reduces it. An overpayment is credit on that Invoice and does not reduce any other Invoice.
 
 **Connected Account**:
 A Business's own Stripe account linked through Stripe Connect; Payments land there directly.

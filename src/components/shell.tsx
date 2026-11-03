@@ -18,6 +18,13 @@ export function AppNav() {
       >
         Expenses
       </Link>
+      <Link
+        to="/app/reports"
+        search={{ preset: "this_month", basis: "cash", from: "", to: "" }}
+        className="underline"
+      >
+        Reports
+      </Link>
       <Link to="/app/clients" className="underline">
         Clients
       </Link>
@@ -44,15 +51,17 @@ export function AppNav() {
 export function Shell({
   children,
   wide = false,
+  broad = false,
 }: {
   children: ReactNode;
   wide?: boolean;
+  broad?: boolean;
 }) {
   return (
     <div
       className={cn(
         "mx-auto flex min-h-screen flex-col px-6 py-10",
-        wide ? "max-w-2xl" : "max-w-lg",
+        broad ? "max-w-5xl" : wide ? "max-w-2xl" : "max-w-lg",
       )}
     >
       <header className="mb-10">

@@ -1,4 +1,9 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Outlet,
+  redirect,
+  useRouterState,
+} from "@tanstack/react-router";
 import { AppNav, Shell } from "@/components/shell";
 import { getSessionUser } from "@/server/session";
 
@@ -10,8 +15,12 @@ export const Route = createFileRoute("/app")({
   },
   headers: () => ({ "cache-control": "no-store" }),
   component: function AppLayout() {
+    const pathname = useRouterState({
+      select: (state) => state.location.pathname,
+    });
+    const broad = pathname === "/app" || pathname.startsWith("/app/reports");
     return (
-      <Shell wide>
+      <Shell wide broad={broad}>
         <AppNav />
         <Outlet />
       </Shell>

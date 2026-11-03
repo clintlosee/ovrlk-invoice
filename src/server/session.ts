@@ -5,7 +5,6 @@ import { getDb } from "../db/client";
 import { passkey, twoFactor } from "../db/schema";
 import { getAuth } from "../lib/auth";
 import { signedInBusiness } from "./membership";
-import { forBusiness } from "./tenancy";
 
 export const getSessionUser = createServerFn({ method: "GET" }).handler(
   async () => {
@@ -21,22 +20,7 @@ export const getSessionUser = createServerFn({ method: "GET" }).handler(
   },
 );
 
-export const getHome = createServerFn({ method: "GET" }).handler(async () => {
-  const current = await signedInBusiness();
-  if (!current) return null;
-  const record = await forBusiness(getDb(), current.businessId).business.get();
-  if (!record) return null;
-  const factors = await ownFactors(current.session.user.id);
-  return {
-    businessName: record.name,
-    currency: record.currency,
-    timeZone: record.timeZone,
-    totpEnabled: factors.totpEnabled,
-    passkeyCount: factors.passkeyCount,
-  };
-});
-
-async function ownFactors(userId: string) {
+export async function ownerFactors(userId: string) {
   const db = getDb();
   const totp = await db
     .select()
@@ -57,7 +41,7 @@ export const getSecurity = createServerFn({ method: "GET" }).handler(
   async () => {
     const current = await signedInBusiness();
     if (!current) return null;
-    const factors = await ownFactors(current.session.user.id);
+    const factors = await ownerFactors(current.session.user.id);
     const keys = await getDb()
       .select({
         id: passkey.id,
