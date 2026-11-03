@@ -38,6 +38,9 @@ import { Route as AppInvoicesNewRouteImport } from './routes/app/invoices/new'
 import { Route as AppItemsIndexRouteImport } from './routes/app/items/index'
 import { Route as AppItemsItemIdRouteImport } from './routes/app/items/$itemId'
 import { Route as AppItemsNewRouteImport } from './routes/app/items/new'
+import { Route as AppReportsIndexRouteImport } from './routes/app/reports/index'
+import { Route as AppReportsClientsRouteImport } from './routes/app/reports/clients'
+import { Route as AppReportsExpensesRouteImport } from './routes/app/reports/expenses'
 import { Route as AppStripeOauthRouteImport } from './routes/app/stripe/oauth'
 import { Route as AppStripeRefreshRouteImport } from './routes/app/stripe/refresh'
 import { Route as AppStripeReturnRouteImport } from './routes/app/stripe/return'
@@ -198,6 +201,21 @@ const AppItemsNewRoute = AppItemsNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AppItemsRouteRoute,
 } as any)
+const AppReportsIndexRoute = AppReportsIndexRouteImport.update({
+  id: '/reports/',
+  path: '/reports/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppReportsClientsRoute = AppReportsClientsRouteImport.update({
+  id: '/reports/clients',
+  path: '/reports/clients',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppReportsExpensesRoute = AppReportsExpensesRouteImport.update({
+  id: '/reports/expenses',
+  path: '/reports/expenses',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppStripeOauthRoute = AppStripeOauthRouteImport.update({
   id: '/stripe/oauth',
   path: '/stripe/oauth',
@@ -298,6 +316,8 @@ export interface FileRoutesByFullPath {
   '/app/invoices/new': typeof AppInvoicesNewRoute
   '/app/items/$itemId': typeof AppItemsItemIdRoute
   '/app/items/new': typeof AppItemsNewRoute
+  '/app/reports/clients': typeof AppReportsClientsRoute
+  '/app/reports/expenses': typeof AppReportsExpensesRoute
   '/app/stripe/oauth': typeof AppStripeOauthRoute
   '/app/stripe/refresh': typeof AppStripeRefreshRoute
   '/app/stripe/return': typeof AppStripeReturnRoute
@@ -310,6 +330,7 @@ export interface FileRoutesByFullPath {
   '/app/expenses/': typeof AppExpensesIndexRoute
   '/app/invoices/': typeof AppInvoicesIndexRoute
   '/app/items/': typeof AppItemsIndexRoute
+  '/app/reports/': typeof AppReportsIndexRoute
   '/app/tax-rates/': typeof AppTaxRatesIndexRoute
   '/p/$token/': typeof PTokenIndexRoute
   '/app/expenses/$expenseId/receipt': typeof AppExpensesExpenseIdReceiptRoute
@@ -337,6 +358,8 @@ export interface FileRoutesByTo {
   '/app/invoices/new': typeof AppInvoicesNewRoute
   '/app/items/$itemId': typeof AppItemsItemIdRoute
   '/app/items/new': typeof AppItemsNewRoute
+  '/app/reports/clients': typeof AppReportsClientsRoute
+  '/app/reports/expenses': typeof AppReportsExpensesRoute
   '/app/stripe/oauth': typeof AppStripeOauthRoute
   '/app/stripe/refresh': typeof AppStripeRefreshRoute
   '/app/stripe/return': typeof AppStripeReturnRoute
@@ -349,6 +372,7 @@ export interface FileRoutesByTo {
   '/app/expenses': typeof AppExpensesIndexRoute
   '/app/invoices': typeof AppInvoicesIndexRoute
   '/app/items': typeof AppItemsIndexRoute
+  '/app/reports': typeof AppReportsIndexRoute
   '/app/tax-rates': typeof AppTaxRatesIndexRoute
   '/p/$token': typeof PTokenIndexRoute
   '/app/expenses/$expenseId/receipt': typeof AppExpensesExpenseIdReceiptRoute
@@ -383,6 +407,8 @@ export interface FileRoutesById {
   '/app/invoices/new': typeof AppInvoicesNewRoute
   '/app/items/$itemId': typeof AppItemsItemIdRoute
   '/app/items/new': typeof AppItemsNewRoute
+  '/app/reports/clients': typeof AppReportsClientsRoute
+  '/app/reports/expenses': typeof AppReportsExpensesRoute
   '/app/stripe/oauth': typeof AppStripeOauthRoute
   '/app/stripe/refresh': typeof AppStripeRefreshRoute
   '/app/stripe/return': typeof AppStripeReturnRoute
@@ -395,6 +421,7 @@ export interface FileRoutesById {
   '/app/expenses/': typeof AppExpensesIndexRoute
   '/app/invoices/': typeof AppInvoicesIndexRoute
   '/app/items/': typeof AppItemsIndexRoute
+  '/app/reports/': typeof AppReportsIndexRoute
   '/app/tax-rates/': typeof AppTaxRatesIndexRoute
   '/p/$token/': typeof PTokenIndexRoute
   '/app/expenses/$expenseId/receipt': typeof AppExpensesExpenseIdReceiptRoute
@@ -430,6 +457,8 @@ export interface FileRouteTypes {
     | '/app/invoices/new'
     | '/app/items/$itemId'
     | '/app/items/new'
+    | '/app/reports/clients'
+    | '/app/reports/expenses'
     | '/app/stripe/oauth'
     | '/app/stripe/refresh'
     | '/app/stripe/return'
@@ -442,6 +471,7 @@ export interface FileRouteTypes {
     | '/app/expenses/'
     | '/app/invoices/'
     | '/app/items/'
+    | '/app/reports/'
     | '/app/tax-rates/'
     | '/p/$token/'
     | '/app/expenses/$expenseId/receipt'
@@ -469,6 +499,8 @@ export interface FileRouteTypes {
     | '/app/invoices/new'
     | '/app/items/$itemId'
     | '/app/items/new'
+    | '/app/reports/clients'
+    | '/app/reports/expenses'
     | '/app/stripe/oauth'
     | '/app/stripe/refresh'
     | '/app/stripe/return'
@@ -481,6 +513,7 @@ export interface FileRouteTypes {
     | '/app/expenses'
     | '/app/invoices'
     | '/app/items'
+    | '/app/reports'
     | '/app/tax-rates'
     | '/p/$token'
     | '/app/expenses/$expenseId/receipt'
@@ -514,6 +547,8 @@ export interface FileRouteTypes {
     | '/app/invoices/new'
     | '/app/items/$itemId'
     | '/app/items/new'
+    | '/app/reports/clients'
+    | '/app/reports/expenses'
     | '/app/stripe/oauth'
     | '/app/stripe/refresh'
     | '/app/stripe/return'
@@ -526,6 +561,7 @@ export interface FileRouteTypes {
     | '/app/expenses/'
     | '/app/invoices/'
     | '/app/items/'
+    | '/app/reports/'
     | '/app/tax-rates/'
     | '/p/$token/'
     | '/app/expenses/$expenseId/receipt'
@@ -755,6 +791,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppItemsNewRouteImport
       parentRoute: typeof AppItemsRouteRoute
     }
+    '/app/reports/': {
+      id: '/app/reports/'
+      path: '/reports'
+      fullPath: '/app/reports/'
+      preLoaderRoute: typeof AppReportsIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/reports/clients': {
+      id: '/app/reports/clients'
+      path: '/reports/clients'
+      fullPath: '/app/reports/clients'
+      preLoaderRoute: typeof AppReportsClientsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/reports/expenses': {
+      id: '/app/reports/expenses'
+      path: '/reports/expenses'
+      fullPath: '/app/reports/expenses'
+      preLoaderRoute: typeof AppReportsExpensesRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/app/stripe/oauth': {
       id: '/app/stripe/oauth'
       path: '/stripe/oauth'
@@ -949,9 +1006,12 @@ interface AppRouteRouteChildren {
   AppSecurityRoute: typeof AppSecurityRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppReportsClientsRoute: typeof AppReportsClientsRoute
+  AppReportsExpensesRoute: typeof AppReportsExpensesRoute
   AppStripeOauthRoute: typeof AppStripeOauthRoute
   AppStripeRefreshRoute: typeof AppStripeRefreshRoute
   AppStripeReturnRoute: typeof AppStripeReturnRoute
+  AppReportsIndexRoute: typeof AppReportsIndexRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
@@ -964,9 +1024,12 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppSecurityRoute: AppSecurityRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
+  AppReportsClientsRoute: AppReportsClientsRoute,
+  AppReportsExpensesRoute: AppReportsExpensesRoute,
   AppStripeOauthRoute: AppStripeOauthRoute,
   AppStripeRefreshRoute: AppStripeRefreshRoute,
   AppStripeReturnRoute: AppStripeReturnRoute,
+  AppReportsIndexRoute: AppReportsIndexRoute,
 }
 
 const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(

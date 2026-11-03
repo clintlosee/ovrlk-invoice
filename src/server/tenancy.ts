@@ -16,6 +16,7 @@ import { type Cents, cents } from "../lib/money";
 import { categoryMethods, expenseMethods } from "./expense-store";
 import { invoiceMethods } from "./invoice-store";
 import { paymentMethods } from "./payment-store";
+import { reportMethods } from "./report-store";
 
 type MemberRole = typeof OWNER_ROLE;
 
@@ -583,6 +584,7 @@ export function forBusiness(db: AppDb, businessId: string) {
     payments: paymentMethods(db, businessId),
     categories: categoryMethods(db, businessId),
     expenses: expenseMethods(db, businessId),
+    reports: reportMethods(db, businessId),
     audit: {
       async list() {
         return db

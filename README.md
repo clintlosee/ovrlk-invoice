@@ -4,7 +4,7 @@ Invoicing, expense tracking, and reporting for small businesses, starting with o
 
 Terms used in this project are defined in [GLOSSARY.md](./GLOSSARY.md). Architecture decisions are recorded in [docs/adr](./docs/adr).
 
-This repository includes Owner sign-in, Business tenancy, Clients, Items, Tax Rates, Invoices (PDF, email, and a public Invoice Link), Stripe Connect Payments, and Expenses. Reports come in a later pull request.
+This repository includes Owner sign-in, Business tenancy, Clients, Items, Tax Rates, Invoices (PDF, email, and a public Invoice Link), Stripe Connect Payments, Expenses, and Reports. The home page is a cash-basis dashboard. Profit and Loss, Expenses by category, and Revenue by client are under Reports.
 
 ## Local setup
 
