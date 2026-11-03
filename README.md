@@ -77,6 +77,12 @@ Tests use a throwaway libSQL file under `data/` and do not send email.
 
 ## Render
 
-`render.yaml` builds with `pnpm install --frozen-lockfile` and starts with `pnpm start` on Node 24 (`NODE_VERSION`). Set the secret env vars in the Render dashboard (`sync: false` in the blueprint). `ALLOW_SIGN_UP` is `false`. The service runs migrations on boot. Leave the R2 variables unset and the app still boots; Receipt and logo upload stay hidden.
+`render.yaml` builds with `pnpm install --frozen-lockfile --prod=false` and starts with `pnpm start` on Node 24 (`NODE_VERSION`). `--prod=false` installs devDependencies, including `drizzle-kit`, and the build leaves that `node_modules` in place. Set the secret env vars in the Render dashboard (`sync: false` in the blueprint, no values in git). Pre-deploy uses the same service environment, so `DATABASE_URL` and `TURSO_AUTH_TOKEN` are set for `drizzle.config.ts`. `ALLOW_SIGN_UP` is `false`. Leave the R2 variables unset and the app still boots; Receipt and logo upload stay hidden.
+
+The pre-deploy command is `pnpm db:migrate` (`drizzle-kit migrate`). Render runs it for this paid web service (`plan: starter`) after the build finishes and before the new instance starts. `drizzle.config.ts` and the `drizzle/` folder are in the repo, so they are on that filesystem. The first request still calls `migrateDb()`. After pre-deploy, that call finds nothing left to apply. It also sets the connection pragmas, and it is what migrates `pnpm dev` and any deploy that does not run the pre-deploy command.
+
+Changes in `render.yaml` apply when the service is Blueprint-managed. Otherwise set Pre-Deploy Command to `pnpm db:migrate` in the service's Settings in the Render dashboard.
+
+If the pre-deploy command fails or times out (30 minutes), the deploy fails before the new instance starts. The service keeps serving its most recent successful deploy. A migration that committed before the failure stays in the database.
 
 Card Payments use Stripe Connect Standard and a direct charge on the Business's Connected Account. Account Links create a new Standard account. OAuth links an existing one when `STRIPE_CONNECT_CLIENT_ID` is set. Leave `STRIPE_SECRET_KEY` empty and the pay button stays hidden. A card Payment with `fee_cents` creates one Merchant Fee Expense. A later event with the same fee does not create another. Refunds reduce the Payment and move the Invoice back to Partially Paid or Sent. The Merchant Fee amount follows the net balance-transaction fee, which usually stays put because Stripe keeps the original processing fee. A Payment above the Invoice total is kept and the Invoice shows Overpaid. Void is blocked while any Payment still has an unrefunded balance.

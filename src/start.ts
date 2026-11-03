@@ -26,6 +26,8 @@ const publicError = createSerializationAdapter({
 let migrating: Promise<void> | undefined;
 
 const gate = createMiddleware().server(async ({ next, pathname, request }) => {
+  // Render's pre-deploy command is the production migration path.
+  // This still runs so `pnpm dev` and other setups migrate on first request.
   migrating ??= migrateDb();
   await migrating;
   const limited = pathname.startsWith("/p/");
