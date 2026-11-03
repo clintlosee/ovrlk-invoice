@@ -23,37 +23,39 @@ function AppHome() {
   return (
     <>
       <h1 className="font-serif text-3xl">{home.businessName}</h1>
-      <p className="mt-2 text-sm text-muted">
+      <p className="mt-2 text-sm text-muted-foreground">
         Cash basis · {home.currency} · {home.timeZone}
       </p>
-      <p className="mt-1 text-sm text-muted">Today is {home.today}.</p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Today is {home.today}.
+      </p>
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         <Card className="p-4">
-          <h2 className="text-sm text-muted">Outstanding</h2>
+          <h2 className="text-sm text-muted-foreground">Outstanding</h2>
           <p className="mt-2 font-serif text-2xl">
             {formatUsd(home.outstandingCents)}
           </p>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 text-sm text-muted-foreground">
             Unpaid balance on Sent Invoices. Credit from an overpayment is not
             subtracted.
           </p>
         </Card>
         <Card className="p-4">
-          <h2 className="text-sm text-muted">Overdue</h2>
+          <h2 className="text-sm text-muted-foreground">Overdue</h2>
           <p className="mt-2 font-serif text-2xl">
             {formatUsd(home.overdueCents)}
           </p>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 text-sm text-muted-foreground">
             {home.overdueCount} {overdueLabel} past the due date, including
             Partially Paid.
           </p>
         </Card>
         <Card className="p-4">
-          <h2 className="text-sm text-muted">Paid</h2>
+          <h2 className="text-sm text-muted-foreground">Paid</h2>
           <p className="mt-2 font-serif text-2xl">
             {formatUsd(home.paidThisMonthCents)}
           </p>
-          <p className="text-sm text-muted">
+          <p className="text-sm text-muted-foreground">
             <Link
               to="/app/reports"
               search={reportSearch("this_month")}
@@ -66,7 +68,7 @@ function AppHome() {
           <p className="mt-3 font-serif text-xl">
             {formatUsd(home.paidYearToDateCents)}
           </p>
-          <p className="text-sm text-muted">
+          <p className="text-sm text-muted-foreground">
             <Link
               to="/app/reports"
               search={reportSearch("year_to_date")}
@@ -78,11 +80,11 @@ function AppHome() {
           </p>
         </Card>
         <Card className="p-4">
-          <h2 className="text-sm text-muted">Expenses</h2>
+          <h2 className="text-sm text-muted-foreground">Expenses</h2>
           <p className="mt-2 font-serif text-2xl">
             {formatUsd(home.expensesThisMonthCents)}
           </p>
-          <p className="text-sm text-muted">
+          <p className="text-sm text-muted-foreground">
             <Link
               to="/app/reports/expenses"
               search={reportSearch("this_month")}
@@ -95,7 +97,7 @@ function AppHome() {
           <p className="mt-3 font-serif text-xl">
             {formatUsd(home.expensesYearToDateCents)}
           </p>
-          <p className="text-sm text-muted">
+          <p className="text-sm text-muted-foreground">
             <Link
               to="/app/reports/expenses"
               search={reportSearch("year_to_date")}
@@ -106,11 +108,13 @@ function AppHome() {
           </p>
         </Card>
         <Card className="p-4 sm:col-span-2">
-          <h2 className="text-sm text-muted">Net profit, year to date</h2>
+          <h2 className="text-sm text-muted-foreground">
+            Net profit, year to date
+          </h2>
           <p className="mt-2 font-serif text-2xl">
             {formatUsd(home.netProfitYearToDateCents)}
           </p>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 text-sm text-muted-foreground">
             Cash basis: Payments minus Expenses, including Cost of Goods Sold
             and Merchant fees.{" "}
             <Link
@@ -139,7 +143,7 @@ function AppHome() {
                 >
                   {invoice.numberLabel} · {invoice.clientName}
                 </Link>
-                <p className="text-sm text-muted">
+                <p className="text-sm text-muted-foreground">
                   {invoice.statusLabel} · Due {invoice.dueDate} ·{" "}
                   {formatUsd(invoice.totalCents)}
                 </p>
@@ -163,7 +167,7 @@ function AppHome() {
                 >
                   {payment.numberLabel} · {payment.clientName}
                 </Link>
-                <p className="text-sm text-muted">
+                <p className="text-sm text-muted-foreground">
                   {payment.paidOn} · {formatUsd(payment.netCents)}
                   {payment.refundedCents > 0
                     ? ` · refunded ${formatUsd(payment.refundedCents)}`

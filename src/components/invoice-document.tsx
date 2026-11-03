@@ -1,8 +1,8 @@
+import { InvoiceStatusBadge } from "@/components/invoice-status-badge";
 import {
   formatInvoiceNumber,
   type InvoiceDisplayStatus,
   type InvoiceSnapshot,
-  statusLabel,
 } from "@/lib/invoice";
 import { formatUsd } from "@/lib/money";
 import { formatBps } from "@/lib/tax";
@@ -38,31 +38,35 @@ export function InvoiceDocument({
             ) : null}
             <h1 className="font-serif text-3xl">{document.business.name}</h1>
             {document.business.address ? (
-              <p className="mt-2 whitespace-pre-wrap text-sm text-muted">
+              <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">
                 {document.business.address}
               </p>
             ) : null}
             {document.business.taxId ? (
-              <p className="text-sm text-muted">
+              <p className="text-sm text-muted-foreground">
                 Tax ID {document.business.taxId}
               </p>
             ) : null}
           </div>
           <div className="text-right">
-            <p className="font-serif text-2xl" style={{ color: accent }}>
+            <p className="font-serif text-2xl text-foreground">
               Invoice {formatInvoiceNumber(document.number)}
             </p>
-            <p className="mt-1 text-sm">{statusLabel(displayStatus)}</p>
+            <div className="mt-2 flex justify-end">
+              <InvoiceStatusBadge status={displayStatus} />
+            </div>
           </div>
         </header>
         {displayStatus === "void" ? (
-          <p className="rounded-md border border-danger/30 px-3 py-2 text-sm text-danger">
+          <p className="rounded-md border border-destructive/30 px-3 py-2 text-sm text-destructive">
             This Invoice is void.{voidReason ? ` ${voidReason}` : ""}
           </p>
         ) : null}
         <div className="grid gap-6 sm:grid-cols-2">
           <section>
-            <h2 className="text-sm font-medium text-muted">Bill to</h2>
+            <h2 className="text-sm font-medium text-muted-foreground">
+              Bill to
+            </h2>
             <p className="mt-1 font-medium">{document.client.name}</p>
             <p className="text-sm">{document.client.email}</p>
             {document.client.phone ? (
@@ -74,7 +78,7 @@ export function InvoiceDocument({
               </p>
             ) : null}
             {document.client.taxExempt ? (
-              <p className="text-sm text-muted">Tax-exempt</p>
+              <p className="text-sm text-muted-foreground">Tax-exempt</p>
             ) : null}
           </section>
           <section className="text-sm">
@@ -92,17 +96,17 @@ export function InvoiceDocument({
                 <div>
                   <p className="font-medium">{line.name}</p>
                   {line.description ? (
-                    <p className="whitespace-pre-wrap text-sm text-muted">
+                    <p className="whitespace-pre-wrap text-sm text-muted-foreground">
                       {line.description}
                     </p>
                   ) : null}
-                  <p className="text-sm text-muted">
+                  <p className="text-sm text-muted-foreground">
                     {line.quantity} × {formatUsd(line.unitPriceCents)}
                   </p>
                   {line.taxes.map((tax) => (
                     <p
                       key={`${tax.name}-${tax.rateBps}`}
-                      className="text-sm text-muted"
+                      className="text-sm text-muted-foreground"
                     >
                       {tax.name} {formatBps(tax.rateBps)}% ·{" "}
                       {formatUsd(tax.taxCents)}
@@ -123,7 +127,7 @@ export function InvoiceDocument({
             <dt>Tax</dt>
             <dd>{formatUsd(document.taxCents)}</dd>
           </div>
-          <div className="flex justify-between gap-6 font-medium">
+          <div className="flex justify-between gap-6 rounded-md bg-brass px-2 py-1 font-medium text-brass-foreground">
             <dt>Total</dt>
             <dd>{formatUsd(document.totalCents)}</dd>
           </div>
@@ -148,12 +152,12 @@ export function InvoiceDocument({
           <p className="whitespace-pre-wrap text-sm">{document.notes}</p>
         ) : null}
         {document.terms ? (
-          <p className="whitespace-pre-wrap text-sm text-muted">
+          <p className="whitespace-pre-wrap text-sm text-muted-foreground">
             {document.terms}
           </p>
         ) : null}
         {document.business.footer ? (
-          <p className="whitespace-pre-wrap text-sm text-muted">
+          <p className="whitespace-pre-wrap text-sm text-muted-foreground">
             {document.business.footer}
           </p>
         ) : null}

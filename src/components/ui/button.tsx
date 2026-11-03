@@ -4,14 +4,17 @@ import type { ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
-        // Unlayered `a { color: inherit }` would hide this label when the control is a link.
-        default: "bg-foreground text-background! hover:opacity-90",
-        outline: "border border-border bg-card hover:bg-background",
-        ghost: "hover:bg-card",
+        default: "bg-primary text-primary-foreground hover:bg-primary-hover",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-accent",
+        destructive:
+          "bg-destructive text-destructive-foreground hover:bg-destructive",
+        outline:
+          "border border-border bg-card text-foreground hover:bg-accent hover:text-accent-foreground",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
       },
       size: {
         default: "h-10 px-4",

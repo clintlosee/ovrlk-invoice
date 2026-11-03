@@ -20,7 +20,7 @@ export const Route = createFileRoute("/app")({
     });
     const broad = pathname === "/app" || pathname.startsWith("/app/reports");
     return (
-      <Shell wide broad={broad}>
+      <Shell wide broad={broad} themeToggle>
         <AppNav />
         <Outlet />
       </Shell>

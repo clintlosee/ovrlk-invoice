@@ -45,7 +45,7 @@ function SignUpPage() {
         {open ? (
           <>
             <h1 className="font-serif text-3xl">Create an Owner</h1>
-            <p className="mt-2 text-sm text-muted">
+            <p className="mt-2 text-sm text-muted-foreground">
               This creates one Owner and one Business.
             </p>
             <form className="mt-6 space-y-4" onSubmit={onSubmit}>
@@ -96,7 +96,7 @@ function SignUpPage() {
         ) : (
           <>
             <h1 className="font-serif text-3xl">Coming soon</h1>
-            <p className="mt-4 text-muted">
+            <p className="mt-4 text-muted-foreground">
               Sign-up is closed. The first Owner is created from the server, not
               from this page.
             </p>

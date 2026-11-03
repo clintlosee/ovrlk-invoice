@@ -19,7 +19,7 @@ function TaxRatesPage() {
           <Link to="/app/tax-rates/new">New Tax Rate</Link>
         </Button>
       </div>
-      <p className="mt-2 text-sm text-muted">
+      <p className="mt-2 text-sm text-muted-foreground">
         Named percentages applied to Invoice Lines.
       </p>
       {taxRates.length === 0 ? (
@@ -38,7 +38,9 @@ function TaxRatesPage() {
               >
                 {rate.name}
               </Link>
-              <span className="text-sm text-muted">{rate.rate}%</span>
+              <span className="text-sm text-muted-foreground">
+                {rate.rate}%
+              </span>
             </li>
           ))}
         </ul>

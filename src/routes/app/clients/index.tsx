@@ -21,7 +21,7 @@ function ClientsPage() {
           <Link to="/app/clients/new">New Client</Link>
         </Button>
       </div>
-      <p className="mt-2 text-sm text-muted">
+      <p className="mt-2 text-sm text-muted-foreground">
         Who this Business bills. Clients never sign in.
       </p>
       <ClientList clients={active} empty="No Clients yet." />
@@ -59,7 +59,7 @@ function ClientList({
           >
             {client.name}
           </Link>
-          <p className="text-sm text-muted">
+          <p className="text-sm text-muted-foreground">
             {client.email}
             {client.taxExempt ? " · Tax-exempt" : ""}
           </p>

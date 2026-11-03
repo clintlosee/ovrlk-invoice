@@ -15,7 +15,7 @@ function Home() {
       <h1 className="font-serif text-4xl tracking-tight">
         Invoices for the print shop.
       </h1>
-      <p className="mt-4 text-muted">
+      <p className="mt-4 text-muted-foreground">
         Clients, invoices, expenses, and reports for one photography business,
         walled off so other businesses can be opened later.
       </p>

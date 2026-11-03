@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { InvoiceStatusBadge } from "@/components/invoice-status-badge";
 import { Button } from "@/components/ui/button";
 import { formatUsd } from "@/lib/money";
 import { getInvoices } from "@/server/invoices";
@@ -20,7 +21,7 @@ function InvoicesPage() {
           <Link to="/app/invoices/new">New Invoice</Link>
         </Button>
       </div>
-      <p className="mt-2 text-sm text-muted">
+      <p className="mt-2 text-sm text-muted-foreground">
         A sent Invoice is locked. Overdue is calculated from the due date.
       </p>
       {invoices.length === 0 ? (
@@ -36,9 +37,11 @@ function InvoicesPage() {
               >
                 {invoice.numberLabel} · {invoice.clientName}
               </Link>
-              <p className="text-sm text-muted">
-                {invoice.statusLabel} · Due {invoice.dueDate} ·{" "}
-                {formatUsd(invoice.totalCents)}
+              <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                <InvoiceStatusBadge status={invoice.displayStatus} />
+                <span>
+                  Due {invoice.dueDate} · {formatUsd(invoice.totalCents)}
+                </span>
               </p>
             </li>
           ))}

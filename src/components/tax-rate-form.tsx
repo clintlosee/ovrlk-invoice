@@ -54,11 +54,11 @@ export function TaxRateForm({
             setValues({ ...values, rate: event.target.value })
           }
         />
-        <p className="text-sm text-muted">
+        <p className="text-sm text-muted-foreground">
           Up to two decimal places. 7.25 is stored as 725 basis points.
         </p>
       </div>
-      {message ? <p className="text-sm text-danger">{message}</p> : null}
+      {message ? <p className="text-sm text-destructive">{message}</p> : null}
       <Button type="submit" disabled={pending}>
         {pending ? "Saving…" : submitLabel}
       </Button>

@@ -25,6 +25,7 @@ import { Route as AppLogoRouteImport } from './routes/app/logo'
 import { Route as AppSecurityRouteImport } from './routes/app/security'
 import { Route as AppSettingsRouteImport } from './routes/app/settings'
 import { Route as AppTaxRatesRouteRouteImport } from './routes/app/tax-rates/route'
+import { Route as DevStyleguideRouteImport } from './routes/dev/styleguide'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhook'
 import { Route as AppClientsIndexRouteImport } from './routes/app/clients/index'
@@ -135,6 +136,11 @@ const AppTaxRatesRouteRoute = AppTaxRatesRouteRouteImport.update({
   id: '/tax-rates',
   path: '/tax-rates',
   getParentRoute: () => AppRouteRoute,
+} as any)
+const DevStyleguideRoute = DevStyleguideRouteImport.update({
+  id: '/dev/styleguide',
+  path: '/dev/styleguide',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
@@ -306,6 +312,7 @@ export interface FileRoutesByFullPath {
   '/app/logo': typeof AppLogoRoute
   '/app/security': typeof AppSecurityRoute
   '/app/settings': typeof AppSettingsRoute
+  '/dev/styleguide': typeof DevStyleguideRoute
   '/app/': typeof AppIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
@@ -348,6 +355,7 @@ export interface FileRoutesByTo {
   '/app/logo': typeof AppLogoRoute
   '/app/security': typeof AppSecurityRoute
   '/app/settings': typeof AppSettingsRoute
+  '/dev/styleguide': typeof DevStyleguideRoute
   '/app': typeof AppIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
@@ -397,6 +405,7 @@ export interface FileRoutesById {
   '/app/logo': typeof AppLogoRoute
   '/app/security': typeof AppSecurityRoute
   '/app/settings': typeof AppSettingsRoute
+  '/dev/styleguide': typeof DevStyleguideRoute
   '/app/': typeof AppIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
@@ -447,6 +456,7 @@ export interface FileRouteTypes {
     | '/app/logo'
     | '/app/security'
     | '/app/settings'
+    | '/dev/styleguide'
     | '/app/'
     | '/api/auth/$'
     | '/api/stripe/webhook'
@@ -489,6 +499,7 @@ export interface FileRouteTypes {
     | '/app/logo'
     | '/app/security'
     | '/app/settings'
+    | '/dev/styleguide'
     | '/app'
     | '/api/auth/$'
     | '/api/stripe/webhook'
@@ -537,6 +548,7 @@ export interface FileRouteTypes {
     | '/app/logo'
     | '/app/security'
     | '/app/settings'
+    | '/dev/styleguide'
     | '/app/'
     | '/api/auth/$'
     | '/api/stripe/webhook'
@@ -578,6 +590,7 @@ export interface RootRouteChildren {
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
   TermsRoute: typeof TermsRoute
+  DevStyleguideRoute: typeof DevStyleguideRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
   PTokenLogoRoute: typeof PTokenLogoRoute
@@ -699,6 +712,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/tax-rates'
       preLoaderRoute: typeof AppTaxRatesRouteRouteImport
       parentRoute: typeof AppRouteRoute
+    }
+    '/dev/styleguide': {
+      id: '/dev/styleguide'
+      path: '/dev/styleguide'
+      fullPath: '/dev/styleguide'
+      preLoaderRoute: typeof DevStyleguideRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -1044,6 +1064,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
   TermsRoute: TermsRoute,
+  DevStyleguideRoute: DevStyleguideRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiStripeWebhookRoute: ApiStripeWebhookRoute,
   PTokenLogoRoute: PTokenLogoRoute,

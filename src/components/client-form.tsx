@@ -96,7 +96,7 @@ export function ClientForm({
         />
         <span>
           Tax-exempt
-          <span className="mt-1 block text-muted">
+          <span className="mt-1 block text-muted-foreground">
             New Invoice Lines for this Client default to no tax.
           </span>
         </span>
@@ -112,7 +112,7 @@ export function ClientForm({
           }
         />
       </div>
-      {message ? <p className="text-sm text-danger">{message}</p> : null}
+      {message ? <p className="text-sm text-destructive">{message}</p> : null}
       <Button type="submit" disabled={pending}>
         {pending ? "Saving…" : submitLabel}
       </Button>

@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 
 export function AppNav() {
@@ -52,10 +53,12 @@ export function Shell({
   children,
   wide = false,
   broad = false,
+  themeToggle = false,
 }: {
   children: ReactNode;
   wide?: boolean;
   broad?: boolean;
+  themeToggle?: boolean;
 }) {
   return (
     <div
@@ -64,13 +67,14 @@ export function Shell({
         broad ? "max-w-5xl" : wide ? "max-w-2xl" : "max-w-lg",
       )}
     >
-      <header className="mb-10">
+      <header className="mb-10 flex items-center justify-between gap-4">
         <Link to="/" className="font-serif text-lg tracking-tight">
           ovrlk-invoice
         </Link>
+        {themeToggle ? <ThemeToggle /> : null}
       </header>
       <main className="flex-1">{children}</main>
-      <footer className="mt-16 flex gap-4 text-sm text-muted">
+      <footer className="mt-16 flex gap-4 text-sm text-muted-foreground">
         <Link to="/terms">Terms</Link>
         <Link to="/privacy">Privacy</Link>
       </footer>
@@ -81,7 +85,7 @@ export function Shell({
 export function DraftNotice() {
   return (
     <p
-      className="mb-6 rounded-md border border-danger/30 bg-card px-3 py-2 text-sm text-danger"
+      className="mb-6 rounded-md border border-destructive/30 bg-card px-3 py-2 text-sm text-destructive"
       role="note"
     >
       Draft — pending lawyer review. This is not legal advice and is not in

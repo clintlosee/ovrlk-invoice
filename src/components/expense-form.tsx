@@ -60,7 +60,7 @@ export function ExpenseForm({
       }}
     >
       {lockedFee ? (
-        <p className="text-sm text-muted">
+        <p className="text-sm text-muted-foreground">
           This Merchant Fee follows its card Payment. You can change the note
           and Client.
         </p>
@@ -174,7 +174,7 @@ export function ExpenseForm({
       <Button type="submit" disabled={pending}>
         {submitLabel}
       </Button>
-      {message ? <p className="text-sm text-danger">{message}</p> : null}
+      {message ? <p className="text-sm text-destructive">{message}</p> : null}
     </form>
   );
 }

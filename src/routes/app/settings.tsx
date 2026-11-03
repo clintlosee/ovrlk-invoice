@@ -1,6 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { BusinessForm } from "@/components/business-form";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -48,10 +49,20 @@ function SettingsPage() {
   return (
     <>
       <h1 className="font-serif text-3xl">Business</h1>
-      <p className="mt-2 text-sm text-muted">
+      <p className="mt-2 text-sm text-muted-foreground">
         Shown on Invoices. {settings.currency} · {settings.timeZone}
       </p>
-      <Card>
+      <section className="mt-8">
+        <h2 className="font-serif text-2xl">Appearance</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Light, dark, or match this device. Sign-in and Invoice Links stay on
+          the device theme.
+        </p>
+        <div className="mt-4">
+          <ThemeToggle />
+        </div>
+      </section>
+      <Card className="mt-8">
         <BusinessForm
           initial={{
             name: settings.name,
@@ -93,7 +104,7 @@ function Logo({
   return (
     <section className="mt-8">
       <h2 className="font-serif text-2xl">Logo</h2>
-      <p className="mt-2 text-sm text-muted">
+      <p className="mt-2 text-sm text-muted-foreground">
         JPEG or PNG, up to 10 MB. Shown on the Invoice and its PDF.
       </p>
       <Card>
@@ -219,13 +230,13 @@ function StripeConnect({
   return (
     <section className="mt-8">
       <h2 className="font-serif text-2xl">Stripe</h2>
-      <p className="mt-2 text-sm text-muted">
+      <p className="mt-2 text-sm text-muted-foreground">
         Card Payments settle in this Business's Connected Account.
       </p>
       <Card>
         <p className="text-sm">{state}</p>
         {connected ? (
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 text-sm text-muted-foreground">
             {settings.stripeAccountId}
             {method ? ` · ${method}` : ""}
           </p>
@@ -276,7 +287,7 @@ function StripeConnect({
               <h3 className="text-sm font-medium">
                 Create a new Stripe account
               </h3>
-              <p className="mt-1 text-sm text-muted">
+              <p className="mt-1 text-sm text-muted-foreground">
                 Stripe hosts a new Standard account for this Business. Card
                 Payments settle there.
               </p>
@@ -294,7 +305,7 @@ function StripeConnect({
                 <h3 className="text-sm font-medium">
                   Link my existing Stripe account
                 </h3>
-                <p className="mt-1 text-sm text-muted">
+                <p className="mt-1 text-sm text-muted-foreground">
                   Connect a Stripe account you already have. Card Payments
                   settle there.
                 </p>
@@ -314,11 +325,13 @@ function StripeConnect({
         {settings.stripeConfigured &&
         connected &&
         !settings.stripeDetailsSubmitted ? (
-          <p className="mt-3 text-sm text-muted">
+          <p className="mt-3 text-sm text-muted-foreground">
             Stripe still needs a few details before charges can be enabled.
           </p>
         ) : null}
-        {message ? <p className="mt-3 text-sm text-danger">{message}</p> : null}
+        {message ? (
+          <p className="mt-3 text-sm text-destructive">{message}</p>
+        ) : null}
       </Card>
     </section>
   );
