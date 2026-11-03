@@ -14,8 +14,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { type InvoiceDisplayStatus, statusLabel } from "@/lib/invoice";
 
-export type InvoiceBadgeStatus = InvoiceDisplayStatus | "due-soon";
-
 const statusClass = cva("border-transparent", {
   variants: {
     status: {
@@ -32,7 +30,7 @@ const statusClass = cva("border-transparent", {
   },
 });
 
-const ICONS: Record<InvoiceBadgeStatus, LucideIcon> = {
+const ICONS: Record<InvoiceDisplayStatus, LucideIcon> = {
   paid: CircleCheck,
   sent: Send,
   viewed: Eye,
@@ -44,17 +42,16 @@ const ICONS: Record<InvoiceBadgeStatus, LucideIcon> = {
   overpaid: CirclePlus,
 };
 
-function label(status: InvoiceBadgeStatus): string {
-  if (status === "due-soon") return "Due soon";
-  return statusLabel(status);
-}
-
-export function InvoiceStatusBadge({ status }: { status: InvoiceBadgeStatus }) {
+export function InvoiceStatusBadge({
+  status,
+}: {
+  status: InvoiceDisplayStatus;
+}) {
   const Icon = ICONS[status];
   return (
     <Badge className={statusClass({ status })}>
       <Icon aria-hidden className="size-3.5" />
-      {label(status)}
+      {statusLabel(status)}
     </Badge>
   );
 }

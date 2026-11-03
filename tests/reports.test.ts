@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getDb } from "../src/db/client";
-import { todayInTimeZone } from "../src/lib/invoice";
+import { deriveDisplayStatus, todayInTimeZone } from "../src/lib/invoice";
 import { cents } from "../src/lib/money";
 import {
   type CategoryAmount,
@@ -606,5 +606,97 @@ describe("reports", () => {
       incomeCents: 6000,
       expenseCents: 50,
     });
+  });
+});
+
+describe("overdue agrees with display status", () => {
+  it("counts the same Invoices the badge calls overdue, including partial", async () => {
+    const owner = await insertOwner(
+      "display-overdue@example.com",
+      "Display Prints",
+    );
+    const scope = forBusiness(getDb(), owner.businessId);
+    const buyer = await scope.clients.create({
+      name: "Ada",
+      email: "ada-display@example.com",
+      phone: null,
+      address: null,
+      taxExempt: true,
+      note: null,
+    });
+    const send = async (amount: number, dueDate: string) => {
+      const draft = await scope.invoices.create(
+        invoiceInput(buyer.id, amount, "2026-03-01", dueDate),
+      );
+      const sent = await scope.invoices.send(draft.id, owner.userId);
+      if (!sent) throw new Error("send");
+      return sent.invoice;
+    };
+    const pay = async (invoiceId: string, amount: number, paidOn: string) => {
+      await scope.payments.recordManual({
+        invoiceId,
+        amountCents: cents(amount),
+        paidOn,
+        method: "check",
+        note: null,
+        actorUserId: owner.userId,
+      });
+    };
+
+    await send(1000, "2026-03-30");
+    await send(500, "2026-03-31");
+    await send(700, "2026-04-07");
+    await send(800, "2026-04-08");
+    const partial = await send(1000, "2026-03-20");
+    await pay(partial.id, 400, "2026-03-20");
+    const overpaid = await send(1000, "2026-01-15");
+    await pay(overpaid.id, 1500, "2026-01-15");
+    const voided = await send(900, "2026-01-01");
+    expect(
+      await scope.invoices.voidInvoice(voided.id, "Wrong", owner.userId),
+    ).not.toBeNull();
+    await scope.invoices.create(
+      invoiceInput(buyer.id, 400, "2026-03-01", "2026-01-02"),
+    );
+
+    const home = await scope.reports.dashboard(DENVER_STILL_MARCH);
+    const byDue = new Map(
+      home.recentInvoices.map((row) => [row.dueDate, row.displayStatus]),
+    );
+    expect(byDue.get("2026-03-30")).toBe("overdue");
+    expect(byDue.get("2026-03-31")).toBe("due-soon");
+    expect(byDue.get("2026-04-07")).toBe("due-soon");
+    expect(byDue.get("2026-04-08")).toBe("sent");
+    expect(byDue.get("2026-03-20")).toBe(
+      deriveDisplayStatus(
+        {
+          status: "partial",
+          dueDate: "2026-03-20",
+          totalCents: 1000,
+          paidCents: 400,
+          viewed: false,
+        },
+        DENVER_STILL_MARCH,
+        "America/Denver",
+      ),
+    );
+    expect(byDue.get("2026-01-15")).toBe("overpaid");
+    expect(byDue.get("2026-01-01")).toBe("void");
+    expect(byDue.get("2026-01-02")).toBe("draft");
+    expect(home.overdueCount).toBe(
+      home.recentInvoices.filter((row) => row.displayStatus === "overdue")
+        .length,
+    );
+    expect(home.overdueCents).toBe(1600);
+
+    await scope.business.update({ timeZone: "UTC" });
+    const utc = await scope.reports.dashboard(DENVER_STILL_MARCH);
+    const utcByDue = new Map(
+      utc.recentInvoices.map((row) => [row.dueDate, row.displayStatus]),
+    );
+    expect(utcByDue.get("2026-03-31")).toBe("overdue");
+    expect(utcByDue.get("2026-04-08")).toBe("due-soon");
+    expect(utc.overdueCount).toBe(3);
+    expect(utc.overdueCents).toBe(2100);
   });
 });
