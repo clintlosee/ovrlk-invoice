@@ -15,7 +15,7 @@ pnpm install
 cp .env.example .env
 ```
 
-Fill in `.env`. `BETTER_AUTH_SECRET` must be at least 32 characters (`openssl rand -base64 32`). Leave `RESEND_API_KEY` empty locally and the sign-in code, and any Invoice email, is printed in the server log. Real values for production live in the Render service environment, not in git.
+Fill in `.env`. `BETTER_AUTH_SECRET` must be at least 32 characters (`openssl rand -base64 32`). Leave `RESEND_API_KEY` empty locally and the sign-in code, and any Invoice or receipt email, is printed in the server log. Real values for production live in the Render service environment, not in git.
 
 ```sh
 pnpm db:migrate
@@ -53,27 +53,57 @@ Tests use a throwaway libSQL file under `data/` and do not send email.
 
 ## Environment variables
 
-| Name                       | Purpose                                                                      |
-| -------------------------- | ---------------------------------------------------------------------------- |
-| `DATABASE_URL`             | `file:local.db` locally, `libsql://...` on Turso                             |
-| `TURSO_AUTH_TOKEN`         | Turso token. Empty for a local file                                          |
-| `BETTER_AUTH_SECRET`       | Session signing secret, 32+ characters                                       |
-| `BETTER_AUTH_URL`          | Public origin, no trailing slash                                             |
-| `RESEND_API_KEY`           | Resend API key for sign-in codes                                             |
-| `EMAIL_FROM`               | From address Resend will accept                                              |
-| `ALLOW_SIGN_UP`            | `true` opens registration. Anything else rejects it                          |
-| `STRIPE_SECRET_KEY`        | Platform secret key. Empty hides card Payments                               |
-| `STRIPE_WEBHOOK_SECRET`    | Signing secret for `/api/stripe/webhook`                                     |
-| `STRIPE_CONNECT_CLIENT_ID` | Connect OAuth client id (`ca_...`). Empty hides linking an existing account  |
-| `R2_ACCOUNT_ID`            | Cloudflare account id. Receipts and the logo stay off if any R2 var is unset |
-| `R2_ACCESS_KEY_ID`         | R2 API token access key id                                                   |
-| `R2_SECRET_ACCESS_KEY`     | R2 API token secret                                                          |
-| `R2_BUCKET`                | Private R2 bucket name                                                       |
-| `SEED_OWNER_EMAIL`         | First Owner email. Seed script only                                          |
-| `SEED_OWNER_PASSWORD`      | First Owner password. Seed script only                                       |
-| `SEED_OWNER_NAME`          | First Owner name. Seed script only                                           |
-| `SEED_BUSINESS_NAME`       | First Business name. Seed script only                                        |
-| `SEED_BUSINESS_TIMEZONE`   | IANA time zone. Defaults to `America/Denver`                                 |
+| Name                       | Needed                          | Purpose                                                                                                               |
+| -------------------------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`             | Default `file:local.db`         | libSQL URL. `file:local.db` locally, `libsql://...` on Turso                                                          |
+| `TURSO_AUTH_TOKEN`         | Optional                        | Turso token. Leave empty for a local file. Set it for hosted Turso                                                    |
+| `BETTER_AUTH_SECRET`       | Required                        | Session signing secret. The server throws when this is missing or shorter than 32 characters                          |
+| `BETTER_AUTH_URL`          | Default `http://localhost:3333` | Public origin, no trailing slash. Use `http://localhost:3333` locally so links match `pnpm dev`                       |
+| `RESEND_API_KEY`           | Required in production          | Resend API key. Empty locally logs sign-in codes and Invoice and receipt emails. Production throws when this is unset |
+| `EMAIL_FROM`               | Required with Resend            | From address on a domain Resend has verified. Throws when a key is set and this is empty                              |
+| `ALLOW_SIGN_UP`            | Default closed                  | The string `true` opens registration. Anything else, including unset, rejects it                                      |
+| `STRIPE_SECRET_KEY`        | Optional                        | Platform secret key. Empty hides card Payments                                                                        |
+| `STRIPE_WEBHOOK_SECRET`    | Optional                        | Signing secret for `/api/stripe/webhook`. When unset, that route returns 503                                          |
+| `STRIPE_CONNECT_CLIENT_ID` | Optional                        | Connect OAuth client id. Must match `ca_...`, or linking an existing account stays hidden                             |
+| `R2_ACCOUNT_ID`            | Optional                        | Cloudflare account id. Receipts and the logo stay off when any R2 variable is unset                                   |
+| `R2_ACCESS_KEY_ID`         | Optional                        | R2 API token access key id                                                                                            |
+| `R2_SECRET_ACCESS_KEY`     | Optional                        | R2 API token secret                                                                                                   |
+| `R2_BUCKET`                | Optional                        | Private R2 bucket name                                                                                                |
+| `SEED_OWNER_EMAIL`         | Required for seed               | First Owner email. Read only by `pnpm seed`                                                                           |
+| `SEED_OWNER_PASSWORD`      | Required for seed               | First Owner password, at least 12 characters. Read only by `pnpm seed`                                                |
+| `SEED_OWNER_NAME`          | Required for seed               | First Owner name. Read only by `pnpm seed`                                                                            |
+| `SEED_BUSINESS_NAME`       | Required for seed               | First Business name. Read only by `pnpm seed`                                                                         |
+| `SEED_BUSINESS_TIMEZONE`   | Default `America/Denver`        | IANA time zone. Read only by `pnpm seed`. An invalid name throws                                                      |
+
+## Third-party setup
+
+### Stripe
+
+Use an `sk_test_` secret key locally. Forward webhooks and copy the printed `whsec_` value into `STRIPE_WEBHOOK_SECRET`:
+
+```sh
+stripe listen \
+  --forward-to localhost:3333/api/stripe/webhook \
+  --forward-connect-to localhost:3333/api/stripe/webhook
+```
+
+The CLI prints one signing secret for both forwards. `--forward-connect-to` sends Connect events to that path. Leaving the flag off still forwards Connect events to the `--forward-to` URL. The handler needs those events. Checkout is created with the `Stripe-Account` header set to the Business's Connected Account, and a Payment, refund, account update, or deauthorization is recorded only when the event includes `account`. Without `STRIPE_WEBHOOK_SECRET`, `/api/stripe/webhook` returns 503 and a card Payment never marks the Invoice paid.
+
+In production, add one endpoint at `<BETTER_AUTH_URL>/api/stripe/webhook` and choose "Listen to events on Connected accounts". Subscribe to `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `payment_intent.succeeded`, `account.updated`, `account.application.deauthorized`, `charge.refunded`, and `refund.created`. `account.application.deauthorized` is handled on that same endpoint, and only when `account` is set. Put that endpoint's signing secret in `STRIPE_WEBHOOK_SECRET`. The server verifies that one secret. Requests signed with a different secret fail the signature check. Event types outside this list are acknowledged and ignored.
+
+Enable OAuth for Standard accounts in the Connect settings to link an existing account. Register `http://localhost:3333/app/stripe/oauth` and `<BETTER_AUTH_URL>/app/stripe/oauth`, with no trailing slash. Test mode and live mode each have their own `ca_` client id. A new Standard account uses Account Links and only needs `STRIPE_SECRET_KEY`.
+
+### Cloudflare R2
+
+Create a private bucket. Use a separate bucket for development. Create an R2 API token with Object Read & Write scoped to that bucket.
+
+`R2_ACCOUNT_ID` is the Cloudflare account id shown on the R2 overview and in the dashboard URL. The server calls `https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com`. `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY` are the access key id and secret shown when the token is created. The secret is shown once. `R2_BUCKET` is the bucket name.
+
+The browser posts a Receipt to `/app/expenses/<id>/receipt` and a logo to `/app/logo`. The server writes the object. Logos are served by the app at `/app/logo` and `/p/<token>/logo`. A Receipt opens in the browser as a signed GET link that lasts five minutes. The bucket needs no CORS rule.
+
+### Resend
+
+Verify the sending domain in Resend, and set `EMAIL_FROM` to an address on that domain. With `RESEND_API_KEY` empty, local dev prints the sign-in code, and the subject and text of Invoice and receipt emails, in the server log. In production (`NODE_ENV=production`) a missing key throws and the email is not sent. Once the key is set, a missing `EMAIL_FROM` throws.
 
 ## Render
 
