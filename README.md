@@ -22,7 +22,7 @@ pnpm db:migrate
 pnpm dev
 ```
 
-The app is at http://localhost:3000. The dev database is the libSQL file in `DATABASE_URL` (default `file:local.db`).
+The app is at http://localhost:3333. The dev database is the libSQL file in `DATABASE_URL` (default `file:local.db`).
 
 ## Create the first Owner
 

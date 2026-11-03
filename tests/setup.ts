@@ -2,7 +2,7 @@ import { mkdirSync, rmSync } from "node:fs";
 
 process.env.VITEST = "1";
 process.env.BETTER_AUTH_SECRET = "test-secret-test-secret-test-secret-32";
-process.env.BETTER_AUTH_URL = "http://localhost:3000";
+process.env.BETTER_AUTH_URL = "http://localhost:3333";
 process.env.DATABASE_URL = "file:./data/test.db";
 process.env.ALLOW_SIGN_UP = "false";
 process.env.EMAIL_FROM = "ovrlk invoice <test@example.com>";

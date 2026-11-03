@@ -7,7 +7,7 @@ import { handleAuthRequest } from "../src/server/auth-http";
 import { registerOwner } from "../src/server/register";
 import { cookieHeader } from "./helpers";
 
-const origin = "http://localhost:3000";
+const origin = "http://localhost:3333";
 
 function post(path: string, body: unknown, cookie?: string) {
   return handleAuthRequest(

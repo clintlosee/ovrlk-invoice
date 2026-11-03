@@ -7,7 +7,7 @@ export function signUpsOpen(): boolean {
 }
 
 export function appUrl(): string {
-  return (process.env.BETTER_AUTH_URL ?? "http://localhost:3000").replace(
+  return (process.env.BETTER_AUTH_URL ?? "http://localhost:3333").replace(
     /\/$/,
     "",
   );
