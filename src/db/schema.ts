@@ -37,11 +37,17 @@ export const business = sqliteTable(
     })
       .notNull()
       .default(false),
+    /** account_link creates a Standard account. oauth links an existing one. */
+    stripeConnectMethod: text("stripe_connect_method"),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [
     uniqueIndex("business_stripe_account_idx").on(table.stripeAccountId),
+    check(
+      "business_stripe_connect_method",
+      sql`${table.stripeConnectMethod} IS NULL OR ${table.stripeConnectMethod} in ('account_link', 'oauth')`,
+    ),
   ],
 );
 
@@ -387,6 +393,16 @@ export const payment = sqliteTable(
     ),
   ],
 );
+
+/** One-time OAuth state. Tied to the Owner's user id and Business. The code is not stored. */
+export const stripeOauthState = sqliteTable("stripe_oauth_state", {
+  state: text("state").primaryKey(),
+  businessId: text("business_id")
+    .notNull()
+    .references(() => business.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull(),
+  expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+});
 
 /** Processed Stripe event id. The payload is not stored; it can contain PII. */
 export const stripeEvent = sqliteTable("stripe_event", {

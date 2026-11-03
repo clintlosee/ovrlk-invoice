@@ -124,6 +124,12 @@ export function InvoiceDocument({
               <dd>{formatUsd(paidCents)}</dd>
             </div>
           ) : null}
+          {paidCents > document.totalCents ? (
+            <div className="flex justify-between gap-6 font-medium">
+              <dt>Credit</dt>
+              <dd>{formatUsd(paidCents - document.totalCents)}</dd>
+            </div>
+          ) : null}
           <div className="flex justify-between gap-6 font-medium">
             <dt>Balance</dt>
             <dd>{formatUsd(amountDueCents)}</dd>

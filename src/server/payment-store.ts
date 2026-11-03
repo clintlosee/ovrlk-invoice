@@ -47,7 +47,7 @@ export type StripePaymentInput = {
   fee: StripeFee;
 };
 
-type StripeRecord = "recorded" | "updated" | "overpay" | "ignored";
+type StripeRecord = "recorded" | "updated" | "ignored";
 
 const NOTE_MAX = 500;
 
@@ -88,7 +88,6 @@ export function paymentMethods(db: AppDb, businessId: string) {
         }
         const note = boundedNote(input.note);
         const already = await sumPayments(tx, businessId, target.id);
-        assertRoom(already, amount, target.totalCents);
         const now = new Date();
         const id = crypto.randomUUID();
         await tx.insert(payment).values({
@@ -141,7 +140,6 @@ export function paymentMethods(db: AppDb, businessId: string) {
         }
         const note = boundedNote(input.note);
         const others = await sumPayments(tx, businessId, target.id, current.id);
-        assertRoom(others, amount, target.totalCents);
         const now = new Date();
         const updated = await tx
           .update(payment)
@@ -221,8 +219,18 @@ export function paymentMethods(db: AppDb, businessId: string) {
           )
           .limit(1);
         const target = rows[0];
-        if (!target || !isInvoiceStatus(target.status))
+        if (!target || !isInvoiceStatus(target.status)) {
+          await writeAudit(tx, {
+            businessId,
+            actorUserId: null,
+            action: "payment.rejected",
+            invoiceId: input.invoiceId,
+            amountCents: input.amountCents,
+            metadata: { paymentIntentId: input.paymentIntentId },
+            at: new Date(),
+          });
           return "ignored" as const;
+        }
         if (
           target.status === "draft" ||
           target.status === "void" ||
@@ -259,22 +267,6 @@ export function paymentMethods(db: AppDb, businessId: string) {
           return "updated" as const;
         }
         const already = await sumPayments(tx, businessId, target.id);
-        if (already + amount > target.totalCents) {
-          await writeAudit(tx, {
-            businessId,
-            actorUserId: null,
-            action: "payment.rejected",
-            invoiceId: target.id,
-            amountCents: amount,
-            metadata: {
-              method: "stripe",
-              number: target.number,
-              paymentIntentId: input.paymentIntentId,
-            },
-            at: now,
-          });
-          return "overpay" as const;
-        }
         await tx.insert(payment).values({
           id: crypto.randomUUID(),
           businessId,
@@ -418,12 +410,6 @@ function positiveCents(value: number) {
   const amount = cents(value);
   if (amount <= 0) throw new Error("Enter an amount");
   return amount;
-}
-
-function assertRoom(already: number, amount: number, total: number) {
-  if (already + amount > total) {
-    throw new Error("That amount is more than the balance");
-  }
 }
 
 function boundedNote(value: string | null): string | null {

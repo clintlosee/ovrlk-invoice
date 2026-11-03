@@ -128,7 +128,9 @@ function InvoicePage() {
             invoiceId={invoice.id}
             payments={invoice.payments}
             canRecord={
-              invoice.status === "sent" || invoice.status === "partial"
+              invoice.status === "sent" ||
+              invoice.status === "partial" ||
+              invoice.status === "paid"
             }
           />
           {invoice.firstViewedAt ? (
@@ -360,13 +362,19 @@ function Payments({
         </ul>
       )}
       {canRecord ? (
-        <PaymentForm
-          key={payments.length}
-          invoiceId={invoiceId}
-          pending={pending}
-          onPending={setPending}
-          onDone={(result) => void after(result)}
-        />
+        <>
+          <p className="text-sm text-muted">
+            An amount above the balance is recorded in full. The Invoice then
+            shows Overpaid and the credit.
+          </p>
+          <PaymentForm
+            key={payments.length}
+            invoiceId={invoiceId}
+            pending={pending}
+            onPending={setPending}
+            onDone={(result) => void after(result)}
+          />
+        </>
       ) : null}
       {message ? <p className="text-sm text-danger">{message}</p> : null}
     </section>

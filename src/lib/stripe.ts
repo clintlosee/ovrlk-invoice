@@ -17,8 +17,59 @@ export type StripeEvent = {
   object: Record<string, unknown>;
 };
 
+const CLIENT_ID = /^ca_[A-Za-z0-9_]{1,255}$/;
+
 export function stripeConfigured(): boolean {
   return Boolean(process.env.STRIPE_SECRET_KEY);
+}
+
+export function connectClientId(): string | null {
+  const value = process.env.STRIPE_CONNECT_CLIENT_ID ?? "";
+  return CLIENT_ID.test(value) ? value : null;
+}
+
+/** OAuth needs the platform client id. Account Links do not. */
+export function stripeOauthConfigured(): boolean {
+  return stripeConfigured() && connectClientId() !== null;
+}
+
+export function stripeAuthorizeUrl(input: {
+  state: string;
+  redirectUri: string;
+}): string {
+  const clientId = connectClientId();
+  if (!clientId) throw new Error("Stripe OAuth is not configured");
+  const url = new URL("https://connect.stripe.com/oauth/authorize");
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("client_id", clientId);
+  url.searchParams.set("scope", "read_write");
+  url.searchParams.set("state", input.state);
+  url.searchParams.set("redirect_uri", input.redirectUri);
+  return url.toString();
+}
+
+/** Returns only the Connected Account id. Access and refresh tokens are dropped. */
+export async function exchangeOAuthCode(code: string): Promise<string> {
+  const payload = await oauthRequest(
+    "/oauth/token",
+    new URLSearchParams({ grant_type: "authorization_code", code }),
+  );
+  const id = payload.stripe_user_id;
+  if (typeof id !== "string" || !ACCOUNT_ID.test(id)) {
+    throw new Error("Stripe request failed");
+  }
+  return id;
+}
+
+export async function deauthorizeConnectedAccount(
+  accountId: string,
+): Promise<void> {
+  const clientId = connectClientId();
+  if (!clientId) throw new Error("Stripe OAuth is not configured");
+  await oauthRequest(
+    "/oauth/deauthorize",
+    new URLSearchParams({ client_id: clientId, stripe_user_id: accountId }),
+  );
 }
 
 export function verifyStripeEvent(
@@ -184,6 +235,36 @@ function parseEvent(payload: string): StripeEvent | null {
     created: typeof row.created === "number" ? row.created : 0,
     object: object as Record<string, unknown>,
   };
+}
+
+async function oauthRequest(
+  path: string,
+  body: URLSearchParams,
+): Promise<Record<string, unknown>> {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) throw new Error("Stripe is not configured");
+  const response = await fetch(`https://connect.stripe.com${path}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${key}:`).toString("base64")}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body,
+  });
+  const text = await response.text();
+  if (!response.ok) throw new Error("Stripe request failed");
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error("Stripe request failed");
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("Stripe request failed");
+  }
+  const row = parsed as Record<string, unknown>;
+  if (typeof row.error === "string") throw new Error("Stripe request failed");
+  return row;
 }
 
 async function stripeRequest(

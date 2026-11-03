@@ -2,7 +2,11 @@ import { type Cents, cents } from "./money";
 import { lineTax } from "./tax";
 
 export type InvoiceStatus = "draft" | "sent" | "partial" | "paid" | "void";
-export type InvoiceDisplayStatus = InvoiceStatus | "overdue" | "viewed";
+export type InvoiceDisplayStatus =
+  | InvoiceStatus
+  | "overdue"
+  | "viewed"
+  | "overpaid";
 
 export const INVOICE_LINK_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 export const DEFAULT_ACCENT = "#1c1917";
@@ -168,11 +172,18 @@ export function displayStatus(
   dueDate: string,
   today: string,
   viewed = false,
+  paidCents = 0,
+  totalCents = 0,
 ): InvoiceDisplayStatus {
+  if (status === "paid" && paidCents > totalCents) return "overpaid";
   if (status === "partial") return "partial";
   if (status === "sent" && dueDate < today) return "overdue";
   if (status === "sent" && viewed) return "viewed";
   return status;
+}
+
+export function creditCents(totalCents: number, paidCents: number): number {
+  return Math.max(paidCents - totalCents, 0);
 }
 
 export function statusLabel(status: InvoiceDisplayStatus): string {
@@ -181,6 +192,7 @@ export function statusLabel(status: InvoiceDisplayStatus): string {
   if (status === "viewed") return "Viewed";
   if (status === "partial") return "Partially Paid";
   if (status === "paid") return "Paid";
+  if (status === "overpaid") return "Overpaid";
   if (status === "void") return "Void";
   return "Overdue";
 }

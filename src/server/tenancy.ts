@@ -253,6 +253,7 @@ export function forBusiness(db: AppDb, businessId: string) {
           accountId: string;
           chargesEnabled: boolean;
           detailsSubmitted: boolean;
+          method?: "account_link" | "oauth";
         } | null,
       ) {
         if (input && !/^acct_[A-Za-z0-9_]{1,255}$/.test(input.accountId)) {
@@ -260,12 +261,25 @@ export function forBusiness(db: AppDb, businessId: string) {
         }
         const rows = await db
           .update(business)
-          .set({
-            stripeAccountId: input?.accountId ?? null,
-            stripeChargesEnabled: input?.chargesEnabled ?? false,
-            stripeDetailsSubmitted: input?.detailsSubmitted ?? false,
-            updatedAt: new Date(),
-          })
+          .set(
+            input
+              ? {
+                  stripeAccountId: input.accountId,
+                  stripeChargesEnabled: input.chargesEnabled,
+                  stripeDetailsSubmitted: input.detailsSubmitted,
+                  ...(input.method
+                    ? { stripeConnectMethod: input.method }
+                    : {}),
+                  updatedAt: new Date(),
+                }
+              : {
+                  stripeAccountId: null,
+                  stripeChargesEnabled: false,
+                  stripeDetailsSubmitted: false,
+                  stripeConnectMethod: null,
+                  updatedAt: new Date(),
+                },
+          )
           .where(scoped)
           .returning();
         return rows[0] ?? null;

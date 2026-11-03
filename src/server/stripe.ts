@@ -1,17 +1,27 @@
-import { eq } from "drizzle-orm";
+import { randomBytes } from "node:crypto";
+import { and, eq, gt, lt } from "drizzle-orm";
 import { getDb } from "../db/client";
-import { business, invoiceLink, stripeEvent } from "../db/schema";
+import {
+  business,
+  invoiceLink,
+  stripeEvent,
+  stripeOauthState,
+} from "../db/schema";
 import { appUrl } from "../lib/config";
 import { formatInvoiceNumber, todayInTimeZone } from "../lib/invoice";
 import {
   createAccountLink,
   createDirectCheckout,
   createStandardAccount,
+  deauthorizeConnectedAccount,
+  exchangeOAuthCode,
   fetchStripeFee,
   retrieveConnectedAccount,
   type StripeEvent,
   type StripeFee,
+  stripeAuthorizeUrl,
   stripeConfigured,
+  stripeOauthConfigured,
   verifyStripeEvent,
 } from "../lib/stripe";
 import { hashInvoiceToken, isInvoiceToken } from "./invoice-token";
@@ -60,6 +70,7 @@ export async function beginStripeOnboarding(
       accountId: created.id,
       chargesEnabled: false,
       detailsSubmitted: false,
+      method: "account_link",
     });
     await scope.audit.record({
       action: "stripe.connected",
@@ -98,6 +109,9 @@ export async function disconnectStripe(
   const scope = forBusiness(getDb(), businessId);
   const row = await scope.business.get();
   if (!row?.stripeAccountId) return;
+  if (row.stripeConnectMethod === "oauth") {
+    await deauthorizeConnectedAccount(row.stripeAccountId);
+  }
   await scope.business.setConnectedAccount(null);
   await scope.audit.record({
     action: "stripe.disconnected",
@@ -379,6 +393,109 @@ async function payableTarget(token: string) {
     amountDueCents: view.amountDueCents,
     accountId: row.stripeAccountId,
   };
+}
+
+const OAUTH_STATE_MS = 10 * 60 * 1000;
+
+export function oauthRedirectUri(): string {
+  return `${appUrl()}/app/stripe/oauth`;
+}
+
+export async function beginStripeOAuth(
+  businessId: string,
+  userId: string,
+): Promise<string> {
+  if (!stripeOauthConfigured())
+    throw new Error("Stripe OAuth is not configured");
+  const scope = forBusiness(getDb(), businessId);
+  const row = await scope.business.get();
+  if (!row) throw new Error("A signed-in Business is required");
+  if (row.stripeAccountId) {
+    throw new Error("Disconnect the current Connected Account first");
+  }
+  const db = getDb();
+  const now = new Date();
+  await db.delete(stripeOauthState).where(lt(stripeOauthState.expiresAt, now));
+  await db
+    .delete(stripeOauthState)
+    .where(
+      and(
+        eq(stripeOauthState.businessId, businessId),
+        eq(stripeOauthState.userId, userId),
+      ),
+    );
+  const state = randomBytes(32).toString("base64url");
+  await db.insert(stripeOauthState).values({
+    state,
+    businessId,
+    userId,
+    expiresAt: new Date(now.getTime() + OAUTH_STATE_MS),
+  });
+  return stripeAuthorizeUrl({ state, redirectUri: oauthRedirectUri() });
+}
+
+export async function completeStripeOAuth(input: {
+  businessId: string;
+  userId: string;
+  state: string;
+  code: string;
+}): Promise<void> {
+  if (!input.state || !input.code) {
+    throw new Error("Stripe connection was rejected");
+  }
+  const db = getDb();
+  const claimed = await db
+    .delete(stripeOauthState)
+    .where(
+      and(
+        eq(stripeOauthState.state, input.state),
+        eq(stripeOauthState.businessId, input.businessId),
+        eq(stripeOauthState.userId, input.userId),
+        gt(stripeOauthState.expiresAt, new Date()),
+      ),
+    )
+    .returning({ state: stripeOauthState.state });
+  if (!claimed[0]) throw new Error("Stripe connection was rejected");
+  const accountId = await exchangeOAuthCode(input.code);
+  const account = await retrieveConnectedAccount(accountId);
+  if (account.id !== accountId) throw new Error("Stripe request failed");
+  const scope = forBusiness(db, input.businessId);
+  await scope.business.setConnectedAccount({
+    accountId: account.id,
+    chargesEnabled: account.chargesEnabled,
+    detailsSubmitted: account.detailsSubmitted,
+    method: "oauth",
+  });
+  await scope.audit.record({
+    action: "stripe.connected",
+    actorUserId: input.userId,
+    entityType: "business",
+    entityId: input.businessId,
+    metadata: { accountId: account.id, method: "oauth" },
+  });
+}
+
+export async function finishStripeOAuth(request: Request): Promise<Response> {
+  const current = await signedInBusiness();
+  if (!current) return Response.redirect(new URL("/sign-in", request.url), 303);
+  const settings = new URL("/app/settings", request.url);
+  const url = new URL(request.url);
+  if (url.searchParams.get("error")) {
+    settings.searchParams.set("stripe", "denied");
+    return Response.redirect(settings, 303);
+  }
+  try {
+    await completeStripeOAuth({
+      businessId: current.businessId,
+      userId: current.session.user.id,
+      state: url.searchParams.get("state") ?? "",
+      code: url.searchParams.get("code") ?? "",
+    });
+    return Response.redirect(settings, 303);
+  } catch {
+    settings.searchParams.set("stripe", "rejected");
+    return Response.redirect(settings, 303);
+  }
 }
 
 export async function signedStripeRedirect(

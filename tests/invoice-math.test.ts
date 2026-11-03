@@ -83,6 +83,9 @@ describe("invoice math", () => {
     expect(amountDueCents("sent", 3304)).toBe(3304);
     expect(amountDueCents("partial", 3304, 1000)).toBe(2304);
     expect(amountDueCents("paid", 3304)).toBe(0);
+    expect(
+      displayStatus("paid", "2026-02-01", "2026-01-02", false, 4000, 3304),
+    ).toBe("overpaid");
     expect(amountDueCents("void", 3304)).toBe(0);
 
     expect(() =>

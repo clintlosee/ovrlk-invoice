@@ -133,7 +133,7 @@ describe("payments", () => {
     ).toEqual([]);
   });
 
-  it("records partial then full manual payments, blocks overpay, and keeps card payments fixed", async () => {
+  it("records partial then full manual payments, keeps a credit, and keeps card payments fixed", async () => {
     const db = getDb();
     const owner = await insertOwner("pay-owner@example.com", "Pay Prints");
     const scope = forBusiness(db, owner.businessId);
@@ -191,17 +191,6 @@ describe("payments", () => {
     });
     expect(edited?.amountDueCents).toBe(2500);
 
-    await expect(
-      scope.payments.recordManual({
-        invoiceId: sent.invoice.id,
-        amountCents: cents(2501),
-        paidOn: "2026-04-04",
-        method: "venmo",
-        note: null,
-        actorUserId: owner.userId,
-      }),
-    ).rejects.toThrow(/balance/);
-
     await scope.payments.recordManual({
       invoiceId: sent.invoice.id,
       amountCents: cents(2500),
@@ -213,6 +202,23 @@ describe("payments", () => {
     const paid = await scope.invoices.get(sent.invoice.id);
     expect(paid?.status).toBe("paid");
     expect(paid?.amountDueCents).toBe(0);
+    await scope.payments.recordManual({
+      invoiceId: sent.invoice.id,
+      amountCents: cents(100),
+      paidOn: "2026-04-05",
+      method: "cash",
+      note: null,
+      actorUserId: owner.userId,
+    });
+    const overpaid = await scope.invoices.get(sent.invoice.id);
+    expect(overpaid?.displayStatus).toBe("overpaid");
+    expect(overpaid?.paidCents).toBe(5100);
+    expect(
+      (overpaid?.paidCents ?? 0) - (overpaid?.document.totalCents ?? 0),
+    ).toBe(100);
+    const extra = overpaid?.payments.find((item) => item.amountCents === 100);
+    if (!extra) throw new Error("credit");
+    await scope.payments.removeManual(extra.id, owner.userId);
     await expect(
       scope.invoices.voidInvoice(sent.invoice.id, "Too late", owner.userId),
     ).rejects.toThrow(/Payment/);
@@ -461,12 +467,20 @@ describe("payments", () => {
         )
       ).status,
     ).toBe(200);
-    expect((await a.invoices.get(invoiceA.invoice.id))?.paidCents).toBe(1000);
+    const overpaid = await a.invoices.get(invoiceA.invoice.id);
+    expect(overpaid?.paidCents).toBe(5000);
+    expect(overpaid?.status).toBe("paid");
+    expect(overpaid?.displayStatus).toBe("overpaid");
+    expect(
+      (overpaid?.paidCents ?? 0) - (overpaid?.document.totalCents ?? 0),
+    ).toBe(1000);
     const rejected = await db
       .select()
       .from(auditLog)
       .where(eq(auditLog.action, "payment.rejected"));
-    expect(rejected.length).toBeGreaterThan(0);
+    const rejectedText = JSON.stringify(rejected);
+    expect(rejectedText).toContain("pi_cross");
+    expect(rejectedText).not.toContain("pi_alpha_over");
 
     expect(
       (

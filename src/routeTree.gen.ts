@@ -33,6 +33,7 @@ import { Route as AppInvoicesNewRouteImport } from './routes/app/invoices/new'
 import { Route as AppItemsIndexRouteImport } from './routes/app/items/index'
 import { Route as AppItemsItemIdRouteImport } from './routes/app/items/$itemId'
 import { Route as AppItemsNewRouteImport } from './routes/app/items/new'
+import { Route as AppStripeOauthRouteImport } from './routes/app/stripe/oauth'
 import { Route as AppStripeRefreshRouteImport } from './routes/app/stripe/refresh'
 import { Route as AppStripeReturnRouteImport } from './routes/app/stripe/return'
 import { Route as AppTaxRatesIndexRouteImport } from './routes/app/tax-rates/index'
@@ -164,6 +165,11 @@ const AppItemsNewRoute = AppItemsNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AppItemsRouteRoute,
 } as any)
+const AppStripeOauthRoute = AppStripeOauthRouteImport.update({
+  id: '/stripe/oauth',
+  path: '/stripe/oauth',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppStripeRefreshRoute = AppStripeRefreshRouteImport.update({
   id: '/stripe/refresh',
   path: '/stripe/refresh',
@@ -238,6 +244,7 @@ export interface FileRoutesByFullPath {
   '/app/invoices/new': typeof AppInvoicesNewRoute
   '/app/items/$itemId': typeof AppItemsItemIdRoute
   '/app/items/new': typeof AppItemsNewRoute
+  '/app/stripe/oauth': typeof AppStripeOauthRoute
   '/app/stripe/refresh': typeof AppStripeRefreshRoute
   '/app/stripe/return': typeof AppStripeReturnRoute
   '/app/tax-rates/$taxRateId': typeof AppTaxRatesTaxRateIdRoute
@@ -269,6 +276,7 @@ export interface FileRoutesByTo {
   '/app/invoices/new': typeof AppInvoicesNewRoute
   '/app/items/$itemId': typeof AppItemsItemIdRoute
   '/app/items/new': typeof AppItemsNewRoute
+  '/app/stripe/oauth': typeof AppStripeOauthRoute
   '/app/stripe/refresh': typeof AppStripeRefreshRoute
   '/app/stripe/return': typeof AppStripeReturnRoute
   '/app/tax-rates/$taxRateId': typeof AppTaxRatesTaxRateIdRoute
@@ -306,6 +314,7 @@ export interface FileRoutesById {
   '/app/invoices/new': typeof AppInvoicesNewRoute
   '/app/items/$itemId': typeof AppItemsItemIdRoute
   '/app/items/new': typeof AppItemsNewRoute
+  '/app/stripe/oauth': typeof AppStripeOauthRoute
   '/app/stripe/refresh': typeof AppStripeRefreshRoute
   '/app/stripe/return': typeof AppStripeReturnRoute
   '/app/tax-rates/$taxRateId': typeof AppTaxRatesTaxRateIdRoute
@@ -344,6 +353,7 @@ export interface FileRouteTypes {
     | '/app/invoices/new'
     | '/app/items/$itemId'
     | '/app/items/new'
+    | '/app/stripe/oauth'
     | '/app/stripe/refresh'
     | '/app/stripe/return'
     | '/app/tax-rates/$taxRateId'
@@ -375,6 +385,7 @@ export interface FileRouteTypes {
     | '/app/invoices/new'
     | '/app/items/$itemId'
     | '/app/items/new'
+    | '/app/stripe/oauth'
     | '/app/stripe/refresh'
     | '/app/stripe/return'
     | '/app/tax-rates/$taxRateId'
@@ -411,6 +422,7 @@ export interface FileRouteTypes {
     | '/app/invoices/new'
     | '/app/items/$itemId'
     | '/app/items/new'
+    | '/app/stripe/oauth'
     | '/app/stripe/refresh'
     | '/app/stripe/return'
     | '/app/tax-rates/$taxRateId'
@@ -611,6 +623,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppItemsNewRouteImport
       parentRoute: typeof AppItemsRouteRoute
     }
+    '/app/stripe/oauth': {
+      id: '/app/stripe/oauth'
+      path: '/stripe/oauth'
+      fullPath: '/app/stripe/oauth'
+      preLoaderRoute: typeof AppStripeOauthRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/app/stripe/refresh': {
       id: '/app/stripe/refresh'
       path: '/stripe/refresh'
@@ -756,6 +775,7 @@ interface AppRouteRouteChildren {
   AppSecurityRoute: typeof AppSecurityRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppStripeOauthRoute: typeof AppStripeOauthRoute
   AppStripeRefreshRoute: typeof AppStripeRefreshRoute
   AppStripeReturnRoute: typeof AppStripeReturnRoute
 }
@@ -768,6 +788,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppSecurityRoute: AppSecurityRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
+  AppStripeOauthRoute: AppStripeOauthRoute,
   AppStripeRefreshRoute: AppStripeRefreshRoute,
   AppStripeReturnRoute: AppStripeReturnRoute,
 }
