@@ -20,7 +20,11 @@ export function AppNav() {
       <Link to="/app/tax-rates" className="underline">
         Tax Rates
       </Link>
-      <Link to="/app/settings" className="underline">
+      <Link
+        to="/app/settings"
+        search={{ stripe: undefined }}
+        className="underline"
+      >
         Business
       </Link>
       <Link to="/app/security" className="underline">

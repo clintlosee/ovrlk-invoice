@@ -1,11 +1,13 @@
 import { eq } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { invoiceLink } from "../db/schema";
-import type {
-  InvoiceDisplayStatus,
-  InvoiceSnapshot,
-  InvoiceStatus,
+import {
+  canAcceptCardPayment,
+  type InvoiceDisplayStatus,
+  type InvoiceSnapshot,
+  type InvoiceStatus,
 } from "../lib/invoice";
+import { stripeConfigured } from "../lib/stripe";
 import { hashInvoiceToken, isInvoiceToken } from "./invoice-token";
 import { signedInBusiness } from "./membership";
 import {
@@ -23,6 +25,14 @@ export type PublicInvoice =
       displayStatus: InvoiceDisplayStatus;
       voidReason: string | null;
       amountDueCents: number;
+      paidCents: number;
+      canPay: boolean;
+      payments: {
+        id: string;
+        paidOn: string;
+        method: string;
+        amountCents: number;
+      }[];
     }
   | { status: 404 }
   | { status: 429; retryAfterMs: number };
@@ -53,16 +63,35 @@ export async function openPublicInvoice(
     return { status: 404 };
   }
   const scope = forBusiness(getDb(), link.businessId);
-  const view = await scope.invoices.get(link.invoiceId);
-  if (!view?.locked) return { status: 404 };
+  const [view, row] = await Promise.all([
+    scope.invoices.get(link.invoiceId),
+    scope.business.get(),
+  ]);
+  if (!view?.locked || !row) return { status: 404 };
   if (options.recordView) await scope.invoices.markViewed(view.id);
+  const current = options.recordView
+    ? ((await scope.invoices.get(link.invoiceId)) ?? view)
+    : view;
   return {
     status: 200,
-    document: view.document,
-    statusValue: view.status,
-    displayStatus: view.displayStatus,
-    voidReason: view.voidReason,
-    amountDueCents: view.amountDueCents,
+    document: current.document,
+    statusValue: current.status,
+    displayStatus: current.displayStatus,
+    voidReason: current.voidReason,
+    amountDueCents: current.amountDueCents,
+    paidCents: current.paidCents,
+    canPay: canAcceptCardPayment({
+      configured: stripeConfigured(),
+      chargesEnabled: row.stripeChargesEnabled,
+      status: current.status,
+      amountDueCents: current.amountDueCents,
+    }),
+    payments: current.payments.map((item) => ({
+      id: item.id,
+      paidOn: item.paidOn,
+      method: item.method,
+      amountCents: item.amountCents,
+    })),
   };
 }
 

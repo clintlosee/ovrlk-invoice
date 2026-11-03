@@ -1,14 +1,24 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { BusinessForm } from "@/components/business-form";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   type BusinessFormValues,
+  disconnectConnectedAccount,
   getBusinessSettings,
+  startStripeConnect,
+  startStripeOAuth,
   updateBusinessSettings,
 } from "@/server/business";
 
 export const Route = createFileRoute("/app/settings")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    stripe:
+      search.stripe === "rejected" || search.stripe === "denied"
+        ? search.stripe
+        : undefined,
+  }),
   loader: () => getBusinessSettings(),
   component: SettingsPage,
 });
@@ -55,6 +65,158 @@ function SettingsPage() {
           onSubmit={(values) => void onSubmit(values)}
         />
       </Card>
+      <StripeConnect settings={settings} />
     </>
+  );
+}
+
+function StripeConnect({
+  settings,
+}: {
+  settings: NonNullable<ReturnType<typeof Route.useLoaderData>>;
+}) {
+  const router = useRouter();
+  const { stripe } = Route.useSearch();
+  const [message, setMessage] = useState<string | null>(
+    stripe === "rejected"
+      ? "That Stripe connection was rejected."
+      : stripe === "denied"
+        ? "The Stripe connection was canceled."
+        : null,
+  );
+  const [pending, setPending] = useState(false);
+  const connected = Boolean(settings.stripeAccountId);
+  const state = !connected
+    ? "Not connected"
+    : settings.stripeChargesEnabled
+      ? "Connected · charges enabled"
+      : "Connected · charges not enabled";
+  const method =
+    settings.stripeConnectMethod === "oauth"
+      ? "Linked existing account"
+      : settings.stripeConnectMethod === "account_link"
+        ? "New Stripe account"
+        : null;
+
+  function openStripe(
+    start: () => Promise<{ ok: boolean; url?: string; message?: string }>,
+  ) {
+    setPending(true);
+    setMessage(null);
+    void start().then((result) => {
+      if (!result.ok || !result.url) {
+        setMessage(result.message ?? "Could not open Stripe. Try again.");
+        setPending(false);
+        return;
+      }
+      window.location.assign(result.url);
+    });
+  }
+
+  return (
+    <section className="mt-8">
+      <h2 className="font-serif text-2xl">Stripe</h2>
+      <p className="mt-2 text-sm text-muted">
+        Card Payments settle in this Business's Connected Account.
+      </p>
+      <Card>
+        <p className="text-sm">{state}</p>
+        {connected ? (
+          <p className="mt-1 text-sm text-muted">
+            {settings.stripeAccountId}
+            {method ? ` · ${method}` : ""}
+          </p>
+        ) : null}
+        {!settings.stripeConfigured ? (
+          <p className="mt-3 text-sm">Stripe is not configured.</p>
+        ) : connected ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {settings.stripeConnectMethod !== "oauth" &&
+            !settings.stripeChargesEnabled ? (
+              <Button
+                type="button"
+                disabled={pending}
+                onClick={() => openStripe(() => startStripeConnect())}
+              >
+                Finish Stripe setup
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              disabled={pending}
+              onClick={() => {
+                const oauth = settings.stripeConnectMethod === "oauth";
+                if (
+                  !window.confirm(
+                    oauth
+                      ? "Disconnect stops card Payments here and revokes this app on the Stripe account."
+                      : "Disconnect stops card Payments here. The Stripe account stays open.",
+                  )
+                ) {
+                  return;
+                }
+                setPending(true);
+                void disconnectConnectedAccount().then(async (result) => {
+                  setPending(false);
+                  setMessage(result.ok ? "Disconnected." : result.message);
+                  if (result.ok) await router.invalidate();
+                });
+              }}
+            >
+              Disconnect
+            </Button>
+          </div>
+        ) : (
+          <div className="mt-4 space-y-4">
+            <div>
+              <h3 className="text-sm font-medium">
+                Create a new Stripe account
+              </h3>
+              <p className="mt-1 text-sm text-muted">
+                Stripe hosts a new Standard account for this Business. Card
+                Payments settle there.
+              </p>
+              <Button
+                type="button"
+                className="mt-2"
+                disabled={pending}
+                onClick={() => openStripe(() => startStripeConnect())}
+              >
+                Create a new Stripe account
+              </Button>
+            </div>
+            {settings.stripeOauthConfigured ? (
+              <div>
+                <h3 className="text-sm font-medium">
+                  Link my existing Stripe account
+                </h3>
+                <p className="mt-1 text-sm text-muted">
+                  Connect a Stripe account you already have. Card Payments
+                  settle there.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-2"
+                  disabled={pending}
+                  onClick={() => openStripe(() => startStripeOAuth())}
+                >
+                  Link my existing Stripe account
+                </Button>
+              </div>
+            ) : null}
+          </div>
+        )}
+        {settings.stripeConfigured &&
+        connected &&
+        !settings.stripeDetailsSubmitted ? (
+          <p className="mt-3 text-sm text-muted">
+            Stripe still needs a few details before charges can be enabled.
+          </p>
+        ) : null}
+        {message ? <p className="mt-3 text-sm text-danger">{message}</p> : null}
+      </Card>
+    </section>
   );
 }

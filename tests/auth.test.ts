@@ -4,7 +4,7 @@ import { getDb } from "../src/db/client";
 import { auditLog, business, member, user } from "../src/db/schema";
 import { takeEmails } from "../src/lib/email";
 import { handleAuthRequest } from "../src/server/auth-http";
-import { registerOwner } from "../src/server/register";
+import { registerOwner } from "../src/server/register-owner";
 import { cookieHeader } from "./helpers";
 
 const origin = "http://localhost:3333";

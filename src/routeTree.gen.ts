@@ -24,6 +24,7 @@ import { Route as AppSecurityRouteImport } from './routes/app/security'
 import { Route as AppSettingsRouteImport } from './routes/app/settings'
 import { Route as AppTaxRatesRouteRouteImport } from './routes/app/tax-rates/route'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhook'
 import { Route as AppClientsIndexRouteImport } from './routes/app/clients/index'
 import { Route as AppClientsClientIdRouteImport } from './routes/app/clients/$clientId'
 import { Route as AppClientsNewRouteImport } from './routes/app/clients/new'
@@ -32,10 +33,14 @@ import { Route as AppInvoicesNewRouteImport } from './routes/app/invoices/new'
 import { Route as AppItemsIndexRouteImport } from './routes/app/items/index'
 import { Route as AppItemsItemIdRouteImport } from './routes/app/items/$itemId'
 import { Route as AppItemsNewRouteImport } from './routes/app/items/new'
+import { Route as AppStripeOauthRouteImport } from './routes/app/stripe/oauth'
+import { Route as AppStripeRefreshRouteImport } from './routes/app/stripe/refresh'
+import { Route as AppStripeReturnRouteImport } from './routes/app/stripe/return'
 import { Route as AppTaxRatesIndexRouteImport } from './routes/app/tax-rates/index'
 import { Route as AppTaxRatesTaxRateIdRouteImport } from './routes/app/tax-rates/$taxRateId'
 import { Route as AppTaxRatesNewRouteImport } from './routes/app/tax-rates/new'
 import { Route as PTokenIndexRouteImport } from './routes/p/$token/index'
+import { Route as PTokenPayRouteImport } from './routes/p/$token/pay'
 import { Route as PTokenPdfRouteImport } from './routes/p/$token/pdf'
 import { Route as AppInvoicesInvoiceIdIndexRouteImport } from './routes/app/invoices/$invoiceId/index'
 import { Route as AppInvoicesInvoiceIdPdfRouteImport } from './routes/app/invoices/$invoiceId/pdf'
@@ -115,6 +120,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStripeWebhookRoute = ApiStripeWebhookRouteImport.update({
+  id: '/api/stripe/webhook',
+  path: '/api/stripe/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppClientsIndexRoute = AppClientsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -155,6 +165,21 @@ const AppItemsNewRoute = AppItemsNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AppItemsRouteRoute,
 } as any)
+const AppStripeOauthRoute = AppStripeOauthRouteImport.update({
+  id: '/stripe/oauth',
+  path: '/stripe/oauth',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppStripeRefreshRoute = AppStripeRefreshRouteImport.update({
+  id: '/stripe/refresh',
+  path: '/stripe/refresh',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppStripeReturnRoute = AppStripeReturnRouteImport.update({
+  id: '/stripe/return',
+  path: '/stripe/return',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppTaxRatesIndexRoute = AppTaxRatesIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -173,6 +198,11 @@ const AppTaxRatesNewRoute = AppTaxRatesNewRouteImport.update({
 const PTokenIndexRoute = PTokenIndexRouteImport.update({
   id: '/p/$token/',
   path: '/p/$token/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PTokenPayRoute = PTokenPayRouteImport.update({
+  id: '/p/$token/pay',
+  path: '/p/$token/pay',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PTokenPdfRoute = PTokenPdfRouteImport.update({
@@ -208,13 +238,18 @@ export interface FileRoutesByFullPath {
   '/app/settings': typeof AppSettingsRoute
   '/app/': typeof AppIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
   '/app/clients/$clientId': typeof AppClientsClientIdRoute
   '/app/clients/new': typeof AppClientsNewRoute
   '/app/invoices/new': typeof AppInvoicesNewRoute
   '/app/items/$itemId': typeof AppItemsItemIdRoute
   '/app/items/new': typeof AppItemsNewRoute
+  '/app/stripe/oauth': typeof AppStripeOauthRoute
+  '/app/stripe/refresh': typeof AppStripeRefreshRoute
+  '/app/stripe/return': typeof AppStripeReturnRoute
   '/app/tax-rates/$taxRateId': typeof AppTaxRatesTaxRateIdRoute
   '/app/tax-rates/new': typeof AppTaxRatesNewRoute
+  '/p/$token/pay': typeof PTokenPayRoute
   '/p/$token/pdf': typeof PTokenPdfRoute
   '/app/clients/': typeof AppClientsIndexRoute
   '/app/invoices/': typeof AppInvoicesIndexRoute
@@ -235,13 +270,18 @@ export interface FileRoutesByTo {
   '/app/settings': typeof AppSettingsRoute
   '/app': typeof AppIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
   '/app/clients/$clientId': typeof AppClientsClientIdRoute
   '/app/clients/new': typeof AppClientsNewRoute
   '/app/invoices/new': typeof AppInvoicesNewRoute
   '/app/items/$itemId': typeof AppItemsItemIdRoute
   '/app/items/new': typeof AppItemsNewRoute
+  '/app/stripe/oauth': typeof AppStripeOauthRoute
+  '/app/stripe/refresh': typeof AppStripeRefreshRoute
+  '/app/stripe/return': typeof AppStripeReturnRoute
   '/app/tax-rates/$taxRateId': typeof AppTaxRatesTaxRateIdRoute
   '/app/tax-rates/new': typeof AppTaxRatesNewRoute
+  '/p/$token/pay': typeof PTokenPayRoute
   '/p/$token/pdf': typeof PTokenPdfRoute
   '/app/clients': typeof AppClientsIndexRoute
   '/app/invoices': typeof AppInvoicesIndexRoute
@@ -268,13 +308,18 @@ export interface FileRoutesById {
   '/app/settings': typeof AppSettingsRoute
   '/app/': typeof AppIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
   '/app/clients/$clientId': typeof AppClientsClientIdRoute
   '/app/clients/new': typeof AppClientsNewRoute
   '/app/invoices/new': typeof AppInvoicesNewRoute
   '/app/items/$itemId': typeof AppItemsItemIdRoute
   '/app/items/new': typeof AppItemsNewRoute
+  '/app/stripe/oauth': typeof AppStripeOauthRoute
+  '/app/stripe/refresh': typeof AppStripeRefreshRoute
+  '/app/stripe/return': typeof AppStripeReturnRoute
   '/app/tax-rates/$taxRateId': typeof AppTaxRatesTaxRateIdRoute
   '/app/tax-rates/new': typeof AppTaxRatesNewRoute
+  '/p/$token/pay': typeof PTokenPayRoute
   '/p/$token/pdf': typeof PTokenPdfRoute
   '/app/clients/': typeof AppClientsIndexRoute
   '/app/invoices/': typeof AppInvoicesIndexRoute
@@ -302,13 +347,18 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/'
     | '/api/auth/$'
+    | '/api/stripe/webhook'
     | '/app/clients/$clientId'
     | '/app/clients/new'
     | '/app/invoices/new'
     | '/app/items/$itemId'
     | '/app/items/new'
+    | '/app/stripe/oauth'
+    | '/app/stripe/refresh'
+    | '/app/stripe/return'
     | '/app/tax-rates/$taxRateId'
     | '/app/tax-rates/new'
+    | '/p/$token/pay'
     | '/p/$token/pdf'
     | '/app/clients/'
     | '/app/invoices/'
@@ -329,13 +379,18 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app'
     | '/api/auth/$'
+    | '/api/stripe/webhook'
     | '/app/clients/$clientId'
     | '/app/clients/new'
     | '/app/invoices/new'
     | '/app/items/$itemId'
     | '/app/items/new'
+    | '/app/stripe/oauth'
+    | '/app/stripe/refresh'
+    | '/app/stripe/return'
     | '/app/tax-rates/$taxRateId'
     | '/app/tax-rates/new'
+    | '/p/$token/pay'
     | '/p/$token/pdf'
     | '/app/clients'
     | '/app/invoices'
@@ -361,13 +416,18 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/'
     | '/api/auth/$'
+    | '/api/stripe/webhook'
     | '/app/clients/$clientId'
     | '/app/clients/new'
     | '/app/invoices/new'
     | '/app/items/$itemId'
     | '/app/items/new'
+    | '/app/stripe/oauth'
+    | '/app/stripe/refresh'
+    | '/app/stripe/return'
     | '/app/tax-rates/$taxRateId'
     | '/app/tax-rates/new'
+    | '/p/$token/pay'
     | '/p/$token/pdf'
     | '/app/clients/'
     | '/app/invoices/'
@@ -387,6 +447,8 @@ export interface RootRouteChildren {
   SignUpRoute: typeof SignUpRoute
   TermsRoute: typeof TermsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
+  PTokenPayRoute: typeof PTokenPayRoute
   PTokenPdfRoute: typeof PTokenPdfRoute
   PTokenIndexRoute: typeof PTokenIndexRoute
 }
@@ -498,6 +560,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/stripe/webhook': {
+      id: '/api/stripe/webhook'
+      path: '/api/stripe/webhook'
+      fullPath: '/api/stripe/webhook'
+      preLoaderRoute: typeof ApiStripeWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/clients/': {
       id: '/app/clients/'
       path: '/'
@@ -554,6 +623,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppItemsNewRouteImport
       parentRoute: typeof AppItemsRouteRoute
     }
+    '/app/stripe/oauth': {
+      id: '/app/stripe/oauth'
+      path: '/stripe/oauth'
+      fullPath: '/app/stripe/oauth'
+      preLoaderRoute: typeof AppStripeOauthRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/stripe/refresh': {
+      id: '/app/stripe/refresh'
+      path: '/stripe/refresh'
+      fullPath: '/app/stripe/refresh'
+      preLoaderRoute: typeof AppStripeRefreshRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/stripe/return': {
+      id: '/app/stripe/return'
+      path: '/stripe/return'
+      fullPath: '/app/stripe/return'
+      preLoaderRoute: typeof AppStripeReturnRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/app/tax-rates/': {
       id: '/app/tax-rates/'
       path: '/'
@@ -580,6 +670,13 @@ declare module '@tanstack/react-router' {
       path: '/p/$token'
       fullPath: '/p/$token/'
       preLoaderRoute: typeof PTokenIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/p/$token/pay': {
+      id: '/p/$token/pay'
+      path: '/p/$token/pay'
+      fullPath: '/p/$token/pay'
+      preLoaderRoute: typeof PTokenPayRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/p/$token/pdf': {
@@ -678,6 +775,9 @@ interface AppRouteRouteChildren {
   AppSecurityRoute: typeof AppSecurityRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppStripeOauthRoute: typeof AppStripeOauthRoute
+  AppStripeRefreshRoute: typeof AppStripeRefreshRoute
+  AppStripeReturnRoute: typeof AppStripeReturnRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
@@ -688,6 +788,9 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppSecurityRoute: AppSecurityRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
+  AppStripeOauthRoute: AppStripeOauthRoute,
+  AppStripeRefreshRoute: AppStripeRefreshRoute,
+  AppStripeReturnRoute: AppStripeReturnRoute,
 }
 
 const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
@@ -703,6 +806,8 @@ const rootRouteChildren: RootRouteChildren = {
   SignUpRoute: SignUpRoute,
   TermsRoute: TermsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiStripeWebhookRoute: ApiStripeWebhookRoute,
+  PTokenPayRoute: PTokenPayRoute,
   PTokenPdfRoute: PTokenPdfRoute,
   PTokenIndexRoute: PTokenIndexRoute,
 }

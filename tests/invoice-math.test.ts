@@ -71,8 +71,21 @@ describe("invoice math", () => {
     expect(displayStatus("paid", "2020-01-01", "2026-01-02")).toBe("paid");
     expect(displayStatus("void", "2020-01-01", "2026-01-02")).toBe("void");
     expect(displayStatus("sent", "2026-02-01", "2026-01-02")).toBe("sent");
+    expect(displayStatus("sent", "2026-02-01", "2026-01-02", true)).toBe(
+      "viewed",
+    );
+    expect(displayStatus("sent", "2020-01-01", "2026-01-02", true)).toBe(
+      "overdue",
+    );
+    expect(displayStatus("partial", "2020-01-01", "2026-01-02")).toBe(
+      "partial",
+    );
     expect(amountDueCents("sent", 3304)).toBe(3304);
+    expect(amountDueCents("partial", 3304, 1000)).toBe(2304);
     expect(amountDueCents("paid", 3304)).toBe(0);
+    expect(
+      displayStatus("paid", "2026-02-01", "2026-01-02", false, 4000, 3304),
+    ).toBe("overpaid");
     expect(amountDueCents("void", 3304)).toBe(0);
 
     expect(() =>

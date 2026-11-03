@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getDb } from "../db/client";
 import { appUrl } from "../lib/config";
 import { sendInvoiceEmail } from "../lib/email";
-import { amountDueCents, statusLabel } from "../lib/invoice";
+import { paymentMethodLabel, statusLabel } from "../lib/invoice";
 import { renderInvoicePdf } from "../lib/invoice-pdf";
 import { formatCents, parseDollarsToCents } from "../lib/money";
 import type { InvoiceInput, InvoiceView } from "./invoice-store";
@@ -106,7 +106,10 @@ function saveError(error: unknown): Failure {
     message.includes("Invoice") ||
     message.includes("void") ||
     message.includes("draft") ||
-    message.includes("sent")
+    message.includes("sent") ||
+    message.includes("Payment") ||
+    message.includes("balance") ||
+    message.includes("amount")
   ) {
     return {
       ok: false,
@@ -130,6 +133,17 @@ function present(view: InvoiceView) {
     firstViewedAt: view.firstViewedAt ? view.firstViewedAt.toISOString() : null,
     locked: view.locked,
     amountDueCents: view.amountDueCents,
+    paidCents: view.paidCents,
+    payments: view.payments.map((item) => ({
+      id: item.id,
+      amountCents: item.amountCents,
+      paidOn: item.paidOn,
+      method: item.method,
+      methodLabel: paymentMethodLabel(item.method),
+      note: item.note,
+      feeCents: item.feeCents,
+      manual: item.manual,
+    })),
     document: view.document,
     editorLines: view.editorLines?.map((line) => ({
       name: line.name,
@@ -317,10 +331,10 @@ export const remindInvoice = createServerFn({ method: "POST" })
     const scoped = await scope();
     if (!scoped) return { ok: false as const, message: "Sign in again." };
     const view = await scoped.db.invoices.get(data.id);
-    if (view?.status !== "sent") {
+    if (view?.status !== "sent" && view?.status !== "partial") {
       return {
         ok: false as const,
-        message: "Reminders go out for a sent, unpaid Invoice.",
+        message: "Reminders go out for a sent Invoice with a balance.",
       };
     }
     const link = await scoped.db.invoices.issueLink(data.id, false);
@@ -333,7 +347,7 @@ export const remindInvoice = createServerFn({ method: "POST" })
         replyTo: scoped.current.session.user.email,
         businessName: view.document.business.name,
         number: view.number,
-        totalCents: amountDueCents(view.status, view.document.totalCents),
+        totalCents: view.amountDueCents,
         dueDate: view.document.dueDate,
         token: link.token,
         status: view.status,

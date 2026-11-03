@@ -1,8 +1,12 @@
 import { type Cents, cents } from "./money";
 import { lineTax } from "./tax";
 
-export type InvoiceStatus = "draft" | "sent" | "paid" | "void";
-export type InvoiceDisplayStatus = InvoiceStatus | "overdue";
+export type InvoiceStatus = "draft" | "sent" | "partial" | "paid" | "void";
+export type InvoiceDisplayStatus =
+  | InvoiceStatus
+  | "overdue"
+  | "viewed"
+  | "overpaid";
 
 export const INVOICE_LINK_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 export const DEFAULT_ACCENT = "#1c1917";
@@ -167,29 +171,51 @@ export function displayStatus(
   status: InvoiceStatus,
   dueDate: string,
   today: string,
+  viewed = false,
+  paidCents = 0,
+  totalCents = 0,
 ): InvoiceDisplayStatus {
+  if (status === "paid" && paidCents > totalCents) return "overpaid";
+  if (status === "partial") return "partial";
   if (status === "sent" && dueDate < today) return "overdue";
+  if (status === "sent" && viewed) return "viewed";
   return status;
+}
+
+export function creditCents(totalCents: number, paidCents: number): number {
+  return Math.max(paidCents - totalCents, 0);
 }
 
 export function statusLabel(status: InvoiceDisplayStatus): string {
   if (status === "draft") return "Draft";
   if (status === "sent") return "Sent";
+  if (status === "viewed") return "Viewed";
+  if (status === "partial") return "Partially Paid";
   if (status === "paid") return "Paid";
+  if (status === "overpaid") return "Overpaid";
   if (status === "void") return "Void";
   return "Overdue";
 }
 
-/**
- * Balance until PR 4 records Payments against the Invoice.
- * Paid and Void are nothing due. Do not add a pay button before that PR.
- */
+/** Balance after Payments. Void is nothing due. Paid is nothing due. */
 export function amountDueCents(
   status: InvoiceStatus,
   totalCents: number,
+  paidCents = 0,
 ): number {
   if (status === "paid" || status === "void") return 0;
-  return totalCents;
+  return Math.max(totalCents - paidCents, 0);
+}
+
+export function canAcceptCardPayment(input: {
+  configured: boolean;
+  chargesEnabled: boolean;
+  status: InvoiceStatus;
+  amountDueCents: number;
+}): boolean {
+  if (!input.configured || !input.chargesEnabled) return false;
+  if (input.amountDueCents <= 0) return false;
+  return input.status === "sent" || input.status === "partial";
 }
 
 export function formatInvoiceNumber(number: number): string {
@@ -205,7 +231,31 @@ export function isInvoiceStatus(value: string): value is InvoiceStatus {
   return (
     value === "draft" ||
     value === "sent" ||
+    value === "partial" ||
     value === "paid" ||
     value === "void"
   );
+}
+
+export const MANUAL_PAYMENT_METHODS = [
+  "check",
+  "cash",
+  "venmo",
+  "other",
+] as const;
+
+export type ManualPaymentMethod = (typeof MANUAL_PAYMENT_METHODS)[number];
+
+export function isManualPaymentMethod(
+  value: string,
+): value is ManualPaymentMethod {
+  return (MANUAL_PAYMENT_METHODS as readonly string[]).includes(value);
+}
+
+export function paymentMethodLabel(method: string): string {
+  if (method === "stripe") return "Card";
+  if (method === "check") return "Check";
+  if (method === "cash") return "Cash";
+  if (method === "venmo") return "Venmo";
+  return "Other";
 }
