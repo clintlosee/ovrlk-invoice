@@ -12,4 +12,4 @@ Keep pull requests small. The owner reviews them. Do not merge without that revi
 
 Sign-up stays closed unless `ALLOW_SIGN_UP=true`, and the server rejects it when the flag is off. Public Invoice Link routes, when they exist, must call `consumePublicRateLimit` and live under `/p/` so the request middleware limits them.
 
-Package manager is pnpm. Commit `pnpm-lock.yaml`. Do not add `package-lock.json` or `yarn.lock`.
+Package manager is pnpm 10.33.4. Commit `pnpm-lock.yaml`. Do not add `package-lock.json` or `yarn.lock`. Runtime is Node 24 LTS. `minimumReleaseAge` in `pnpm-workspace.yaml` is 1440 minutes, so a package version has to be a day old before it can be installed. CI and Render install with `--frozen-lockfile`.

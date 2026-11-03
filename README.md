@@ -8,7 +8,7 @@ This repository is the first slice: the TanStack Start app, Owner sign-in, Busin
 
 ## Local setup
 
-Requires Node 22.12 or newer and [pnpm](https://pnpm.io/) 10.33.4 (`packageManager` in `package.json`). Do not use npm or Yarn.
+Requires Node 24 LTS and [pnpm](https://pnpm.io/) 10.33.4 (`packageManager` in `package.json`, `engines` and `.node-version`). Do not use npm or Yarn. pnpm will not install a package version published less than a day ago (`minimumReleaseAge: 1440` in `pnpm-workspace.yaml`).
 
 ```sh
 pnpm install
@@ -70,4 +70,4 @@ Tests use a throwaway libSQL file under `data/` and do not send email.
 
 ## Render
 
-`render.yaml` builds with `pnpm install --frozen-lockfile` and starts with `pnpm start`. Set the secret env vars in the Render dashboard (`sync: false` in the blueprint). `ALLOW_SIGN_UP` is `false`. The service runs migrations on boot. Cloudflare R2 is not wired up yet.
+`render.yaml` builds with `pnpm install --frozen-lockfile` and starts with `pnpm start` on Node 24 (`NODE_VERSION`). Set the secret env vars in the Render dashboard (`sync: false` in the blueprint). `ALLOW_SIGN_UP` is `false`. The service runs migrations on boot. Cloudflare R2 is not wired up yet.
