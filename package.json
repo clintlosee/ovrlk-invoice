@@ -17,6 +17,7 @@
     "build": "vite build",
     "start": "node .output/server/index.mjs",
     "lint": "biome check .",
+    "lint:fix": "biome check --write .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",

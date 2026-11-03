@@ -16,8 +16,8 @@ function Home() {
         Invoicer by OVRLK Labs.
       </h1>
       <p className="mt-4 text-muted-foreground">
-        Clients, invoices, expenses, and reports for your business,
-        walled off so other businesses can be opened later.
+        Clients, invoices, expenses, and reports for your business, walled off
+        so other businesses can be opened later.
       </p>
       <div className="mt-8">
         {session ? (
