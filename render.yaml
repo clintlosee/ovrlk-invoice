@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=https://render.com/schema/render.yaml.json
+# Render detects pnpm from pnpm-lock.yaml and package.json "packageManager".
+services:
+  - type: web
+    name: ovrlk-invoice
+    runtime: node
+    plan: starter
+    buildCommand: pnpm install --frozen-lockfile --prod=false && pnpm build
+    startCommand: pnpm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: HOST
+        value: 0.0.0.0
+      - key: ALLOW_SIGN_UP
+        value: "false"
+      - key: DATABASE_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false
+      - key: BETTER_AUTH_SECRET
+        sync: false
+      - key: BETTER_AUTH_URL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
