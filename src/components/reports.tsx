@@ -255,7 +255,7 @@ export function MonthBars({ months }: { months: MonthBucket[] }) {
           <span className="inline-block h-2 w-2 bg-foreground" /> Income
         </span>
         <span className="inline-flex items-center gap-1">
-          <span className="inline-block h-2 w-2 bg-muted" /> Expenses
+          <span className="inline-block h-2 w-2 bg-muted-foreground" /> Expenses
         </span>
       </div>
       <div className="mt-4 flex h-40 items-end gap-1">
@@ -274,7 +274,7 @@ export function MonthBars({ months }: { months: MonthBucket[] }) {
               <Bar
                 cents={month.expenseCents}
                 peak={peak}
-                className="bg-muted"
+                className="bg-muted-foreground"
                 label={`${month.label} expenses ${formatUsd(month.expenseCents)}`}
               />
             </div>
