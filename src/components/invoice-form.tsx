@@ -82,7 +82,7 @@ export function InvoiceForm({
         <select
           id="client"
           required
-          className="flex h-10 w-full rounded-md border border-border bg-card px-3 text-sm"
+          className="flex h-10 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           value={values.clientId}
           onChange={(event) =>
             setValues({ ...values, clientId: event.target.value })
@@ -140,7 +140,7 @@ export function InvoiceForm({
             <Label htmlFor="item">Add an Item</Label>
             <select
               id="item"
-              className="flex h-10 w-full rounded-md border border-border bg-card px-3 text-sm"
+              className="flex h-10 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               value={itemId}
               onChange={(event) => setItemId(event.target.value)}
             >
@@ -304,7 +304,7 @@ export function InvoiceForm({
           }
         />
       </div>
-      {message ? <p className="text-sm text-danger">{message}</p> : null}
+      {message ? <p className="text-sm text-destructive">{message}</p> : null}
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={pending}>
           {pending ? "Saving…" : "Save draft"}

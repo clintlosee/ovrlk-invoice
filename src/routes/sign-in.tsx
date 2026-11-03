@@ -119,7 +119,7 @@ function SignInPage() {
     <Shell>
       <Card>
         <h1 className="font-serif text-3xl">Sign in</h1>
-        <p className="mt-2 text-sm text-muted">
+        <p className="mt-2 text-sm text-muted-foreground">
           Email, password, then the code we send you.
         </p>
         {showCode ? (
@@ -135,7 +135,9 @@ function SignInPage() {
                 onChange={(event) => setCode(event.target.value)}
               />
             </div>
-            {message ? <p className="text-sm text-danger">{message}</p> : null}
+            {message ? (
+              <p className="text-sm text-destructive">{message}</p>
+            ) : null}
             <div className="flex flex-wrap gap-2">
               <Button type="submit" disabled={pending}>
                 Sign in
@@ -185,7 +187,9 @@ function SignInPage() {
                 onChange={(event) => setPassword(event.target.value)}
               />
             </div>
-            {message ? <p className="text-sm text-danger">{message}</p> : null}
+            {message ? (
+              <p className="text-sm text-destructive">{message}</p>
+            ) : null}
             <Button type="submit" disabled={pending}>
               {pending ? "Checking…" : "Continue"}
             </Button>

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { DEFAULT_ACCENT } from "@/lib/invoice";
 import type { BusinessFormValues } from "@/server/business";
 
 export function BusinessForm({
@@ -83,13 +84,13 @@ export function BusinessForm({
         <Input
           id="accent"
           type="color"
-          value={values.accentColor || "#1c1917"}
+          value={values.accentColor || DEFAULT_ACCENT}
           onChange={(event) =>
             setValues({ ...values, accentColor: event.target.value })
           }
         />
       </div>
-      {message ? <p className="text-sm text-danger">{message}</p> : null}
+      {message ? <p className="text-sm text-destructive">{message}</p> : null}
       <Button type="submit" disabled={pending}>
         {pending ? "Saving…" : "Save"}
       </Button>

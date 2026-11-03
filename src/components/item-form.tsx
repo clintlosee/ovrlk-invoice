@@ -83,7 +83,7 @@ export function ItemForm({
       <fieldset className="space-y-2">
         <legend className="text-sm font-medium">Default Tax Rates</legend>
         {taxRates.length === 0 ? (
-          <p className="text-sm text-muted">
+          <p className="text-sm text-muted-foreground">
             No Tax Rates yet.{" "}
             <Link to="/app/tax-rates" className="underline">
               Add one
@@ -103,7 +103,7 @@ export function ItemForm({
           ))
         )}
       </fieldset>
-      {message ? <p className="text-sm text-danger">{message}</p> : null}
+      {message ? <p className="text-sm text-destructive">{message}</p> : null}
       <Button type="submit" disabled={pending}>
         {pending ? "Saving…" : submitLabel}
       </Button>

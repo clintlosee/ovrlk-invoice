@@ -138,7 +138,9 @@ function Receipt({
   return (
     <div className="mt-6 space-y-3 border-t border-border pt-4">
       <h2 className="font-medium">Receipt</h2>
-      <p className="text-sm text-muted">Image or PDF, up to 10 MB.</p>
+      <p className="text-sm text-muted-foreground">
+        Image or PDF, up to 10 MB.
+      </p>
       {hasReceipt ? (
         <div className="flex gap-3">
           <button

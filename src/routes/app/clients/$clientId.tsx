@@ -75,7 +75,7 @@ function EditClientPage() {
       </Link>
       <h1 className="mt-3 font-serif text-3xl">{client.name}</h1>
       {client.archived ? (
-        <p className="mt-2 text-sm text-muted">Archived</p>
+        <p className="mt-2 text-sm text-muted-foreground">Archived</p>
       ) : null}
       <Card>
         <ClientForm

@@ -91,12 +91,12 @@ function SecurityPage() {
   return (
     <>
       <h1 className="font-serif text-3xl">Security</h1>
-      <p className="mt-2 text-sm text-muted">
+      <p className="mt-2 text-sm text-muted-foreground">
         Email codes are required and cannot be turned off.
       </p>
       <Card className="mt-6 space-y-4">
         <h2 className="font-medium">Authenticator app</h2>
-        <p className="text-sm text-muted">
+        <p className="text-sm text-muted-foreground">
           Optional. Use it instead of the emailed code when you want.
         </p>
         <form
@@ -156,7 +156,7 @@ function SecurityPage() {
       </Card>
       <Card className="mt-6 space-y-4">
         <h2 className="font-medium">Passkey</h2>
-        <p className="text-sm text-muted">
+        <p className="text-sm text-muted-foreground">
           Optional second factor for this browser or device. It does not replace
           the password.
         </p>

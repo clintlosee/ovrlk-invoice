@@ -64,9 +64,11 @@ export function ReportChrome({
         </Button>
       </div>
       {definition ? (
-        <p className="mt-3 text-sm text-muted">{definition}</p>
+        <p className="mt-3 text-sm text-muted-foreground">{definition}</p>
       ) : null}
-      {note ? <p className="mt-2 text-sm text-muted">{note}</p> : null}
+      {note ? (
+        <p className="mt-2 text-sm text-muted-foreground">{note}</p>
+      ) : null}
       <PeriodBar search={search} />
       {showBasis ? <BasisBar search={search} /> : null}
       {range ? (
@@ -74,7 +76,7 @@ export function ReportChrome({
           {range.from} – {range.to}
         </p>
       ) : null}
-      {error ? <p className="mt-4 text-sm text-danger">{error}</p> : null}
+      {error ? <p className="mt-4 text-sm text-destructive">{error}</p> : null}
       {children}
     </>
   );
@@ -118,7 +120,7 @@ export function ExpenseTable({
   return (
     <table className="mt-6 w-full text-sm">
       <thead>
-        <tr className="border-b border-border text-left text-muted">
+        <tr className="border-b border-border text-left text-muted-foreground">
           <th className="py-2 font-medium">Category</th>
           <th className="py-2 text-right font-medium">Amount</th>
           <th className="py-2 text-right font-medium">Tax paid</th>
@@ -180,7 +182,7 @@ export function RevenueTable({
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[40rem] text-sm">
             <thead>
-              <tr className="border-b border-border text-left text-muted">
+              <tr className="border-b border-border text-left text-muted-foreground">
                 <th className="py-2 font-medium">Client</th>
                 <th className="py-2 text-right font-medium">Invoiced</th>
                 <th className="py-2 text-right font-medium">Paid</th>
@@ -240,15 +242,15 @@ export function MonthBars({ months }: { months: MonthBucket[] }) {
     <figure className="mt-10">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h2 className="font-serif text-xl">Income and expenses</h2>
-        <p className="text-sm text-muted">
+        <p className="text-sm text-muted-foreground">
           {first} – {last}
         </p>
       </div>
-      <p className="mt-1 text-sm text-muted">
+      <p className="mt-1 text-sm text-muted-foreground">
         Cash basis, by month. Income is Payments. Expenses include Cost of Goods
         Sold and Merchant fees.
       </p>
-      <div className="mt-3 flex gap-4 text-xs text-muted">
+      <div className="mt-3 flex gap-4 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1">
           <span className="inline-block h-2 w-2 bg-foreground" /> Income
         </span>
@@ -276,7 +278,7 @@ export function MonthBars({ months }: { months: MonthBucket[] }) {
                 label={`${month.label} expenses ${formatUsd(month.expenseCents)}`}
               />
             </div>
-            <span className="mt-1 truncate text-center text-[10px] text-muted">
+            <span className="mt-1 truncate text-center text-[10px] text-muted-foreground">
               {month.shortLabel}
             </span>
           </div>
@@ -445,7 +447,7 @@ function Section({ label, rows }: { label: string; rows: CategoryAmount[] }) {
       </tr>
       {rows.length === 0 ? (
         <tr className="border-b border-border">
-          <td className="py-2 pl-4 text-muted" colSpan={2}>
+          <td className="py-2 pl-4 text-muted-foreground" colSpan={2}>
             None in this period.
           </td>
         </tr>
@@ -533,7 +535,7 @@ function TotalRow({
 function EmptyRow({ label, columns }: { label: string; columns: number }) {
   return (
     <tr className="border-b border-border">
-      <td className="py-2 pl-4 text-muted" colSpan={columns}>
+      <td className="py-2 pl-4 text-muted-foreground" colSpan={columns}>
         {label}
       </td>
     </tr>

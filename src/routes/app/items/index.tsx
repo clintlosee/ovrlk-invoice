@@ -19,7 +19,7 @@ function ItemsPage() {
           <Link to="/app/items/new">New Item</Link>
         </Button>
       </div>
-      <p className="mt-2 text-sm text-muted">
+      <p className="mt-2 text-sm text-muted-foreground">
         Saved names and prices used to fill Invoice Lines.
       </p>
       {items.length === 0 ? (
@@ -38,7 +38,7 @@ function ItemsPage() {
                 </Link>
                 <span className="text-sm">${item.unitPrice}</span>
               </div>
-              <p className="text-sm text-muted">
+              <p className="text-sm text-muted-foreground">
                 {item.taxRates.length === 0
                   ? "No default Tax Rates"
                   : item.taxRates

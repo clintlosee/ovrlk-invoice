@@ -135,7 +135,7 @@ function InvoicePage() {
             }
           />
           {invoice.firstViewedAt ? (
-            <p className="text-sm text-muted">
+            <p className="text-sm text-muted-foreground">
               First viewed {invoice.firstViewedAt.slice(0, 10)}
             </p>
           ) : null}
@@ -153,7 +153,7 @@ function InvoicePage() {
               <Input id="invoice-link" readOnly value={link} />
             </label>
           ) : (
-            <p className="text-sm text-muted">
+            <p className="text-sm text-muted-foreground">
               The Invoice Link is not stored. Generate a new one if you need it
               again.
             </p>
@@ -258,7 +258,9 @@ function InvoicePage() {
               </Button>
             </form>
           ) : null}
-          {message ? <p className="text-sm text-danger">{message}</p> : null}
+          {message ? (
+            <p className="text-sm text-destructive">{message}</p>
+          ) : null}
         </div>
       ) : (
         <Card>
@@ -337,7 +339,7 @@ function Payments({
     <section className="space-y-3">
       <h2 className="font-serif text-2xl">Payments</h2>
       {payments.length === 0 ? (
-        <p className="text-sm text-muted">No Payments yet.</p>
+        <p className="text-sm text-muted-foreground">No Payments yet.</p>
       ) : (
         <ul className="space-y-3">
           {payments.map((item) =>
@@ -368,7 +370,7 @@ function Payments({
       )}
       {canRecord ? (
         <>
-          <p className="text-sm text-muted">
+          <p className="text-sm text-muted-foreground">
             An amount above the balance is recorded in full. The Invoice then
             shows Overpaid and the credit.
           </p>
@@ -381,7 +383,7 @@ function Payments({
           />
         </>
       ) : null}
-      {message ? <p className="text-sm text-danger">{message}</p> : null}
+      {message ? <p className="text-sm text-destructive">{message}</p> : null}
     </section>
   );
 }
@@ -448,7 +450,7 @@ function PaymentForm({
         Method
         <select
           id={`method-${payment?.id ?? "new"}`}
-          className="flex h-10 w-full rounded-md border border-border bg-card px-3 text-sm"
+          className="flex h-10 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           value={method}
           onChange={(event) => setMethod(event.target.value)}
         >

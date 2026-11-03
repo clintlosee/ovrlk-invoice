@@ -33,7 +33,7 @@ function ExpensesPage() {
           <Link to="/app/expenses/new">New Expense</Link>
         </Button>
       </div>
-      <p className="mt-2 text-sm text-muted">
+      <p className="mt-2 text-sm text-muted-foreground">
         Dates are in this Business's time zone.{" "}
         <Link to="/app/expenses/categories" className="underline">
           Categories
@@ -107,7 +107,7 @@ function ExpensesPage() {
                 </Link>
                 <span>{formatUsd(expense.amountCents)}</span>
               </div>
-              <p className="text-sm text-muted">
+              <p className="text-sm text-muted-foreground">
                 {expense.spentOn} · {expense.categoryName}
                 {expense.clientName ? ` · ${expense.clientName}` : ""}
                 {expense.taxPaidCents > 0
