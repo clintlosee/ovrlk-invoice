@@ -124,6 +124,8 @@ function textPairs(mode: string, tokens: Record<string, string>): Pair[] {
     "destructive",
   );
   add("brass-foreground/brass", "brass-foreground", "brass");
+  for (const surface of TEXT_SURFACES)
+    add(`brass-ink/${surface}`, "brass-ink", surface);
   return pairs;
 }
 
@@ -217,7 +219,7 @@ describe("color contrast", () => {
       ...sourceFiles("src/routes"),
     ].map((file) => readFileSync(file, "utf8"));
     for (const source of sources) {
-      expect(source).not.toMatch(/text-brass(?!-foreground)/);
+      expect(source).not.toMatch(/text-brass(?!-(?:foreground|ink)\b)/);
       expect(source).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
     }
   });

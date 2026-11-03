@@ -186,7 +186,7 @@ export function RevenueTable({
         <p className="mt-6 text-sm">No Clients in this period.</p>
       ) : (
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[40rem] text-sm">
+          <table className="w-full min-w-160 text-sm">
             <thead>
               <tr className="border-b-2 border-brass text-left text-brass-ink">
                 <th className="py-2 font-medium">Client</th>
