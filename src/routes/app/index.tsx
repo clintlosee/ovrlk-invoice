@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Shell } from "@/components/shell";
 import { Card } from "@/components/ui/card";
 import { authClient } from "@/lib/auth-client";
 import { getHome } from "@/server/session";
@@ -11,15 +10,10 @@ export const Route = createFileRoute("/app/")({
 
 function AppHome() {
   const home = Route.useLoaderData();
-  if (!home)
-    return (
-      <Shell>
-        <p>This account is not an Owner of a Business.</p>
-      </Shell>
-    );
+  if (!home) return <p>This account is not an Owner of a Business.</p>;
   const nudge = !home.totpEnabled || home.passkeyCount === 0;
   return (
-    <Shell>
+    <>
       <h1 className="font-serif text-3xl">{home.businessName}</h1>
       <p className="mt-2 text-sm text-muted">
         {home.currency} · {home.timeZone}
@@ -45,7 +39,7 @@ function AppHome() {
         </p>
       )}
       <p className="mt-8 text-sm text-muted">
-        Clients, invoices, expenses, and reports are next.
+        Invoices, expenses, and reports are next.
       </p>
       <button
         type="button"
@@ -58,6 +52,6 @@ function AppHome() {
       >
         Sign out
       </button>
-    </Shell>
+    </>
   );
 }

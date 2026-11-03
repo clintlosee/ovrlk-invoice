@@ -1,9 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { getDb } from "../db/client";
-import { member, OWNER_ROLE, passkey, twoFactor } from "../db/schema";
+import { passkey, twoFactor } from "../db/schema";
 import { getAuth } from "../lib/auth";
+import { signedInBusiness } from "./membership";
 import { forBusiness } from "./tenancy";
 
 export const getSessionUser = createServerFn({ method: "GET" }).handler(
@@ -19,21 +20,6 @@ export const getSessionUser = createServerFn({ method: "GET" }).handler(
     };
   },
 );
-
-async function signedInBusiness() {
-  const session = await getAuth().api.getSession({
-    headers: getRequestHeaders(),
-  });
-  if (!session) return null;
-  const rows = await getDb()
-    .select()
-    .from(member)
-    .where(and(eq(member.userId, session.user.id), eq(member.role, OWNER_ROLE)))
-    .limit(1);
-  const owner = rows[0];
-  if (!owner) return null;
-  return { session, businessId: owner.businessId };
-}
 
 export const getHome = createServerFn({ method: "GET" }).handler(async () => {
   const current = await signedInBusiness();

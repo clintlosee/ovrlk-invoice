@@ -1,9 +1,43 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
-export function Shell({ children }: { children: ReactNode }) {
+export function AppNav() {
   return (
-    <div className="mx-auto flex min-h-screen max-w-lg flex-col px-6 py-10">
+    <nav className="mb-8 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+      <Link to="/app" className="underline">
+        Home
+      </Link>
+      <Link to="/app/clients" className="underline">
+        Clients
+      </Link>
+      <Link to="/app/tax-rates" className="underline">
+        Tax Rates
+      </Link>
+      <Link to="/app/items" className="underline">
+        Items
+      </Link>
+      <Link to="/app/security" className="underline">
+        Security
+      </Link>
+    </nav>
+  );
+}
+
+export function Shell({
+  children,
+  wide = false,
+}: {
+  children: ReactNode;
+  wide?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "mx-auto flex min-h-screen flex-col px-6 py-10",
+        wide ? "max-w-2xl" : "max-w-lg",
+      )}
+    >
       <header className="mb-10">
         <Link to="/" className="font-serif text-lg tracking-tight">
           ovrlk-invoice
