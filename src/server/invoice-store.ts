@@ -16,7 +16,7 @@ import {
   accentOrDefault,
   amountDueCents,
   assertIsoDate,
-  displayStatus,
+  deriveDisplayStatus,
   formatInvoiceNumber,
   INVOICE_LINK_TTL_MS,
   type InvoiceDisplayStatus,
@@ -24,7 +24,6 @@ import {
   type InvoiceStatus,
   isInvoiceStatus,
   priceInvoice,
-  todayInTimeZone,
 } from "../lib/invoice";
 import { createInvoiceToken } from "./invoice-token";
 import {
@@ -277,7 +276,25 @@ export function invoiceMethods(db: AppDb, businessId: string) {
   ): Promise<InvoiceView[]> {
     if (rows.length === 0) return [];
     const biz = await businessRow();
-    const today = todayInTimeZone(biz.timeZone);
+    const now = new Date();
+    const displayFor = (
+      status: InvoiceStatus,
+      dueDate: string,
+      totalCents: number,
+      paidCents: number,
+      firstViewedAt: Date | null,
+    ) =>
+      deriveDisplayStatus(
+        {
+          status,
+          dueDate,
+          totalCents,
+          paidCents,
+          viewed: firstViewedAt != null,
+        },
+        now,
+        biz.timeZone,
+      );
     const paymentMap = await paymentsByInvoice(
       db,
       businessId,
@@ -371,13 +388,12 @@ export function invoiceMethods(db: AppDb, businessId: string) {
           number: row.number,
           numberLabel: formatInvoiceNumber(row.number),
           status: row.status,
-          displayStatus: displayStatus(
+          displayStatus: displayFor(
             row.status,
             document.dueDate,
-            today,
-            row.firstViewedAt != null,
-            paidCents,
             document.totalCents,
+            paidCents,
+            row.firstViewedAt,
           ),
           clientId: row.clientId,
           voidReason: row.voidReason,
@@ -472,13 +488,12 @@ export function invoiceMethods(db: AppDb, businessId: string) {
         number: row.number,
         numberLabel: formatInvoiceNumber(row.number),
         status: row.status,
-        displayStatus: displayStatus(
+        displayStatus: displayFor(
           row.status,
           document.dueDate,
-          today,
-          row.firstViewedAt != null,
-          paidCents,
           document.totalCents,
+          paidCents,
+          row.firstViewedAt,
         ),
         clientId: row.clientId,
         voidReason: row.voidReason,

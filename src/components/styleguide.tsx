@@ -1,8 +1,5 @@
 import type { ReactNode } from "react";
-import {
-  type InvoiceBadgeStatus,
-  InvoiceStatusBadge,
-} from "@/components/invoice-status-badge";
+import { InvoiceStatusBadge } from "@/components/invoice-status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -16,8 +13,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import type { InvoiceDisplayStatus } from "@/lib/invoice";
 
-const STATUSES: InvoiceBadgeStatus[] = [
+const STATUSES: InvoiceDisplayStatus[] = [
   "paid",
   "sent",
   "viewed",

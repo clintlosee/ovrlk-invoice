@@ -7,6 +7,7 @@ import {
 import { useState } from "react";
 import { InvoiceDocument } from "@/components/invoice-document";
 import { InvoiceForm } from "@/components/invoice-form";
+import { InvoiceStatusBadge } from "@/components/invoice-status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -264,6 +265,9 @@ function InvoicePage() {
         </div>
       ) : (
         <Card>
+          <div className="mb-4">
+            <InvoiceStatusBadge status={invoice.displayStatus} />
+          </div>
           <InvoiceForm
             initial={{
               clientId: invoice.clientId,

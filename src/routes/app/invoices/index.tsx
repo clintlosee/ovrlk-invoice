@@ -22,7 +22,8 @@ function InvoicesPage() {
         </Button>
       </div>
       <p className="mt-2 text-sm text-muted-foreground">
-        A sent Invoice is locked. Overdue is calculated from the due date.
+        A sent Invoice is locked. Due soon includes the due date and the seven
+        days before it. Overdue starts the next day.
       </p>
       {invoices.length === 0 ? (
         <p className="mt-6 text-sm">No Invoices yet.</p>

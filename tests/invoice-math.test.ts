@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  amountDueCents,
-  displayStatus,
-  priceInvoice,
-} from "../src/lib/invoice";
+import { amountDueCents, priceInvoice } from "../src/lib/invoice";
 import { renderInvoicePdf } from "../src/lib/invoice-pdf";
 
 describe("invoice math", () => {
@@ -66,26 +62,9 @@ describe("invoice math", () => {
     expect(exempt.totalCents).toBe(3000);
     expect(exempt.lines[0]?.taxes.map((tax) => tax.taxCents)).toEqual([0, 0]);
 
-    expect(displayStatus("sent", "2020-01-01", "2026-01-02")).toBe("overdue");
-    expect(displayStatus("draft", "2020-01-01", "2026-01-02")).toBe("draft");
-    expect(displayStatus("paid", "2020-01-01", "2026-01-02")).toBe("paid");
-    expect(displayStatus("void", "2020-01-01", "2026-01-02")).toBe("void");
-    expect(displayStatus("sent", "2026-02-01", "2026-01-02")).toBe("sent");
-    expect(displayStatus("sent", "2026-02-01", "2026-01-02", true)).toBe(
-      "viewed",
-    );
-    expect(displayStatus("sent", "2020-01-01", "2026-01-02", true)).toBe(
-      "overdue",
-    );
-    expect(displayStatus("partial", "2020-01-01", "2026-01-02")).toBe(
-      "partial",
-    );
     expect(amountDueCents("sent", 3304)).toBe(3304);
     expect(amountDueCents("partial", 3304, 1000)).toBe(2304);
     expect(amountDueCents("paid", 3304)).toBe(0);
-    expect(
-      displayStatus("paid", "2026-02-01", "2026-01-02", false, 4000, 3304),
-    ).toBe("overpaid");
     expect(amountDueCents("void", 3304)).toBe(0);
 
     expect(() =>

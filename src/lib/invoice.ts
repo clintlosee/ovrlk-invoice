@@ -4,9 +4,21 @@ import { lineTax } from "./tax";
 export type InvoiceStatus = "draft" | "sent" | "partial" | "paid" | "void";
 export type InvoiceDisplayStatus =
   | InvoiceStatus
-  | "overdue"
   | "viewed"
+  | "due-soon"
+  | "overdue"
   | "overpaid";
+
+export type InvoiceDisplayInput = {
+  status: InvoiceStatus;
+  dueDate: string;
+  totalCents: number;
+  paidCents: number;
+  viewed: boolean;
+};
+
+/** Due soon includes the due date and the 7 days before it. Overdue starts the next calendar day, in the Business time zone. */
+const DUE_SOON_DAYS = 7;
 
 export const INVOICE_LINK_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 export const DEFAULT_ACCENT = "#1c1917";
@@ -167,34 +179,47 @@ export function addCalendarDays(isoDate: string, days: number): string {
     .slice(0, 10);
 }
 
-export function displayStatus(
-  status: InvoiceStatus,
-  dueDate: string,
-  today: string,
-  viewed = false,
-  paidCents = 0,
-  totalCents = 0,
+export function deriveDisplayStatus(
+  invoice: InvoiceDisplayInput,
+  now: Date,
+  businessTimeZone: string,
 ): InvoiceDisplayStatus {
-  if (status === "paid" && paidCents > totalCents) return "overpaid";
-  if (status === "partial") return "partial";
-  if (status === "sent" && dueDate < today) return "overdue";
-  if (status === "sent" && viewed) return "viewed";
-  return status;
+  if (invoice.status === "void") return "void";
+  if (invoice.status === "draft") return "draft";
+  if (creditCents(invoice.totalCents, invoice.paidCents) > 0) return "overpaid";
+  if (invoice.status === "paid") return "paid";
+  if (
+    amountDueCents(invoice.status, invoice.totalCents, invoice.paidCents) > 0
+  ) {
+    const today = todayInTimeZone(businessTimeZone, now);
+    if (invoice.dueDate < today) return "overdue";
+    if (invoice.dueDate <= addCalendarDays(today, DUE_SOON_DAYS)) {
+      return "due-soon";
+    }
+  }
+  if (invoice.status === "partial") return "partial";
+  if (invoice.viewed) return "viewed";
+  return "sent";
 }
 
 export function creditCents(totalCents: number, paidCents: number): number {
   return Math.max(paidCents - totalCents, 0);
 }
 
+const STATUS_LABEL: Record<InvoiceDisplayStatus, string> = {
+  draft: "Draft",
+  sent: "Sent",
+  viewed: "Viewed",
+  "due-soon": "Due soon",
+  overdue: "Overdue",
+  partial: "Partially Paid",
+  paid: "Paid",
+  overpaid: "Overpaid",
+  void: "Void",
+};
+
 export function statusLabel(status: InvoiceDisplayStatus): string {
-  if (status === "draft") return "Draft";
-  if (status === "sent") return "Sent";
-  if (status === "viewed") return "Viewed";
-  if (status === "partial") return "Partially Paid";
-  if (status === "paid") return "Paid";
-  if (status === "overpaid") return "Overpaid";
-  if (status === "void") return "Void";
-  return "Overdue";
+  return STATUS_LABEL[status];
 }
 
 /** Balance after Payments. Void is nothing due. Paid is nothing due. */

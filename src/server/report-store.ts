@@ -11,10 +11,9 @@ import {
 import { isCategoryGroup } from "../lib/expense-categories";
 import {
   amountDueCents,
-  displayStatus,
+  deriveDisplayStatus,
   formatInvoiceNumber,
   isInvoiceStatus,
-  statusLabel,
   todayInTimeZone,
 } from "../lib/invoice";
 import {
@@ -78,7 +77,7 @@ export function reportMethods(db: AppDb, businessId: string) {
       const [open, recentInvoices, recentPayments, paymentRows, expenseRows] =
         await Promise.all([
           openBalances(db, businessId),
-          recentInvoiceRows(db, businessId, today),
+          recentInvoiceRows(db, businessId, now, businessRow.timeZone),
           recentPaymentRows(db, businessId),
           paymentNets(db, businessId, window),
           expenseAmounts(db, businessId, window),
@@ -88,7 +87,7 @@ export function reportMethods(db: AppDb, businessId: string) {
       let overdueCount = 0;
       for (const row of open) {
         outstandingCents = addCents(outstandingCents, row.dueCents);
-        if (row.dueDate < today && row.dueCents > 0) {
+        if (deriveDisplayStatus(row, now, businessRow.timeZone) === "overdue") {
           overdueCents = addCents(overdueCents, row.dueCents);
           overdueCount += 1;
         }
@@ -314,6 +313,7 @@ async function openBalances(db: AppDb, businessId: string) {
       dueDate: invoice.dueDate,
       totalCents: invoice.totalCents,
       status: invoice.status,
+      firstViewedAt: invoice.firstViewedAt,
       paidCents: sql<number>`coalesce(sum(${payment.amountCents} - ${payment.refundedCents}), 0)`,
     })
     .from(invoice)
@@ -335,18 +335,25 @@ async function openBalances(db: AppDb, businessId: string) {
     if (!isInvoiceStatus(row.status)) {
       throw new Error("Invoice status is not valid");
     }
+    const totalCents = mustCents(row.totalCents);
+    const paidCents = mustCents(row.paidCents);
     return {
+      status: row.status,
       dueDate: row.dueDate,
-      dueCents: amountDueCents(
-        row.status,
-        mustCents(row.totalCents),
-        mustCents(row.paidCents),
-      ),
+      totalCents,
+      paidCents,
+      viewed: row.firstViewedAt != null,
+      dueCents: amountDueCents(row.status, totalCents, paidCents),
     };
   });
 }
 
-async function recentInvoiceRows(db: AppDb, businessId: string, today: string) {
+async function recentInvoiceRows(
+  db: AppDb,
+  businessId: string,
+  now: Date,
+  timeZone: string,
+) {
   const rows = await db
     .select({
       id: invoice.id,
@@ -380,19 +387,22 @@ async function recentInvoiceRows(db: AppDb, businessId: string, today: string) {
     }
     const total = mustCents(row.totalCents);
     const paid = mustCents(row.paidCents);
-    const display = displayStatus(
-      row.status,
-      row.dueDate,
-      today,
-      row.firstViewedAt != null,
-      paid,
-      total,
+    const displayStatus = deriveDisplayStatus(
+      {
+        status: row.status,
+        dueDate: row.dueDate,
+        totalCents: total,
+        paidCents: paid,
+        viewed: row.firstViewedAt != null,
+      },
+      now,
+      timeZone,
     );
     return {
       id: row.id,
       numberLabel: formatInvoiceNumber(row.number),
       clientName: row.clientName,
-      statusLabel: statusLabel(display),
+      displayStatus,
       totalCents: total,
       dueDate: row.dueDate,
     };
