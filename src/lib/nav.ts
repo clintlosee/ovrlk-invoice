@@ -33,6 +33,12 @@ export function settingsGroupOpen(pathname: string, choice: boolean | null) {
   return section === "/app/settings" || section === "/app/security";
 }
 
+export function invoiceGroupOpen(pathname: string, choice: boolean | null) {
+  if (choice !== null) return choice;
+  const section = activeSection(pathname);
+  return section === "/app/items" || section === "/app/tax-rates";
+}
+
 export function sidebarIdentity(businessName: string | null) {
   const name = businessName?.trim() ?? "";
   if (!name) return { title: NO_BUSINESS_LABEL, showOwner: false };

@@ -517,7 +517,7 @@ function ActionButton({
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className="group/tip relative inline-flex size-8 items-center justify-center text-muted-foreground first:rounded-l-md last:rounded-r-md hover:bg-primary hover:text-primary-foreground focus-visible:z-20 focus-visible:bg-primary focus-visible:text-primary-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
+      className="group/tip relative inline-flex size-8 items-center justify-center text-muted-foreground first:rounded-l-md last:rounded-r-md hover:bg-primary hover:text-primary-foreground focus-visible:z-20 focus-visible:bg-primary focus-visible:text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
     >
       {children}
       <span

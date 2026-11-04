@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   activeSection,
+  invoiceGroupOpen,
   NO_BUSINESS_LABEL,
   settingsGroupOpen,
   sidebarIdentity,
@@ -42,6 +43,21 @@ describe("settings group", () => {
     expect(settingsGroupOpen("/app", null)).toBe(false);
     expect(settingsGroupOpen("/app/invoices", null)).toBe(false);
     expect(settingsGroupOpen("/app/clients", true)).toBe(true);
+  });
+});
+
+describe("invoice group", () => {
+  it("opens on Items and Tax Rates unless the Owner closed it", () => {
+    expect(invoiceGroupOpen("/app/items", null)).toBe(true);
+    expect(invoiceGroupOpen("/app/items/abc", null)).toBe(true);
+    expect(invoiceGroupOpen("/app/tax-rates/new", null)).toBe(true);
+    expect(invoiceGroupOpen("/app/items", false)).toBe(false);
+  });
+
+  it("stays closed on the Invoice list unless the Owner opened it", () => {
+    expect(invoiceGroupOpen("/app/invoices", null)).toBe(false);
+    expect(invoiceGroupOpen("/app", null)).toBe(false);
+    expect(invoiceGroupOpen("/app/invoices", true)).toBe(true);
   });
 });
 

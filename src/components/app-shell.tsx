@@ -19,7 +19,12 @@ import { type ReactNode, useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
-import { activeSection, settingsGroupOpen, sidebarIdentity } from "@/lib/nav";
+import {
+  activeSection,
+  invoiceGroupOpen,
+  settingsGroupOpen,
+  sidebarIdentity,
+} from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
 function itemClass(active: boolean) {
@@ -46,6 +51,36 @@ function Item({
   );
 }
 
+function NavGroup({
+  id,
+  open,
+  children,
+}: {
+  id: string;
+  open: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      id={id}
+      inert={!open}
+      className={cn(
+        "grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none",
+        open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+      )}
+    >
+      <div
+        className={cn(
+          "overflow-hidden transition-opacity duration-200 ease-out motion-reduce:transition-none",
+          open ? "opacity-100" : "opacity-0",
+        )}
+      >
+        <div className="flex flex-col gap-1 pt-1">{children}</div>
+      </div>
+    </div>
+  );
+}
+
 export function AppShell({
   businessName,
   children,
@@ -59,18 +94,21 @@ export function AppShell({
   const [open, setOpen] = useState(false);
   const [openOn, setOpenOn] = useState(pathname);
   const [settingsChoice, setSettingsChoice] = useState<boolean | null>(null);
-  const [settingsOn, setSettingsOn] = useState(pathname);
+  const [invoicesChoice, setInvoicesChoice] = useState<boolean | null>(null);
+  const [groupsOn, setGroupsOn] = useState(pathname);
   if (open && openOn !== pathname) {
     setOpen(false);
     setOpenOn(pathname);
   }
-  if (settingsOn !== pathname) {
-    setSettingsOn(pathname);
+  if (groupsOn !== pathname) {
+    setGroupsOn(pathname);
     setSettingsChoice(null);
+    setInvoicesChoice(null);
   }
   const identity = sidebarIdentity(businessName);
   const current = activeSection(pathname);
   const settingsOpen = settingsGroupOpen(pathname, settingsChoice);
+  const invoicesOpen = invoiceGroupOpen(pathname, invoicesChoice);
 
   function openMenu() {
     setOpenOn(pathname);
@@ -147,14 +185,64 @@ export function AppShell({
           >
             <Item icon={Users}>Clients</Item>
           </Link>
-          <Link
-            to="/app/invoices"
-            onClick={() => setOpen(false)}
-            className={itemClass(current === "/app/invoices")}
-            aria-current={current === "/app/invoices" ? "page" : undefined}
-          >
-            <Item icon={FileText}>Invoices</Item>
-          </Link>
+          <div>
+            <div
+              className={cn(
+                "flex items-center rounded-md",
+                current === "/app/invoices"
+                  ? "bg-primary font-medium text-primary-foreground"
+                  : "hover:bg-accent",
+              )}
+            >
+              <Link
+                to="/app/invoices"
+                onClick={() => setOpen(false)}
+                className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-sm"
+                aria-current={current === "/app/invoices" ? "page" : undefined}
+              >
+                <Item icon={FileText}>Invoices</Item>
+              </Link>
+              <button
+                type="button"
+                className={cn(
+                  "rounded-md px-3 py-2",
+                  current === "/app/invoices"
+                    ? "hover:bg-primary-foreground/15"
+                    : "hover:bg-foreground/10",
+                )}
+                aria-expanded={invoicesOpen}
+                aria-controls="app-invoice-links"
+                aria-label="Items and Tax Rates"
+                onClick={() => setInvoicesChoice(!invoicesOpen)}
+              >
+                <ChevronRight
+                  aria-hidden
+                  className={cn(
+                    "size-4 shrink-0 transition-transform duration-200 ease-out motion-reduce:transition-none",
+                    invoicesOpen && "rotate-90",
+                  )}
+                />
+              </button>
+            </div>
+            <NavGroup id="app-invoice-links" open={invoicesOpen}>
+              <Link
+                to="/app/items"
+                onClick={() => setOpen(false)}
+                className={cn(itemClass(current === "/app/items"), "pl-9")}
+                aria-current={current === "/app/items" ? "page" : undefined}
+              >
+                <Item icon={Package}>Items</Item>
+              </Link>
+              <Link
+                to="/app/tax-rates"
+                onClick={() => setOpen(false)}
+                className={cn(itemClass(current === "/app/tax-rates"), "pl-9")}
+                aria-current={current === "/app/tax-rates" ? "page" : undefined}
+              >
+                <Item icon={Percent}>Tax Rates</Item>
+              </Link>
+            </NavGroup>
+          </div>
           <Link
             to="/app/expenses"
             search={{ from: "", to: "", category: "" }}
@@ -174,43 +262,25 @@ export function AppShell({
             <Item icon={BarChart3}>Reports</Item>
           </Link>
           <hr className="my-2 border-brass" />
-          <Link
-            to="/app/items"
-            onClick={() => setOpen(false)}
-            className={itemClass(current === "/app/items")}
-            aria-current={current === "/app/items" ? "page" : undefined}
-          >
-            <Item icon={Package}>Items</Item>
-          </Link>
-          <Link
-            to="/app/tax-rates"
-            onClick={() => setOpen(false)}
-            className={itemClass(current === "/app/tax-rates")}
-            aria-current={current === "/app/tax-rates" ? "page" : undefined}
-          >
-            <Item icon={Percent}>Tax Rates</Item>
-          </Link>
-        </nav>
-        <div className="mt-auto space-y-1 border-t border-border p-3">
-          <button
-            type="button"
-            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-accent"
-            aria-expanded={settingsOpen}
-            aria-controls="app-settings"
-            onClick={() => setSettingsChoice(!settingsOpen)}
-          >
-            <Settings aria-hidden className="size-4 shrink-0" />
-            <span className="flex-1 truncate">Settings</span>
-            <ChevronRight
-              aria-hidden
-              className={cn(
-                "size-4 shrink-0 transition-transform",
-                settingsOpen && "rotate-90",
-              )}
-            />
-          </button>
-          {settingsOpen ? (
-            <div id="app-settings" className="flex flex-col gap-1">
+          <div>
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-accent"
+              aria-expanded={settingsOpen}
+              aria-controls="app-settings"
+              onClick={() => setSettingsChoice(!settingsOpen)}
+            >
+              <Settings aria-hidden className="size-4 shrink-0" />
+              <span className="flex-1 truncate">Settings</span>
+              <ChevronRight
+                aria-hidden
+                className={cn(
+                  "size-4 shrink-0 transition-transform duration-200 ease-out motion-reduce:transition-none",
+                  settingsOpen && "rotate-90",
+                )}
+              />
+            </button>
+            <NavGroup id="app-settings" open={settingsOpen}>
               <Link
                 to="/app/settings"
                 search={{ stripe: undefined }}
@@ -228,19 +298,19 @@ export function AppShell({
               >
                 <Item icon={Shield}>Security</Item>
               </Link>
-            </div>
-          ) : null}
-          <div className="space-y-2 pt-2">
-            <ThemeToggle />
-            <button
-              type="button"
-              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-accent"
-              onClick={signOut}
-            >
-              <LogOut aria-hidden className="size-4 shrink-0" />
-              Sign out
-            </button>
+            </NavGroup>
           </div>
+        </nav>
+        <div className="mt-auto space-y-2 border-t border-border p-3">
+          <ThemeToggle />
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-accent"
+            onClick={signOut}
+          >
+            <LogOut aria-hidden className="size-4 shrink-0" />
+            Sign out
+          </button>
         </div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
