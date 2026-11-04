@@ -66,8 +66,12 @@ Derived, never stored: an unpaid, non-void Invoice past its due date.
 ## Expenses and reporting
 
 **Expense**:
-Money the Business spent, with a date, merchant, Category, amount, optional tax paid, optional Client, and optional Receipt.
+Money the Business spent, with a date, merchant, Category, amount, optional tax paid, optional Client, optional Receipt, and an optional Recurring mark.
 _Avoid_: Bill, cost, purchase
+
+**Recurring Expense**:
+An Expense marked so it can be found with the others that repeat. The mark does not post future Expenses.
+_Avoid_: Subscription, bill
 
 **Category**:
 An Expense classification. Defaults follow IRS Schedule C, with a separate Cost of Goods Sold group.

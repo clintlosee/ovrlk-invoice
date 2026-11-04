@@ -467,6 +467,8 @@ export const expense = sqliteTable(
     clientId: text("client_id").references(() => client.id),
     taxPaidCents: integer("tax_paid_cents").notNull().default(0),
     note: text("note"),
+    /** Owner-marked repeat. The mark does not post future Expenses. */
+    recurring: integer("recurring", { mode: "boolean" }).notNull().default(false),
     receiptKey: text("receipt_key"),
     receiptContentType: text("receipt_content_type"),
     /** Set when this row is the Merchant Fee for a card Payment. */

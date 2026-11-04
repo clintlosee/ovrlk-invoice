@@ -265,6 +265,46 @@ describe("expenses", () => {
     expect((await readLogo(alpha.businessId))?.contentType).toBe("image/png");
   });
 
+  it("stores a Recurring mark and can clear it", async () => {
+    const owner = await insertOwner("exp-recur@example.com", "Recur Prints");
+    const scope = forBusiness(getDb(), owner.businessId);
+    const insurance = (await scope.categories.list()).find(
+      (row) => row.systemKey === "insurance",
+    );
+    if (!insurance) throw new Error("insurance");
+    const created = await scope.expenses.create({
+      spentOn: "2026-06-01",
+      merchant: "State Farm",
+      amountCents: cents(2117),
+      categoryId: insurance.id,
+      clientId: null,
+      taxPaidCents: 0,
+      note: "Monthly premium",
+      recurring: true,
+      actorUserId: owner.userId,
+    });
+    expect(created.recurring).toBe(true);
+    const listed = await scope.expenses.list({
+      from: null,
+      to: null,
+      categoryId: null,
+    });
+    expect(listed.find((row) => row.id === created.id)?.recurring).toBe(true);
+    const cleared = await scope.expenses.update(created.id, {
+      spentOn: "2026-06-01",
+      merchant: "State Farm",
+      amountCents: cents(2117),
+      categoryId: insurance.id,
+      clientId: null,
+      taxPaidCents: 0,
+      note: "Monthly premium",
+      recurring: false,
+      actorUserId: owner.userId,
+    });
+    expect(cleared?.recurring).toBe(false);
+    expect(created.updatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
   it("archives a Category that is in use and keeps Merchant fees", async () => {
     const owner = await insertOwner("exp-arch@example.com", "Archive Prints");
     const scope = forBusiness(getDb(), owner.businessId);

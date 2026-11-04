@@ -25,6 +25,8 @@ export type ExpenseInput = {
   clientId: string | null;
   taxPaidCents: number;
   note: string | null;
+  /** Omitted means not recurring. */
+  recurring?: boolean;
   actorUserId: string;
 };
 
@@ -49,6 +51,8 @@ export type ExpenseView = {
   receiptKey: string | null;
   receiptContentType: string | null;
   paymentId: string | null;
+  recurring: boolean;
+  updatedAt: string;
 };
 
 export type CategoryView = {
@@ -230,6 +234,7 @@ export function expenseMethods(db: AppDb, businessId: string) {
       const current = await oneExpense(db, businessId, expenseId);
       if (!current) return null;
       const fields = await normalize(db, businessId, input, current.categoryId);
+      const recurring = current.paymentId ? false : fields.recurring;
       if (current.paymentId) {
         if (
           fields.spentOn !== current.spentOn ||
@@ -244,7 +249,7 @@ export function expenseMethods(db: AppDb, businessId: string) {
       await db.transaction(async (tx) => {
         const updated = await tx
           .update(expense)
-          .set({ ...fields, updatedAt: new Date() })
+          .set({ ...fields, recurring, updatedAt: new Date() })
           .where(
             and(eq(expense.id, expenseId), eq(expense.businessId, businessId)),
           )
@@ -413,6 +418,7 @@ export async function syncMerchantFee(
     clientId: target.clientId,
     taxPaidCents: 0,
     note: `Processing fee for Invoice ${formatInvoiceNumber(target.number)}`,
+    recurring: false,
     receiptKey: null,
     receiptContentType: null,
     paymentId: row.id,
@@ -499,15 +505,16 @@ async function normalize(
     note,
     categoryId: category.id,
     clientId,
+    recurring: input.recurring === true,
   };
 }
 
-function selectExpenses(
+async function selectExpenses(
   db: AppDb,
   businessId: string,
   where: ReturnType<typeof and>,
-) {
-  return db
+): Promise<ExpenseView[]> {
+  const rows = await db
     .select({
       id: expense.id,
       spentOn: expense.spentOn,
@@ -523,6 +530,8 @@ function selectExpenses(
       receiptKey: expense.receiptKey,
       receiptContentType: expense.receiptContentType,
       paymentId: expense.paymentId,
+      recurring: expense.recurring,
+      updatedAt: expense.updatedAt,
     })
     .from(expense)
     .innerJoin(
@@ -538,6 +547,10 @@ function selectExpenses(
     )
     .where(where)
     .orderBy(desc(expense.spentOn), desc(expense.createdAt));
+  return rows.map((row) => ({
+    ...row,
+    updatedAt: row.updatedAt.toISOString(),
+  }));
 }
 
 function toCategory(row: typeof expenseCategory.$inferSelect): CategoryView {

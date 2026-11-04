@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { categoryGroupLabel } from "@/lib/expense-categories";
+import { RECEIPT_ACCEPT } from "@/lib/receipt-upload";
 
 export type ExpenseFormValues = {
   spentOn: string;
@@ -13,6 +14,7 @@ export type ExpenseFormValues = {
   clientId: string;
   taxPaid: string;
   note: string;
+  recurring: boolean;
 };
 
 const selectClass =
@@ -27,6 +29,7 @@ export function ExpenseForm({
   message,
   submitLabel,
   onSubmit,
+  receipt,
 }: {
   initial: ExpenseFormValues;
   categories: {
@@ -41,6 +44,10 @@ export function ExpenseForm({
   message: string | null;
   submitLabel: string;
   onSubmit: (values: ExpenseFormValues) => void;
+  receipt?: {
+    configured: boolean;
+    onFile: (file: File | null) => void;
+  };
 }) {
   const [values, setValues] = useState(initial);
   const choices = categories.filter(
@@ -171,6 +178,44 @@ export function ExpenseForm({
           }
         />
       </div>
+      {lockedFee ? null : (
+        <label className="flex items-center gap-2 text-sm" htmlFor="recurring">
+          <input
+            id="recurring"
+            type="checkbox"
+            className="size-4 accent-primary"
+            checked={values.recurring}
+            onChange={(event) =>
+              setValues({ ...values, recurring: event.target.checked })
+            }
+          />
+          Recurring
+        </label>
+      )}
+      {receipt ? (
+        receipt.configured ? (
+          <div className="space-y-2">
+            <Label htmlFor="receipt">Receipt</Label>
+            <input
+              id="receipt"
+              name="receipt"
+              type="file"
+              accept={RECEIPT_ACCEPT}
+              className="text-sm"
+              onChange={(event) =>
+                receipt.onFile(event.target.files?.[0] ?? null)
+              }
+            />
+            <p className="text-sm text-muted-foreground">
+              Image or PDF, up to 10 MB.
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm">
+            Receipt upload needs Cloudflare R2, which is not configured.
+          </p>
+        )
+      ) : null}
       <Button type="submit" disabled={pending}>
         {submitLabel}
       </Button>

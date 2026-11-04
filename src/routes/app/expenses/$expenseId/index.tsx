@@ -9,6 +9,7 @@ import { ExpenseForm, type ExpenseFormValues } from "@/components/expense-form";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatCents } from "@/lib/money";
+import { RECEIPT_ACCEPT, uploadReceipt } from "@/lib/receipt-upload";
 import {
   deleteExpense,
   getExpenseForm,
@@ -72,6 +73,7 @@ function ExpensePage() {
             taxPaid:
               expense.taxPaidCents > 0 ? formatCents(expense.taxPaidCents) : "",
             note: expense.note ?? "",
+            recurring: expense.recurring,
           }}
           categories={form.categories}
           clients={form.clients}
@@ -183,38 +185,23 @@ function Receipt({
           const input = event.currentTarget.elements.namedItem("receipt");
           if (!(input instanceof HTMLInputElement) || !input.files?.[0]) return;
           const form = event.currentTarget;
-          const body = new FormData();
-          body.set("receipt", input.files[0]);
+          const file = input.files[0];
           setPending(true);
           setMessage(null);
-          void fetch(`/app/expenses/${expenseId}/receipt`, {
-            method: "POST",
-            body,
-          })
-            .then(async (response) => {
-              const result = (await response.json()) as {
-                ok: boolean;
-                message?: string;
-              };
-              setPending(false);
-              setMessage(
-                result.ok ? "Saved." : (result.message ?? "Could not upload."),
-              );
-              if (result.ok) {
-                form.reset();
-                await router.invalidate();
-              }
-            })
-            .catch(() => {
-              setPending(false);
-              setMessage("Could not upload.");
-            });
+          void uploadReceipt(expenseId, file).then(async (result) => {
+            setPending(false);
+            setMessage(result.ok ? "Saved." : result.message);
+            if (result.ok) {
+              form.reset();
+              await router.invalidate();
+            }
+          });
         }}
       >
         <input
           name="receipt"
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
+          accept={RECEIPT_ACCEPT}
           required
           className="text-sm"
         />

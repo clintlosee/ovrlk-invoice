@@ -24,6 +24,7 @@ const expenseFields = z.object({
   clientId: z.string(),
   taxPaid: z.string(),
   note: blank(2000, "Note"),
+  recurring: z.boolean(),
 });
 
 const idField = z.object({ id: z.string().min(1) });
@@ -84,17 +85,23 @@ export const getExpenses = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const current = await scope();
     if (!current) return null;
-    const [rows, categories] = await Promise.all([
+    const [rows, categories, clients] = await Promise.all([
       current.db.expenses.list({
         from: data.from || null,
         to: data.to || null,
         categoryId: data.category || null,
       }),
       current.db.categories.list(),
+      current.db.clients.list(),
     ]);
     return {
       expenses: rows,
       categories,
+      clients: clients.map((row) => ({
+        id: row.id,
+        name: row.name,
+        archived: row.archivedAt != null,
+      })),
       storageConfigured: storageConfigured(),
     };
   });
@@ -146,6 +153,7 @@ export const createExpense = createServerFn({ method: "POST" })
         clientId: parsed.data.clientId || null,
         taxPaidCents: dollars(parsed.data.taxPaid, true),
         note: parsed.data.note,
+        recurring: parsed.data.recurring,
         actorUserId: current.actorUserId,
       });
       return { ok: true as const, id: saved.id };
@@ -178,6 +186,7 @@ export const updateExpense = createServerFn({ method: "POST" })
         clientId: parsed.data.clientId || null,
         taxPaidCents: dollars(parsed.data.taxPaid, true),
         note: parsed.data.note,
+        recurring: parsed.data.recurring,
         actorUserId: current.actorUserId,
       });
       if (!saved)
