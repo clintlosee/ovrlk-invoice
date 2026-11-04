@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Plus, X } from "lucide-react";
 import { type ReactNode, useRef, useState } from "react";
+import { ClientQuickEdit } from "@/components/client-quick-edit";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,17 @@ type Letterhead = {
   address: string | null;
   taxId: string | null;
   logoUrl: string | null;
+};
+
+type ClientChoice = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  taxExempt: boolean;
+  note: string;
+  archived: boolean;
 };
 
 const selectClass =
@@ -48,12 +60,7 @@ export function InvoiceForm({
   letterhead: Letterhead;
   badge?: ReactNode;
   initial: Values;
-  clients: {
-    id: string;
-    name: string;
-    taxExempt: boolean;
-    archived: boolean;
-  }[];
+  clients: ClientChoice[];
   items: {
     id: string;
     name: string;
@@ -72,6 +79,7 @@ export function InvoiceForm({
   const formRef = useRef<HTMLFormElement>(null);
   const [values, setValues] = useState(initial);
   const [itemId, setItemId] = useState("");
+  const [editingClient, setEditingClient] = useState(false);
   const [focusKey, setFocusKey] = useState<string | null>(null);
   const [localMessage, setLocalMessage] = useState<string | null>(null);
   const [seenMessage, setSeenMessage] = useState(message);
@@ -136,6 +144,9 @@ export function InvoiceForm({
       ref={formRef}
       className="flex flex-col gap-3"
       onSubmit={(event) => {
+        // The Client dialog renders through a portal, but React still bubbles
+        // its submit event here. Ignore submits from outside this form.
+        if (!formRef.current?.contains(event.target as Node)) return;
         event.preventDefault();
         if (pending) return;
         setLocalMessage(null);
@@ -192,9 +203,20 @@ export function InvoiceForm({
           <LetterheadBlock letterhead={letterhead} />
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-2">
-              <Label htmlFor="client" className={labelClass}>
-                Bill to
-              </Label>
+              <div className="flex items-baseline justify-between gap-2">
+                <Label htmlFor="client" className={labelClass}>
+                  Bill to
+                </Label>
+                {selected ? (
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-primary hover:underline"
+                    onClick={() => setEditingClient(true)}
+                  >
+                    Edit Client
+                  </button>
+                ) : null}
+              </div>
               <select
                 id="client"
                 required
@@ -271,7 +293,7 @@ export function InvoiceForm({
               <table className="w-full min-w-160 border-collapse text-sm">
                 <thead>
                   <tr className="border-b-2 border-brass text-left">
-                    <th className={cn(labelClass, "px-2 py-1.5 font-medium")}>
+                    <th className={cn(labelClass, "py-1.5 pr-2 font-medium")}>
                       Description
                     </th>
                     <th
@@ -313,7 +335,7 @@ export function InvoiceForm({
                     const money = priced[index];
                     return (
                       <tr key={line.key} className="border-b border-border">
-                        <td className="px-2 py-1.5 align-top">
+                        <td className="py-1.5 pr-2 align-top">
                           <Input
                             aria-label={`Invoice Line ${index + 1} name`}
                             className="h-9 px-2"
@@ -325,9 +347,10 @@ export function InvoiceForm({
                               setLine(line.key, { name: event.target.value })
                             }
                           />
-                          <Input
+                          <Textarea
                             aria-label={`Invoice Line ${index + 1} description`}
-                            className="mt-1 h-8 px-2 text-xs"
+                            rows={2}
+                            className="mt-1 min-h-8 resize-y px-2 py-1 text-xs"
                             value={line.description}
                             placeholder="Description"
                             onChange={(event) =>
@@ -410,9 +433,14 @@ export function InvoiceForm({
                 id="item"
                 className={cn(selectClass, "w-56 max-w-full")}
                 value={itemId}
+                disabled={items.length === 0}
                 onChange={(event) => setItemId(event.target.value)}
               >
-                <option value="">Choose a saved Item</option>
+                <option value="">
+                  {items.length === 0
+                    ? "No saved Items"
+                    : "Choose a saved Item"}
+                </option>
                 {items.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.name}
@@ -458,6 +486,16 @@ export function InvoiceForm({
                 Custom line
               </button>
             </div>
+            {items.length === 0 ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                <Link
+                  to="/app/items/new"
+                  className="font-medium text-primary underline"
+                >
+                  Add a saved Item
+                </Link>{" "}
+              </p>
+            ) : null}
             {taxRates.length === 0 ? (
               <p className="mt-2 text-xs text-muted-foreground">
                 <Link
@@ -520,6 +558,12 @@ export function InvoiceForm({
           </div>
         </div>
       </Card>
+      {editingClient && selected ? (
+        <ClientQuickEdit
+          client={selected}
+          onClose={() => setEditingClient(false)}
+        />
+      ) : null}
     </form>
   );
 }

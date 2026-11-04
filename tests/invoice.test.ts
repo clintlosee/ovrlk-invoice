@@ -331,6 +331,99 @@ describe("invoices", () => {
     expect(exemptInvoice.document.totalCents).toBe(3000);
   });
 
+  it("keeps line breaks in an Invoice Line description", async () => {
+    const db = getDb();
+    const owner = await insertOwner(
+      "multiline-invoice@example.com",
+      "Line Breaks",
+    );
+    const scope = forBusiness(db, owner.businessId);
+    const client = await scope.clients.create({
+      name: "Ada Prints",
+      email: "ada@example.com",
+      phone: null,
+      address: null,
+      taxExempt: false,
+      note: null,
+    });
+    const created = await scope.invoices.create(
+      input(client.id, [], {
+        lines: [
+          {
+            name: "Print",
+            description: "First line\nSecond line\n\nFourth line",
+            quantity: 1,
+            unitPriceCents: cents(100),
+            taxRateIds: [],
+          },
+        ],
+      }),
+    );
+    expect(created.editorLines?.[0]?.description).toBe(
+      "First line\nSecond line\n\nFourth line",
+    );
+    expect(created.document.lines[0]?.description).toBe(
+      "First line\nSecond line\n\nFourth line",
+    );
+
+    const edited = await scope.invoices.update(
+      created.id,
+      input(client.id, [], {
+        lines: [
+          {
+            name: "Print",
+            description: "  Top\nBottom  ",
+            quantity: 1,
+            unitPriceCents: cents(100),
+            taxRateIds: [],
+          },
+        ],
+      }),
+    );
+    expect(edited?.editorLines?.[0]?.description).toBe("Top\nBottom");
+
+    const sent = await scope.invoices.send(created.id, owner.userId);
+    expect(sent?.invoice.document.lines[0]?.description).toBe("Top\nBottom");
+  });
+
+  it("shows an edited Client on a draft Invoice", async () => {
+    const db = getDb();
+    const owner = await insertOwner(
+      "edited-client-invoice@example.com",
+      "Edit Client",
+    );
+    const scope = forBusiness(db, owner.businessId);
+    const client = await scope.clients.create({
+      name: "Old Name",
+      email: "old@example.com",
+      phone: null,
+      address: null,
+      taxExempt: false,
+      note: null,
+    });
+    const rate = await scope.taxRates.create({ name: "Utah", rateBps: 725 });
+    const draft = await scope.invoices.create(input(client.id, [rate.id]));
+    expect(draft.document.client.name).toBe("Old Name");
+    const taxedCents = draft.document.taxCents;
+    expect(taxedCents).toBeGreaterThan(0);
+
+    await scope.clients.update(client.id, {
+      name: "New Name",
+      email: "new@example.com",
+      phone: "801-555-0111",
+      address: "2 Main\nSuite 3",
+      taxExempt: true,
+      note: null,
+    });
+
+    const reread = await scope.invoices.get(draft.id);
+    expect(reread?.document.client.name).toBe("New Name");
+    expect(reread?.document.client.email).toBe("new@example.com");
+    expect(reread?.document.client.address).toBe("2 Main\nSuite 3");
+    expect(reread?.document.taxCents).toBe(0);
+    expect(reread?.document.totalCents).toBe(draft.document.subtotalCents);
+  });
+
   it("keeps another Business from reading or writing invoices and links", async () => {
     const db = getDb();
     const alpha = await insertOwner("inv-iso-a@example.com", "Alpha");
