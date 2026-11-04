@@ -1,19 +1,43 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Search } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { cardList } from "@/components/ui/card";
+import { cardSurface } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  type ClientListRow,
+  clientMark,
+  filterClientRows,
+} from "@/lib/client-list";
+import { formatUsd } from "@/lib/money";
 import { cn } from "@/lib/utils";
-import { getClients } from "@/server/catalog";
+import { getClientList } from "@/server/catalog";
 
 export const Route = createFileRoute("/app/clients/")({
-  loader: () => getClients(),
+  loader: () => getClientList(),
   component: ClientsPage,
 });
 
 function ClientsPage() {
-  const clients = Route.useLoaderData();
-  if (!clients) return <p>Sign in again.</p>;
-  const active = clients.filter((client) => !client.archived);
-  const archived = clients.filter((client) => client.archived);
+  const data = Route.useLoaderData();
+  const [query, setQuery] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
+  if (!data) return <p>Sign in again.</p>;
+
+  const shown = filterClientRows(data.rows, query);
+  const archived = filterClientRows(data.archived, query);
+  const shownOutstanding = shown.reduce(
+    (total, row) => total + row.outstandingCents,
+    0,
+  );
 
   return (
     <>
@@ -23,50 +47,157 @@ function ClientsPage() {
           <Link to="/app/clients/new">New Client</Link>
         </Button>
       </div>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Who this Business bills. Clients never sign in.
-      </p>
-      <ClientList clients={active} empty="No Clients yet." />
-      {archived.length > 0 ? (
-        <section className="mt-10">
-          <h2 className="font-medium text-brass-ink">Archived</h2>
-          <ClientList clients={archived} empty="" />
+      <div className="mt-6 grid grid-cols-3 gap-4 text-center">
+        <Total label="overdue" cents={data.overdueCents} />
+        <Total label="total outstanding" cents={data.outstandingCents} />
+        <Total label="in draft" cents={data.draftCents} />
+      </div>
+      {data.recent.length > 0 ? (
+        <section className="mt-8">
+          <h2 className="font-serif text-xl">Recently Active</h2>
+          <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {data.recent.map((client) => (
+              <li key={client.id} className="min-w-0">
+                <Link
+                  to="/app/clients/$clientId"
+                  params={{ clientId: client.id }}
+                  className={cn(cardSurface, "block h-full min-w-0 p-4")}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-brass text-xs font-medium text-brass-ink">
+                      {clientMark(client.name)}
+                    </span>
+                    <span className="truncate font-medium">{client.name}</span>
+                  </div>
+                  <p className="mt-3 w-full truncate text-sm text-muted-foreground">
+                    {client.email}
+                  </p>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </section>
       ) : null}
+      <section className="mt-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-serif text-xl">All Clients</h2>
+          {data.rows.length > 0 || data.archived.length > 0 ? (
+            <div className="relative">
+              <Search
+                aria-hidden
+                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+              />
+              <Input
+                aria-label="Search Clients"
+                className="w-56 pl-9"
+                placeholder="Search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            </div>
+          ) : null}
+        </div>
+        {data.rows.length === 0 && data.archived.length === 0 ? (
+          <p className="mt-4 text-sm">No Clients yet.</p>
+        ) : data.rows.length === 0 ? null : shown.length === 0 ? (
+          <p className="mt-4 text-sm">No Clients match.</p>
+        ) : (
+          <ClientTable rows={shown} totalCents={shownOutstanding} />
+        )}
+        {data.archived.length > 0 ? (
+          <div className="mt-4">
+            <button
+              type="button"
+              className="text-sm text-primary underline"
+              onClick={() => setShowArchived((open) => !open)}
+            >
+              {showArchived ? "Hide archived Clients" : "View archived Clients"}
+            </button>
+            {showArchived ? (
+              archived.length === 0 ? (
+                <p className="mt-4 text-sm">No Clients match.</p>
+              ) : (
+                <div className="mt-3">
+                  <ClientTable rows={archived} />
+                </div>
+              )
+            ) : null}
+          </div>
+        ) : null}
+      </section>
     </>
   );
 }
 
-function ClientList({
-  clients,
-  empty,
+function ClientTable({
+  rows,
+  totalCents,
 }: {
-  clients: {
-    id: string;
-    name: string;
-    email: string;
-    taxExempt: boolean;
-  }[];
-  empty: string;
+  rows: ClientListRow[];
+  totalCents?: number;
 }) {
-  if (clients.length === 0) return <p className="mt-6 text-sm">{empty}</p>;
   return (
-    <ul className={cn("mt-6", cardList)}>
-      {clients.map((client) => (
-        <li key={client.id} className="px-4 py-3">
-          <Link
-            to="/app/clients/$clientId"
-            params={{ clientId: client.id }}
-            className="font-medium text-primary underline"
-          >
-            {client.name}
-          </Link>
-          <p className="text-sm text-muted-foreground">
-            {client.email}
-            {client.taxExempt ? " · Tax-exempt" : ""}
-          </p>
-        </li>
-      ))}
-    </ul>
+    <div className="mt-3">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Client</TableHead>
+            <TableHead>Tax-exempt</TableHead>
+            <TableHead>Note</TableHead>
+            <TableHead className="text-right">Total Outstanding</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((client) => (
+            <TableRow key={client.id} className="relative hover:bg-accent">
+              <TableCell>
+                <Link
+                  to="/app/clients/$clientId"
+                  params={{ clientId: client.id }}
+                  className="font-medium after:absolute after:inset-0"
+                >
+                  {client.name}
+                </Link>
+                <p className="truncate text-muted-foreground">{client.email}</p>
+              </TableCell>
+              <TableCell>{client.taxExempt ? "Tax-exempt" : "—"}</TableCell>
+              <TableCell className="max-w-64 truncate" title={client.note}>
+                {client.note || "—"}
+              </TableCell>
+              <TableCell className="text-right">
+                {formatUsd(client.outstandingCents)}
+              </TableCell>
+            </TableRow>
+          ))}
+          {totalCents === undefined ? null : (
+            <TableRow className="bg-muted/60 hover:bg-muted/60">
+              <TableCell colSpan={3} className="text-right font-medium">
+                Total Outstanding
+              </TableCell>
+              <TableCell className="text-right font-medium">
+                {formatUsd(totalCents)}
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
   );
+}
+
+function Total({ label, cents }: { label: string; cents: number }) {
+  return (
+    <div>
+      <p className="font-serif text-2xl text-foreground sm:text-3xl">
+        {headlineUsd(cents)}
+      </p>
+      <p className="text-sm font-medium text-brass-ink">{label}</p>
+    </div>
+  );
+}
+
+function headlineUsd(value: number) {
+  if (value % 100 !== 0) return formatUsd(value);
+  const sign = value < 0 ? "-" : "";
+  return `${sign}$${Math.abs(value) / 100}`;
 }

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getDb } from "../db/client";
+import { clientListView, toClientListInvoice } from "../lib/client-list";
 import { formatCents, parseDollarsToCents } from "../lib/money";
 import { formatBps, parsePercentToBps } from "../lib/tax";
 import { signedInBusiness } from "./membership";
@@ -199,6 +200,29 @@ export const getClients = createServerFn({ method: "GET" }).handler(
     const db = await scope();
     if (!db) return null;
     return (await db.clients.list()).map(presentClient);
+  },
+);
+
+export const getClientList = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const db = await scope();
+    if (!db) return null;
+    const [clientRows, invoiceRows] = await Promise.all([
+      db.clients.list(),
+      db.invoices.list(),
+    ]);
+    return clientListView(
+      clientRows.map(presentClient),
+      invoiceRows.map((invoice) =>
+        toClientListInvoice({
+          clientId: invoice.clientId,
+          displayStatus: invoice.displayStatus,
+          amountDueCents: invoice.amountDueCents,
+          totalCents: invoice.document.totalCents,
+          sentAt: invoice.sentAt,
+        }),
+      ),
+    );
   },
 );
 
