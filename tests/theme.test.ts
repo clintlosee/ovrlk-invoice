@@ -2,8 +2,13 @@ import { describe, expect, it } from "vitest";
 import { isTheme, resolveTheme } from "../src/lib/theme";
 
 describe("theme", () => {
-  it("keeps sign-in, sign-up, and Invoice Links on the device theme", () => {
-    expect(resolveTheme("dark", "/sign-in")).toBe("system");
+  it("uses the saved theme on sign-in", () => {
+    expect(resolveTheme("dark", "/sign-in")).toBe("dark");
+    expect(resolveTheme("light", "/sign-in")).toBe("light");
+    expect(resolveTheme("system", "/sign-in")).toBe("system");
+  });
+
+  it("keeps sign-up and Invoice Links on the device theme", () => {
     expect(resolveTheme("light", "/sign-up")).toBe("system");
     expect(resolveTheme("dark", "/p/token")).toBe("system");
     expect(resolveTheme("light", "/app")).toBe("light");

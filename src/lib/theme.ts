@@ -6,13 +6,9 @@ export function isTheme(value: unknown): value is Theme {
   return value === "light" || value === "dark" || value === "system";
 }
 
-/** Sign-in and public Invoice Links follow the device, not the saved choice. */
+/** Sign-up and public Invoice Links follow the device, not the saved choice. */
 export function resolveTheme(saved: Theme, pathname: string): Theme {
-  if (
-    pathname === "/sign-in" ||
-    pathname === "/sign-up" ||
-    pathname.startsWith("/p/")
-  ) {
+  if (pathname === "/sign-up" || pathname.startsWith("/p/")) {
     return "system";
   }
   return saved;
