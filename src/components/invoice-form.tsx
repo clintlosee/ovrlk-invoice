@@ -51,8 +51,10 @@ export function InvoiceForm({
   pending,
   message,
   messageTone = "error",
+  paidCents = 0,
   onSave,
   onSend,
+  onCancel,
   onDelete,
 }: {
   title: string;
@@ -72,8 +74,10 @@ export function InvoiceForm({
   pending: boolean;
   message: string | null;
   messageTone?: "ok" | "error";
+  paidCents?: number;
   onSave: (values: InvoiceFormValues) => void;
-  onSend: (values: InvoiceFormValues) => void;
+  onSend?: (values: InvoiceFormValues) => void;
+  onCancel?: () => void;
   onDelete?: () => void;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
@@ -130,6 +134,7 @@ export function InvoiceForm({
   }
 
   function send() {
+    if (!onSend) return;
     setLocalMessage(null);
     if (!formRef.current?.reportValidity()) return;
     if (values.lines.length === 0) {
@@ -159,12 +164,22 @@ export function InvoiceForm({
           {badge}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Link
-            to="/app/invoices"
-            className="px-2 text-sm font-medium text-primary hover:underline"
-          >
-            Cancel
-          </Link>
+          {onCancel ? (
+            <button
+              type="button"
+              className="px-2 text-sm font-medium text-primary hover:underline"
+              onClick={onCancel}
+            >
+              Cancel
+            </button>
+          ) : (
+            <Link
+              to="/app/invoices"
+              className="px-2 text-sm font-medium text-primary hover:underline"
+            >
+              Cancel
+            </Link>
+          )}
           {onDelete ? (
             <Button
               type="button"
@@ -183,9 +198,11 @@ export function InvoiceForm({
           >
             Save
           </Button>
-          <Button type="button" disabled={pending} onClick={send}>
-            Send
-          </Button>
+          {onSend ? (
+            <Button type="button" disabled={pending} onClick={send}>
+              Send
+            </Button>
+          ) : null}
         </div>
       </div>
       {shown ? (
@@ -517,13 +534,19 @@ export function InvoiceForm({
               <dt>Tax</dt>
               <dd>{formatUsd(taxCents)}</dd>
             </div>
-            <div className="flex justify-between gap-6 rounded-md bg-solar px-2 py-1 font-medium text-solar-foreground">
+            <div className="flex justify-between gap-6 border-b-2 border-solar pb-1 font-medium">
               <dt>Total</dt>
               <dd>{formatUsd(totalCents)}</dd>
             </div>
-            <div className="flex justify-between gap-6 px-2 font-medium">
+            {paidCents > 0 ? (
+              <div className="flex justify-between gap-6">
+                <dt>Paid</dt>
+                <dd>{formatUsd(paidCents)}</dd>
+              </div>
+            ) : null}
+            <div className="flex justify-between gap-6 font-medium">
               <dt className="text-solar-ink">Amount due</dt>
-              <dd>{formatUsd(totalCents)}</dd>
+              <dd>{formatUsd(Math.max(totalCents - paidCents, 0))}</dd>
             </div>
           </dl>
           <div className="grid gap-3 sm:grid-cols-2">

@@ -11,7 +11,7 @@ import { formatBps } from "./tax";
 /**
  * pdfkit 0.20 draws one page with the standard PDF fonts. No browser and no
  * native addon, so it runs on Node 24 on Render. The bytes come only from the
- * snapshot taken at Send.
+ * snapshot saved with the Invoice.
  */
 export function invoicePdfResponse(
   bytes: Uint8Array,

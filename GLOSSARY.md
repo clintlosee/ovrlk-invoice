@@ -34,7 +34,7 @@ _Avoid_: Tax, VAT
 A Client whose new Invoice Lines default to no Tax Rate.
 
 **Invoice**:
-A numbered request for payment from a Business to one Client. Locked once Sent; corrected only by Voiding and reissuing.
+A numbered request for payment from a Business to one Client. Editable until Paid. A Paid or Void Invoice stays on record and cannot be changed.
 _Avoid_: Bill, statement
 
 **Invoice Line**:

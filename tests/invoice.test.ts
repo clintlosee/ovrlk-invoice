@@ -153,9 +153,6 @@ describe("invoices", () => {
     expect(reread?.status).toBe("sent");
     expect(reread?.document).toEqual(frozen);
     expect(await scope.invoices.remove(second.id)).toBe(0);
-    await expect(
-      scope.invoices.update(second.id, input(client.id, [])),
-    ).rejects.toThrow(/sent/);
     await expect(scope.invoices.send(second.id, owner.userId)).rejects.toThrow(
       /draft/,
     );
@@ -329,6 +326,106 @@ describe("invoices", () => {
     );
     expect(exemptInvoice.document.taxCents).toBe(0);
     expect(exemptInvoice.document.totalCents).toBe(3000);
+  });
+
+  it("lets a sent Invoice be edited until it is paid", async () => {
+    const db = getDb();
+    const owner = await insertOwner("edit-sent@example.com", "Edit Sent");
+    const scope = forBusiness(db, owner.businessId);
+    const client = await scope.clients.create({
+      name: "Ada Prints",
+      email: "ada@example.com",
+      phone: null,
+      address: null,
+      taxExempt: true,
+      note: null,
+    });
+    const created = await scope.invoices.create(input(client.id, []));
+    const sent = await scope.invoices.send(created.id, owner.userId);
+    if (!sent) throw new Error("send failed");
+    expect(sent.invoice.editorLines?.[0]?.unitPriceCents).toBe(2500);
+    expect(sent.invoice.locked).toBe(true);
+
+    const revised = await scope.invoices.update(
+      created.id,
+      input(client.id, [], {
+        notes: "Updated after send",
+        lines: [
+          {
+            name: "8x10 print",
+            description: "Matte",
+            quantity: 1,
+            unitPriceCents: cents(4000),
+            taxRateIds: [],
+          },
+        ],
+      }),
+    );
+    expect(revised?.status).toBe("sent");
+    expect(revised?.document.totalCents).toBe(4000);
+    expect(revised?.document.notes).toBe("Updated after send");
+    expect(revised?.editorLines?.[0]?.unitPriceCents).toBe(4000);
+    const viewed = await openPublicInvoice(
+      request("203.0.113.80"),
+      sent.token,
+      { recordView: false },
+    );
+    expect(viewed.status).toBe(200);
+    if (viewed.status !== 200) return;
+    expect(viewed.document.totalCents).toBe(4000);
+
+    await scope.payments.recordManual({
+      invoiceId: created.id,
+      amountCents: cents(1000),
+      paidOn: "2026-04-02",
+      method: "check",
+      note: null,
+      actorUserId: owner.userId,
+    });
+    const partial = await scope.invoices.update(
+      created.id,
+      input(client.id, [], {
+        lines: [
+          {
+            name: "8x10 print",
+            description: "Matte",
+            quantity: 1,
+            unitPriceCents: cents(3000),
+            taxRateIds: [],
+          },
+        ],
+      }),
+    );
+    expect(partial?.status).toBe("partial");
+    expect(partial?.document.totalCents).toBe(3000);
+    expect(partial?.amountDueCents).toBe(2000);
+
+    const settled = await scope.invoices.update(
+      created.id,
+      input(client.id, [], {
+        lines: [
+          {
+            name: "8x10 print",
+            description: "Matte",
+            quantity: 1,
+            unitPriceCents: cents(1000),
+            taxRateIds: [],
+          },
+        ],
+      }),
+    );
+    expect(settled?.status).toBe("paid");
+    await expect(
+      scope.invoices.update(created.id, input(client.id, [])),
+    ).rejects.toThrow(/paid/);
+
+    const voided = await scope.invoices.create(input(client.id, []));
+    const sentVoid = await scope.invoices.send(voided.id, owner.userId);
+    if (!sentVoid) throw new Error("send failed");
+    await scope.invoices.voidInvoice(voided.id, "Wrong client", owner.userId);
+    await expect(
+      scope.invoices.update(voided.id, input(client.id, [])),
+    ).rejects.toThrow(/paid|void/);
   });
 
   it("keeps line breaks in an Invoice Line description", async () => {

@@ -66,6 +66,7 @@ function InvoicePage() {
   const [pending, setPending] = useState(false);
   const [link, setLink] = useState<string | null>(null);
   const [reason, setReason] = useState("");
+  const [editing, setEditing] = useState(false);
 
   function report(text: string | null) {
     setTone(noticeTone(text) ? "ok" : "error");
@@ -73,6 +74,9 @@ function InvoicePage() {
   }
 
   if (!invoice) return <p>That Invoice does not exist.</p>;
+
+  const canEdit = invoice.status === "sent" || invoice.status === "partial";
+  const showForm = invoice.status === "draft" || (canEdit && editing);
 
   async function onSave(values: InvoiceFormValues) {
     if (!invoice) return;
@@ -84,7 +88,10 @@ function InvoicePage() {
       });
       setPending(false);
       report(result.ok ? "Saved." : result.message);
-      if (result.ok) await router.invalidate();
+      if (result.ok) {
+        if (invoice.status !== "draft") setEditing(false);
+        await router.invalidate();
+      }
     } catch {
       report("Could not save. Try again.");
       setPending(false);
@@ -126,169 +133,7 @@ function InvoicePage() {
 
   return (
     <div className="mx-auto max-w-4xl">
-      {invoice.locked ? (
-        <>
-          <Link to="/app/invoices" className="text-sm text-primary underline">
-            Invoices
-          </Link>
-          <h1 className="mt-3 border-b-2 border-solar pb-3 font-serif text-2xl">
-            Invoice {invoice.numberLabel}
-          </h1>
-          <div className="mt-6 space-y-4">
-            <InvoiceDocument
-              document={invoice.document}
-              displayStatus={invoice.displayStatus}
-              voidReason={invoice.voidReason}
-              amountDueCents={invoice.amountDueCents}
-              paidCents={invoice.paidCents}
-              logoUrl={invoice.hasLogo ? "/app/logo" : null}
-            />
-            <Payments
-              invoiceId={invoice.id}
-              payments={invoice.payments}
-              canRecord={
-                invoice.status === "sent" ||
-                invoice.status === "partial" ||
-                invoice.status === "paid"
-              }
-            />
-            {invoice.firstViewedAt ? (
-              <p className="text-sm text-muted-foreground">
-                First viewed {invoice.firstViewedAt.slice(0, 10)}
-              </p>
-            ) : null}
-            <p>
-              <a
-                className="text-sm text-primary underline"
-                href={`/app/invoices/${invoice.id}/pdf`}
-              >
-                Download PDF
-              </a>
-            </p>
-            {link ? (
-              <label className="block space-y-2 text-sm" htmlFor="invoice-link">
-                Invoice Link. It is shown once. Save it, or generate another.
-                <Input id="invoice-link" readOnly value={link} />
-              </label>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                The Invoice Link is not stored. Generate a new one if you need
-                it again.
-              </p>
-            )}
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={pending}
-                onClick={() => {
-                  setPending(true);
-                  void regenerateInvoiceLink({ data: { id: invoice.id } }).then(
-                    async (result) => {
-                      setPending(false);
-                      if (!result.ok) {
-                        report(result.message);
-                        return;
-                      }
-                      setLink(result.url);
-                      report(
-                        "New link ready. The previous link no longer works.",
-                      );
-                    },
-                  );
-                }}
-              >
-                New link
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={pending}
-                onClick={() => {
-                  setPending(true);
-                  void revokeInvoiceLinks({ data: { id: invoice.id } }).then(
-                    (result) => {
-                      setPending(false);
-                      setLink(null);
-                      report(result.ok ? "Link revoked." : result.message);
-                    },
-                  );
-                }}
-              >
-                Revoke link
-              </Button>
-              {invoice.status === "sent" || invoice.status === "partial" ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={pending}
-                  onClick={() => {
-                    setPending(true);
-                    void remindInvoice({ data: { id: invoice.id } }).then(
-                      (result) => {
-                        setPending(false);
-                        if (!result.ok) {
-                          report(result.message);
-                          return;
-                        }
-                        setLink(result.url);
-                        report("Reminder sent.");
-                      },
-                    );
-                  }}
-                >
-                  Send reminder
-                </Button>
-              ) : null}
-            </div>
-            {invoice.status === "sent" ? (
-              <form
-                className="flex flex-wrap items-end gap-2"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  setPending(true);
-                  void voidInvoice({
-                    data: { id: invoice.id, reason },
-                  }).then(async (result) => {
-                    setPending(false);
-                    if (!result.ok) {
-                      report(result.message);
-                      return;
-                    }
-                    report("Voided.");
-                    await router.invalidate();
-                  });
-                }}
-              >
-                <div className="min-w-48 flex-1 space-y-2">
-                  <label className="text-sm font-medium" htmlFor="void-reason">
-                    Void reason
-                  </label>
-                  <Input
-                    id="void-reason"
-                    required
-                    value={reason}
-                    onChange={(event) => setReason(event.target.value)}
-                  />
-                </div>
-                <Button type="submit" variant="outline" disabled={pending}>
-                  Void
-                </Button>
-              </form>
-            ) : null}
-            {message ? (
-              <p
-                className={cn(
-                  "text-sm",
-                  tone === "ok" ? "text-primary" : "text-destructive",
-                )}
-              >
-                {message}
-              </p>
-            ) : null}
-          </div>
-        </>
-      ) : (
+      {showForm ? (
         <InvoiceForm
           title={`Invoice ${invoice.numberLabel}`}
           numberLabel={invoice.numberLabel}
@@ -317,11 +162,196 @@ function InvoicePage() {
           pending={pending}
           message={message}
           messageTone={tone}
+          paidCents={invoice.paidCents}
           onSave={(values) => void onSave(values)}
-          onSend={(values) => void onSend(values)}
-          onDelete={() => void onDelete()}
+          onSend={
+            invoice.status === "draft"
+              ? (values) => void onSend(values)
+              : undefined
+          }
+          onCancel={canEdit ? () => setEditing(false) : undefined}
+          onDelete={
+            invoice.status === "draft" ? () => void onDelete() : undefined
+          }
         />
+      ) : (
+        <>
+          <Link to="/app/invoices" className="text-sm text-primary underline">
+            Invoices
+          </Link>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-b-2 border-solar pb-3">
+            <h1 className="font-serif text-2xl">
+              Invoice {invoice.numberLabel}
+            </h1>
+            {canEdit ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditing(true)}
+              >
+                Edit
+              </Button>
+            ) : null}
+          </div>
+          <div className="mt-6">
+            <InvoiceDocument
+              document={invoice.document}
+              displayStatus={invoice.displayStatus}
+              voidReason={invoice.voidReason}
+              amountDueCents={invoice.amountDueCents}
+              paidCents={invoice.paidCents}
+              logoUrl={invoice.hasLogo ? "/app/logo" : null}
+            />
+          </div>
+        </>
       )}
+      {invoice.locked ? (
+        <div className="mt-6 space-y-4">
+          <Payments
+            invoiceId={invoice.id}
+            payments={invoice.payments}
+            canRecord={
+              invoice.status === "sent" ||
+              invoice.status === "partial" ||
+              invoice.status === "paid"
+            }
+          />
+          {invoice.firstViewedAt ? (
+            <p className="text-sm text-muted-foreground">
+              First viewed {invoice.firstViewedAt.slice(0, 10)}
+            </p>
+          ) : null}
+          <p>
+            <a
+              className="text-sm text-primary underline"
+              href={`/app/invoices/${invoice.id}/pdf`}
+            >
+              Download PDF
+            </a>
+          </p>
+          {link ? (
+            <label className="block space-y-2 text-sm" htmlFor="invoice-link">
+              Invoice Link. It is shown once. Save it, or generate another.
+              <Input id="invoice-link" readOnly value={link} />
+            </label>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              The Invoice Link is not stored. Generate a new one if you need it
+              again.
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={pending}
+              onClick={() => {
+                setPending(true);
+                void regenerateInvoiceLink({ data: { id: invoice.id } }).then(
+                  async (result) => {
+                    setPending(false);
+                    if (!result.ok) {
+                      report(result.message);
+                      return;
+                    }
+                    setLink(result.url);
+                    report(
+                      "New link ready. The previous link no longer works.",
+                    );
+                  },
+                );
+              }}
+            >
+              New link
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={pending}
+              onClick={() => {
+                setPending(true);
+                void revokeInvoiceLinks({ data: { id: invoice.id } }).then(
+                  (result) => {
+                    setPending(false);
+                    setLink(null);
+                    report(result.ok ? "Link revoked." : result.message);
+                  },
+                );
+              }}
+            >
+              Revoke link
+            </Button>
+            {invoice.status === "sent" || invoice.status === "partial" ? (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={pending}
+                onClick={() => {
+                  setPending(true);
+                  void remindInvoice({ data: { id: invoice.id } }).then(
+                    (result) => {
+                      setPending(false);
+                      if (!result.ok) {
+                        report(result.message);
+                        return;
+                      }
+                      setLink(result.url);
+                      report("Reminder sent.");
+                    },
+                  );
+                }}
+              >
+                Send reminder
+              </Button>
+            ) : null}
+          </div>
+          {invoice.status === "sent" ? (
+            <form
+              className="flex flex-wrap items-end gap-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                setPending(true);
+                void voidInvoice({
+                  data: { id: invoice.id, reason },
+                }).then(async (result) => {
+                  setPending(false);
+                  if (!result.ok) {
+                    report(result.message);
+                    return;
+                  }
+                  report("Voided.");
+                  await router.invalidate();
+                });
+              }}
+            >
+              <div className="min-w-48 flex-1 space-y-2">
+                <label className="text-sm font-medium" htmlFor="void-reason">
+                  Void reason
+                </label>
+                <Input
+                  id="void-reason"
+                  required
+                  value={reason}
+                  onChange={(event) => setReason(event.target.value)}
+                />
+              </div>
+              <Button type="submit" variant="outline" disabled={pending}>
+                Void
+              </Button>
+            </form>
+          ) : null}
+          {showForm || !message ? null : (
+            <p
+              className={cn(
+                "text-sm",
+                tone === "ok" ? "text-primary" : "text-destructive",
+              )}
+            >
+              {message}
+            </p>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -361,6 +391,8 @@ function Payments({
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [formKey, setFormKey] = useState(0);
 
   async function after(result: { ok: boolean; message?: string }) {
     setPending(false);
@@ -406,19 +438,65 @@ function Payments({
         </ul>
       )}
       {canRecord ? (
-        <>
-          <p className="text-sm text-muted-foreground">
-            An amount above the balance is recorded in full. The Invoice then
-            shows Overpaid and the credit.
-          </p>
-          <PaymentForm
-            key={payments.length}
-            invoiceId={invoiceId}
-            pending={pending}
-            onPending={setPending}
-            onDone={(result) => void after(result)}
-          />
-        </>
+        <div>
+          <div
+            inert={adding}
+            className={cn(
+              "grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none",
+              adding ? "grid-rows-[0fr]" : "grid-rows-[1fr]",
+            )}
+          >
+            <div
+              className={cn(
+                "overflow-hidden transition-opacity duration-200 ease-out motion-reduce:transition-none",
+                adding ? "opacity-0" : "opacity-100",
+              )}
+            >
+              <button
+                type="button"
+                className="text-sm font-medium text-primary hover:underline"
+                onClick={() => {
+                  setFormKey((key) => key + 1);
+                  setAdding(true);
+                }}
+              >
+                Add Payment
+              </button>
+            </div>
+          </div>
+          <div
+            inert={!adding}
+            className={cn(
+              "grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none",
+              adding ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+            )}
+          >
+            <div
+              className={cn(
+                "overflow-hidden transition-opacity duration-200 ease-out motion-reduce:transition-none",
+                adding ? "opacity-100" : "opacity-0",
+              )}
+            >
+              <div className="space-y-3 pt-3">
+                <p className="text-sm text-muted-foreground">
+                  An amount above the balance is recorded in full. The Invoice
+                  then shows Overpaid and the credit.
+                </p>
+                <PaymentForm
+                  key={formKey}
+                  invoiceId={invoiceId}
+                  pending={pending}
+                  onPending={setPending}
+                  onCancel={() => setAdding(false)}
+                  onDone={(result) => {
+                    if (result.ok) setAdding(false);
+                    void after(result);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       ) : null}
       {message ? <p className="text-sm text-destructive">{message}</p> : null}
     </section>
@@ -430,12 +508,14 @@ function PaymentForm({
   payment,
   pending,
   onPending,
+  onCancel,
   onDone,
 }: {
   invoiceId: string;
   payment?: PaymentRow;
   pending: boolean;
   onPending: (value: boolean) => void;
+  onCancel?: () => void;
   onDone: (result: { ok: boolean; message?: string }) => void;
 }) {
   const [amount, setAmount] = useState(
@@ -521,6 +601,16 @@ function PaymentForm({
         <Button type="submit" disabled={pending}>
           {payment ? "Save Payment" : "Record Payment"}
         </Button>
+        {onCancel ? (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pending}
+            onClick={onCancel}
+          >
+            Cancel
+          </Button>
+        ) : null}
         {payment ? (
           <Button
             type="button"

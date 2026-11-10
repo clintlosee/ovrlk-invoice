@@ -304,9 +304,16 @@ export function invoiceMethods(db: AppDb, businessId: string) {
     const drafts = rows.filter(
       (row) => row.status === "draft" || !row.snapshot,
     );
-    const draftIds = drafts.map((row) => row.id);
+    const withLines = rows.filter(
+      (row) =>
+        row.status === "draft" ||
+        row.status === "sent" ||
+        row.status === "partial" ||
+        !row.snapshot,
+    );
+    const lineInvoiceIds = withLines.map((row) => row.id);
     const lineRows =
-      draftIds.length === 0
+      lineInvoiceIds.length === 0
         ? []
         : await db
             .select()
@@ -314,7 +321,7 @@ export function invoiceMethods(db: AppDb, businessId: string) {
             .where(
               and(
                 eq(invoiceLine.businessId, businessId),
-                inArray(invoiceLine.invoiceId, draftIds),
+                inArray(invoiceLine.invoiceId, lineInvoiceIds),
               ),
             )
             .orderBy(asc(invoiceLine.position));
@@ -375,6 +382,16 @@ export function invoiceMethods(db: AppDb, businessId: string) {
       list.push(tax);
       taxesByLine.set(tax.lineId, list);
     }
+    const editorLinesFor = (invoiceId: string): InvoiceEditorLine[] =>
+      (linesByInvoice.get(invoiceId) ?? []).map((line) => ({
+        name: line.name,
+        description: line.description,
+        quantity: line.quantity,
+        unitPriceCents: line.unitPriceCents,
+        taxRateIds: (taxesByLine.get(line.id) ?? []).flatMap((tax) =>
+          tax.taxRateId ? [tax.taxRateId] : [],
+        ),
+      }));
 
     return rows.map((row) => {
       if (!isInvoiceStatus(row.status)) {
@@ -412,21 +429,16 @@ export function invoiceMethods(db: AppDb, businessId: string) {
           updatedAt: row.updatedAt,
           payments,
           document,
-          editorLines: null,
+          editorLines:
+            row.status === "sent" || row.status === "partial"
+              ? editorLinesFor(row.id)
+              : null,
         };
       }
       const selected = clientById.get(row.clientId);
       if (!selected) throw new Error("That Client does not exist");
       const storedLines = linesByInvoice.get(row.id) ?? [];
-      const editorLines: InvoiceEditorLine[] = storedLines.map((line) => ({
-        name: line.name,
-        description: line.description,
-        quantity: line.quantity,
-        unitPriceCents: line.unitPriceCents,
-        taxRateIds: (taxesByLine.get(line.id) ?? []).flatMap((tax) =>
-          tax.taxRateId ? [tax.taxRateId] : [],
-        ),
-      }));
+      const editorLines = editorLinesFor(row.id);
       const priced = priceInvoice({
         taxExempt: selected.taxExempt,
         lines: storedLines.map((line) => ({
@@ -614,24 +626,77 @@ export function invoiceMethods(db: AppDb, businessId: string) {
           id: invoice.id,
           status: invoice.status,
           clientId: invoice.clientId,
+          number: invoice.number,
         })
         .from(invoice)
         .where(and(eq(invoice.id, id), eq(invoice.businessId, businessId)))
         .limit(1);
       const row = existing[0];
       if (!row) return null;
-      if (row.status !== "draft") {
-        throw new Error("A sent Invoice cannot be changed");
+      if (
+        row.status !== "draft" &&
+        row.status !== "sent" &&
+        row.status !== "partial"
+      ) {
+        throw new Error("A paid or void Invoice cannot be changed");
       }
       const prepared = await prepare(input, {
         allowArchivedId: row.clientId,
       });
       const now = new Date();
+      const issued = row.status !== "draft";
       await db.transaction(async (tx) => {
+        const applied = issued
+          ? Number(
+              (
+                await tx
+                  .select({
+                    total: sql<number>`coalesce(sum(${payment.amountCents} - ${payment.refundedCents}), 0)`,
+                  })
+                  .from(payment)
+                  .where(
+                    and(
+                      eq(payment.invoiceId, id),
+                      eq(payment.businessId, businessId),
+                    ),
+                  )
+              )[0]?.total ?? 0,
+            )
+          : 0;
+        const status = !issued
+          ? "draft"
+          : applied <= 0
+            ? "sent"
+            : applied < prepared.priced.totalCents
+              ? "partial"
+              : "paid";
+        const snapshot = issued
+          ? JSON.stringify({
+              number: row.number,
+              ...prepared.documentBase,
+              lines: prepared.priced.lines.map((line) => ({
+                name: line.name,
+                description: line.description,
+                quantity: line.quantity,
+                unitPriceCents: line.unitPriceCents,
+                amountCents: line.amountCents,
+                taxCents: line.taxCents,
+                taxes: line.taxes.map((tax) => ({
+                  name: tax.name,
+                  rateBps: tax.rateBps,
+                  taxCents: tax.taxCents,
+                })),
+              })),
+              subtotalCents: prepared.priced.subtotalCents,
+              taxCents: prepared.priced.taxCents,
+              totalCents: prepared.priced.totalCents,
+            } satisfies InvoiceSnapshot)
+          : null;
         const updated = await tx
           .update(invoice)
           .set({
             clientId: prepared.selected.id,
+            status,
             issueDate: prepared.documentBase.issueDate,
             dueDate: prepared.documentBase.dueDate,
             reference: prepared.documentBase.reference,
@@ -640,17 +705,19 @@ export function invoiceMethods(db: AppDb, businessId: string) {
             subtotalCents: prepared.priced.subtotalCents,
             taxCents: prepared.priced.taxCents,
             totalCents: prepared.priced.totalCents,
+            ...(issued ? { snapshot } : {}),
             updatedAt: now,
           })
           .where(
             and(
               eq(invoice.id, id),
               eq(invoice.businessId, businessId),
-              eq(invoice.status, "draft"),
+              eq(invoice.status, row.status),
             ),
           )
           .returning({ id: invoice.id });
-        if (!updated[0]) throw new Error("A sent Invoice cannot be changed");
+        if (!updated[0])
+          throw new Error("A paid or void Invoice cannot be changed");
         await tx
           .delete(invoiceLine)
           .where(

@@ -212,8 +212,9 @@ export const invoiceCounter = sqliteTable("invoice_counter", {
 });
 
 /**
- * Draft rows are editable. Sent, Partially Paid, Paid, and Void rows are not.
- * Overdue is derived from due_date. snapshot is written on Send and then left alone (ADR 0005).
+ * Draft, Sent, and Partially Paid rows can be edited. Paid and Void rows cannot.
+ * Overdue is derived from due_date. snapshot is written on Send and rewritten
+ * when a Sent or Partially Paid Invoice is saved (ADR 0005).
  */
 export const invoice = sqliteTable(
   "invoice",

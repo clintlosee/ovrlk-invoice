@@ -11,7 +11,7 @@ export const landingCopy = {
   features: [
     {
       title: "Invoices",
-      body: "A numbered invoice. Locked once you send it. Corrected by voiding and sending another.",
+      body: "A numbered invoice. You can edit it until it is paid.",
       place: "wide",
     },
     {
