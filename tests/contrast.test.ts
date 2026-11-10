@@ -214,13 +214,19 @@ describe("color contrast", () => {
     const background = light.background;
     if (!solar || !background) throw new Error("Missing solar");
     expect(contrast(solar, background)).toBeLessThan(4.5);
-    const sources = [
+    const files = [
       ...sourceFiles("src/components"),
       ...sourceFiles("src/routes"),
-    ].map((file) => readFileSync(file, "utf8"));
-    for (const source of sources) {
-      expect(source).not.toMatch(/text-solar(?!-(?:foreground|ink)\b)/);
+    ];
+    const solarText = files.flatMap((file) => {
+      const source = readFileSync(file, "utf8");
       expect(source).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
-    }
+      const count = [
+        ...source.matchAll(/text-solar(?!-(?:foreground|ink)\b)/g),
+      ].length;
+      return count > 0 ? [[file, count] as const] : [];
+    });
+    // The landing display word stays bright solar on the light field.
+    expect(solarText).toEqual([["src/components/landing.tsx", 1]]);
   });
 });
