@@ -58,39 +58,42 @@
   Light values live on :root and .light. Dark values live on .dark.
   System (or a missing cookie) does not run a script: the media query below
   copies the dark values onto html.system. Keep that block identical to .dark.
-  Brass is a fill. Text on it uses --brass-foreground.
+  Porcelain (#f2efe9) is the light field, about 60%. Midnight navy (#14213d)
+  is the light type and the primary fill, about 30%. Solar orange is the accent
+  fill, about 10%, and lives on --brass. Text on it uses --brass-foreground.
   Labels and card titles use --brass-ink, which stays readable on the card.
+  Dark mode is a neutral grey. Orange is the only color it shares with light.
 */
 
 /* token-block: light */
 :root,
 .light {
   color-scheme: light;
-  --background: #f8f7f2;
-  --foreground: #17211d;
+  --background: #f2efe9;
+  --foreground: #14213d;
   --card: #ffffff;
-  --card-foreground: #17211d;
+  --card-foreground: #14213d;
   --card-shadow:
-    0 1px 2px rgb(23 33 29 / 0.04), 0 10px 24px -14px rgb(23 33 29 / 0.18);
+    0 1px 2px rgb(20 33 61 / 0.04), 0 10px 24px -14px rgb(20 33 61 / 0.18);
   --popover: #ffffff;
-  --popover-foreground: #17211d;
-  --primary: #1f5f4a;
-  --primary-foreground: #ffffff;
-  --primary-hover: #174a3a;
-  --secondary: #efede4;
-  --secondary-foreground: #17211d;
-  --muted: #efede4;
-  --muted-foreground: #5f6b64;
-  --accent: #efede4;
-  --accent-foreground: #17211d;
+  --popover-foreground: #14213d;
+  --primary: #14213d;
+  --primary-foreground: #f2efe9;
+  --primary-hover: #0d1830;
+  --secondary: #e6e1d6;
+  --secondary-foreground: #14213d;
+  --muted: #e6e1d6;
+  --muted-foreground: #4e5870;
+  --accent: #e6e1d6;
+  --accent-foreground: #14213d;
   --destructive: #c8382e;
   --destructive-foreground: #ffffff;
-  --border: #e3e1d8;
-  --input: #868f86;
-  --ring: #1f5f4a;
-  --brass: #c9973a;
-  --brass-foreground: #17211d;
-  --brass-ink: #8f6218;
+  --border: #ddd8cc;
+  --input: #5c6578;
+  --ring: #14213d;
+  --brass: #ff6b1a;
+  --brass-foreground: #14213d;
+  --brass-ink: #a63b00;
   --card-line: color-mix(in srgb, var(--brass) 55%, var(--border));
   --status-paid: #16a34a;
   --status-paid-foreground: #166534;
@@ -99,7 +102,7 @@
   --status-sent-foreground: #246591;
   --status-sent-bg: color-mix(in srgb, var(--status-sent) 10%, transparent);
   --status-viewed: #5b57c9;
-  --status-viewed-foreground: #5b57c9;
+  --status-viewed-foreground: #5753c7;
   --status-viewed-bg: color-mix(in srgb, var(--status-viewed) 10%, transparent);
   --status-due-soon: #d97706;
   --status-due-soon-foreground: #9a4a08;
@@ -116,7 +119,7 @@
     transparent
   );
   --status-draft: #8a8f87;
-  --status-draft-foreground: #5f6b64;
+  --status-draft-foreground: #5b6760;
   --status-draft-bg: color-mix(in srgb, var(--status-draft) 10%, transparent);
   --status-partial: #0f766e;
   --status-partial-foreground: #0d6b63;
@@ -133,37 +136,37 @@
 /* token-block: dark */
 .dark {
   color-scheme: dark;
-  --background: #0f1512;
-  --foreground: #edeae0;
-  --card: #161e1a;
-  --card-foreground: #edeae0;
+  --background: #1f1f1f;
+  --foreground: #f3f3f2;
+  --card: #292929;
+  --card-foreground: #f3f3f2;
   --card-shadow:
     0 1px 2px rgb(0 0 0 / 0.35), 0 12px 28px -14px rgb(0 0 0 / 0.55);
-  --popover: #1d2722;
-  --popover-foreground: #edeae0;
-  --primary: #2f7d61;
-  --primary-foreground: #ffffff;
-  --primary-hover: #2a6e55;
-  --secondary: #1d2722;
-  --secondary-foreground: #edeae0;
-  --muted: #1d2722;
-  --muted-foreground: #9aa69f;
-  --accent: #1d2722;
-  --accent-foreground: #edeae0;
+  --popover: #2e2e2e;
+  --popover-foreground: #f3f3f2;
+  --primary: #f3f3f2;
+  --primary-foreground: #1f1f1f;
+  --primary-hover: #e3e3e1;
+  --secondary: #2e2e2e;
+  --secondary-foreground: #f3f3f2;
+  --muted: #2e2e2e;
+  --muted-foreground: #b5b5b3;
+  --accent: #2e2e2e;
+  --accent-foreground: #f3f3f2;
   --destructive: #f26b61;
-  --destructive-foreground: #0f1512;
-  --border: #2a3630;
-  --input: #5c6e64;
-  --ring: #6fcba8;
-  --brass: #d9a94a;
-  --brass-foreground: #17211d;
-  --brass-ink: #d9a94a;
+  --destructive-foreground: #1f1f1f;
+  --border: #3c3c3c;
+  --input: #8c8c8a;
+  --ring: #f3f3f2;
+  --brass: #ff6b1a;
+  --brass-foreground: #1f1f1f;
+  --brass-ink: #ff6b1a;
   --card-line: color-mix(in srgb, var(--brass) 48%, var(--border));
   --status-paid: #4ade80;
   --status-paid-foreground: #4ade80;
   --status-paid-bg: color-mix(in srgb, var(--status-paid) 16%, transparent);
-  --status-sent: #5ba8dc;
-  --status-sent-foreground: #5ba8dc;
+  --status-sent: #6eb6e4;
+  --status-sent-foreground: #6eb6e4;
   --status-sent-bg: color-mix(in srgb, var(--status-sent) 16%, transparent);
   --status-viewed: #a3a0f0;
   --status-viewed-foreground: #a3a0f0;
@@ -175,15 +178,15 @@
     var(--status-due-soon) 16%,
     transparent
   );
-  --status-overdue: #f26b61;
-  --status-overdue-foreground: #f26b61;
+  --status-overdue: #f7a39c;
+  --status-overdue-foreground: #f7a39c;
   --status-overdue-bg: color-mix(
     in srgb,
     var(--status-overdue) 16%,
     transparent
   );
-  --status-draft: #a3a9a1;
-  --status-draft-foreground: #a3a9a1;
+  --status-draft: #b0b5ad;
+  --status-draft-foreground: #b0b5ad;
   --status-draft-bg: color-mix(in srgb, var(--status-draft) 16%, transparent);
   --status-partial: #4fc3b5;
   --status-partial-foreground: #4fc3b5;
@@ -192,8 +195,8 @@
     var(--status-partial) 16%,
     transparent
   );
-  --status-void: #a8a29e;
-  --status-void-foreground: #a8a29e;
+  --status-void: #b3ada8;
+  --status-void-foreground: #b3ada8;
   --status-void-bg: color-mix(in srgb, var(--status-void) 16%, transparent);
 }
 
@@ -201,37 +204,37 @@
 @media (prefers-color-scheme: dark) {
   html.system {
     color-scheme: dark;
-    --background: #0f1512;
-    --foreground: #edeae0;
-    --card: #161e1a;
-    --card-foreground: #edeae0;
+    --background: #1f1f1f;
+    --foreground: #f3f3f2;
+    --card: #292929;
+    --card-foreground: #f3f3f2;
     --card-shadow:
       0 1px 2px rgb(0 0 0 / 0.35), 0 12px 28px -14px rgb(0 0 0 / 0.55);
-    --popover: #1d2722;
-    --popover-foreground: #edeae0;
-    --primary: #2f7d61;
-    --primary-foreground: #ffffff;
-    --primary-hover: #2a6e55;
-    --secondary: #1d2722;
-    --secondary-foreground: #edeae0;
-    --muted: #1d2722;
-    --muted-foreground: #9aa69f;
-    --accent: #1d2722;
-    --accent-foreground: #edeae0;
+    --popover: #2e2e2e;
+    --popover-foreground: #f3f3f2;
+    --primary: #f3f3f2;
+    --primary-foreground: #1f1f1f;
+    --primary-hover: #e3e3e1;
+    --secondary: #2e2e2e;
+    --secondary-foreground: #f3f3f2;
+    --muted: #2e2e2e;
+    --muted-foreground: #b5b5b3;
+    --accent: #2e2e2e;
+    --accent-foreground: #f3f3f2;
     --destructive: #f26b61;
-    --destructive-foreground: #0f1512;
-    --border: #2a3630;
-    --input: #5c6e64;
-    --ring: #6fcba8;
-    --brass: #d9a94a;
-    --brass-foreground: #17211d;
-    --brass-ink: #d9a94a;
+    --destructive-foreground: #1f1f1f;
+    --border: #3c3c3c;
+    --input: #8c8c8a;
+    --ring: #f3f3f2;
+    --brass: #ff6b1a;
+    --brass-foreground: #1f1f1f;
+    --brass-ink: #ff6b1a;
     --card-line: color-mix(in srgb, var(--brass) 48%, var(--border));
     --status-paid: #4ade80;
     --status-paid-foreground: #4ade80;
     --status-paid-bg: color-mix(in srgb, var(--status-paid) 16%, transparent);
-    --status-sent: #5ba8dc;
-    --status-sent-foreground: #5ba8dc;
+    --status-sent: #6eb6e4;
+    --status-sent-foreground: #6eb6e4;
     --status-sent-bg: color-mix(in srgb, var(--status-sent) 16%, transparent);
     --status-viewed: #a3a0f0;
     --status-viewed-foreground: #a3a0f0;
@@ -247,15 +250,15 @@
       var(--status-due-soon) 16%,
       transparent
     );
-    --status-overdue: #f26b61;
-    --status-overdue-foreground: #f26b61;
+    --status-overdue: #f7a39c;
+    --status-overdue-foreground: #f7a39c;
     --status-overdue-bg: color-mix(
       in srgb,
       var(--status-overdue) 16%,
       transparent
     );
-    --status-draft: #a3a9a1;
-    --status-draft-foreground: #a3a9a1;
+    --status-draft: #b0b5ad;
+    --status-draft-foreground: #b0b5ad;
     --status-draft-bg: color-mix(in srgb, var(--status-draft) 16%, transparent);
     --status-partial: #4fc3b5;
     --status-partial-foreground: #4fc3b5;
@@ -264,8 +267,8 @@
       var(--status-partial) 16%,
       transparent
     );
-    --status-void: #a8a29e;
-    --status-void-foreground: #a8a29e;
+    --status-void: #b3ada8;
+    --status-void-foreground: #b3ada8;
     --status-void-bg: color-mix(in srgb, var(--status-void) 16%, transparent);
   }
 }
