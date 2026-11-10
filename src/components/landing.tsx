@@ -144,7 +144,7 @@ export function Landing({ signedIn }: { signedIn: boolean }) {
             <h2 className="font-serif text-6xl tracking-tight sm:text-7xl">
               {landingCopy.wayLead}
               <br />
-              <span className="text-primary">{landingCopy.wayAccent}</span>
+              <span className="text-brass-ink">{landingCopy.wayAccent}</span>
             </h2>
           </div>
           <div className="relative min-h-80 lg:min-h-full">
