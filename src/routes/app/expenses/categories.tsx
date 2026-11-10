@@ -42,7 +42,7 @@ function CategoriesPage() {
       >
         Expenses
       </Link>
-      <h1 className="mt-3 border-b-2 border-brass pb-3 font-serif text-3xl">
+      <h1 className="mt-3 border-b-2 border-solar pb-3 font-serif text-3xl">
         Categories
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
@@ -61,7 +61,7 @@ function CategoriesPage() {
           );
         }}
       >
-        <label className="text-sm text-brass-ink" htmlFor="category-name">
+        <label className="text-sm text-solar-ink" htmlFor="category-name">
           Name
           <Input
             id="category-name"
@@ -70,7 +70,7 @@ function CategoriesPage() {
             onChange={(event) => setName(event.target.value)}
           />
         </label>
-        <label className="text-sm text-brass-ink" htmlFor="category-group">
+        <label className="text-sm text-solar-ink" htmlFor="category-group">
           Group
           <select
             id="category-group"
@@ -105,7 +105,7 @@ function CategoriesPage() {
       />
       {archived.length > 0 ? (
         <section className="mt-10">
-          <h2 className="font-medium text-brass-ink">Archived</h2>
+          <h2 className="font-medium text-solar-ink">Archived</h2>
           <ul className="mt-3 space-y-2">
             {archived.map((category) => (
               <li key={category.id} className="flex items-center gap-3 text-sm">
@@ -141,7 +141,7 @@ function CategoryList({
 }) {
   return (
     <section className="mt-8">
-      <h2 className="font-medium text-brass-ink">{title}</h2>
+      <h2 className="font-medium text-solar-ink">{title}</h2>
       <ul className="mt-3 space-y-3">
         {categories.map((category) => (
           <CategoryRow key={category.id} category={category} onDone={onDone} />

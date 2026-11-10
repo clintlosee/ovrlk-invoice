@@ -25,7 +25,7 @@ export function Shell({
         MEASURE[size],
       )}
     >
-      <header className="mb-10 flex items-center justify-between gap-4 border-b-2 border-brass pb-4">
+      <header className="mb-10 flex items-center justify-between gap-4 border-b-2 border-solar pb-4">
         <Link to="/" className="font-serif text-lg tracking-tight">
           ovrlk-invoice
         </Link>

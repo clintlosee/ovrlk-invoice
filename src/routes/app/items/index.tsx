@@ -15,7 +15,7 @@ function ItemsPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between gap-4 border-b-2 border-brass pb-3">
+      <div className="flex items-center justify-between gap-4 border-b-2 border-solar pb-3">
         <h1 className="font-serif text-3xl">Items</h1>
         <Button asChild>
           <Link to="/app/items/new">New Item</Link>

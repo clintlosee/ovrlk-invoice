@@ -81,7 +81,7 @@ function InvoicesPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between gap-4 border-b-2 border-brass pb-3">
+      <div className="flex items-center justify-between gap-4 border-b-2 border-solar pb-3">
         <h1 className="font-serif text-3xl">Invoices</h1>
         <Button asChild>
           <Link to="/app/invoices/new">New Invoice</Link>
@@ -231,7 +231,7 @@ function Total({ label, cents }: { label: string; cents: number }) {
       <p className="font-serif text-2xl text-foreground sm:text-3xl">
         {headlineUsd(cents)}
       </p>
-      <p className="text-sm font-medium text-brass-ink">{label}</p>
+      <p className="text-sm font-medium text-solar-ink">{label}</p>
     </div>
   );
 }

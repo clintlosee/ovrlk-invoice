@@ -15,7 +15,7 @@ function TaxRatesPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between gap-4 border-b-2 border-brass pb-3">
+      <div className="flex items-center justify-between gap-4 border-b-2 border-solar pb-3">
         <h1 className="font-serif text-3xl">Tax Rates</h1>
         <Button asChild>
           <Link to="/app/tax-rates/new">New Tax Rate</Link>

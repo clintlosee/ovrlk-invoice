@@ -57,7 +57,7 @@ function NewExpensePage() {
       >
         Expenses
       </Link>
-      <h1 className="mt-3 border-b-2 border-brass pb-3 font-serif text-3xl">
+      <h1 className="mt-3 border-b-2 border-solar pb-3 font-serif text-3xl">
         New Expense
       </h1>
       {savedId ? (

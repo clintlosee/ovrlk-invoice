@@ -123,9 +123,9 @@ function textPairs(mode: string, tokens: Record<string, string>): Pair[] {
     "destructive-foreground",
     "destructive",
   );
-  add("brass-foreground/brass", "brass-foreground", "brass");
+  add("solar-foreground/solar", "solar-foreground", "solar");
   for (const surface of TEXT_SURFACES)
-    add(`brass-ink/${surface}`, "brass-ink", surface);
+    add(`solar-ink/${surface}`, "solar-ink", surface);
   return pairs;
 }
 
@@ -209,17 +209,17 @@ describe("color contrast", () => {
     expect(failed).toEqual([...BORDER_EXCEPTIONS].sort());
   });
 
-  it("keeps brass a fill and components free of hardcoded colors", () => {
-    const brass = light.brass;
+  it("keeps solar a fill and components free of hardcoded colors", () => {
+    const solar = light.solar;
     const background = light.background;
-    if (!brass || !background) throw new Error("Missing brass");
-    expect(contrast(brass, background)).toBeLessThan(4.5);
+    if (!solar || !background) throw new Error("Missing solar");
+    expect(contrast(solar, background)).toBeLessThan(4.5);
     const sources = [
       ...sourceFiles("src/components"),
       ...sourceFiles("src/routes"),
     ].map((file) => readFileSync(file, "utf8"));
     for (const source of sources) {
-      expect(source).not.toMatch(/text-brass(?!-(?:foreground|ink)\b)/);
+      expect(source).not.toMatch(/text-solar(?!-(?:foreground|ink)\b)/);
       expect(source).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
     }
   });

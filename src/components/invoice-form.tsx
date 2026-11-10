@@ -37,7 +37,7 @@ type ClientChoice = {
 const selectClass =
   "h-9 rounded-md border border-input bg-card px-2 text-sm text-foreground outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
-const labelClass = "text-xs font-medium text-brass-ink";
+const labelClass = "text-xs font-medium text-solar-ink";
 
 export function InvoiceForm({
   title,
@@ -179,7 +179,7 @@ export function InvoiceForm({
           <Button
             type="submit"
             disabled={pending}
-            className="bg-brass text-brass-foreground hover:bg-brass hover:brightness-95"
+            className="bg-solar text-solar-foreground hover:bg-solar hover:brightness-95"
           >
             Save
           </Button>
@@ -292,7 +292,7 @@ export function InvoiceForm({
             <div className="overflow-x-auto">
               <table className="w-full min-w-160 border-collapse text-sm">
                 <thead>
-                  <tr className="border-b-2 border-brass text-left">
+                  <tr className="border-b-2 border-solar text-left">
                     <th className={cn(labelClass, "py-1.5 pr-2 font-medium")}>
                       Description
                     </th>
@@ -517,12 +517,12 @@ export function InvoiceForm({
               <dt>Tax</dt>
               <dd>{formatUsd(taxCents)}</dd>
             </div>
-            <div className="flex justify-between gap-6 rounded-md bg-brass px-2 py-1 font-medium text-brass-foreground">
+            <div className="flex justify-between gap-6 rounded-md bg-solar px-2 py-1 font-medium text-solar-foreground">
               <dt>Total</dt>
               <dd>{formatUsd(totalCents)}</dd>
             </div>
             <div className="flex justify-between gap-6 px-2 font-medium">
-              <dt className="text-brass-ink">Amount due</dt>
+              <dt className="text-solar-ink">Amount due</dt>
               <dd>{formatUsd(totalCents)}</dd>
             </div>
           </dl>

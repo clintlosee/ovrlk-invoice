@@ -106,7 +106,7 @@ export function ExpenseQuickEdit({
       <div
         className={cn(
           "min-w-0 flex-1 space-y-3 border-l-4 p-4",
-          cogs ? "border-brass" : "border-border",
+          cogs ? "border-solar" : "border-border",
         )}
       >
         {locked ? (

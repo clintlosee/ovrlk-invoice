@@ -24,7 +24,7 @@ function AppHome() {
   const overdueLabel = home.overdueCount === 1 ? "Invoice" : "Invoices";
   return (
     <>
-      <h1 className="border-b-2 border-brass pb-3 font-serif text-3xl">
+      <h1 className="border-b-2 border-solar pb-3 font-serif text-3xl">
         Dashboard
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
@@ -35,7 +35,7 @@ function AppHome() {
       </p>
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         <Card className="p-4">
-          <h2 className="text-xs font-medium text-brass-ink">Outstanding</h2>
+          <h2 className="text-xs font-medium text-solar-ink">Outstanding</h2>
           <p className="mt-2 font-serif text-2xl">
             {formatUsd(home.outstandingCents)}
           </p>
@@ -45,7 +45,7 @@ function AppHome() {
           </p>
         </Card>
         <Card className="p-4">
-          <h2 className="text-xs font-medium text-brass-ink">Overdue</h2>
+          <h2 className="text-xs font-medium text-solar-ink">Overdue</h2>
           <p className="mt-2 font-serif text-2xl">
             {formatUsd(home.overdueCents)}
           </p>
@@ -55,7 +55,7 @@ function AppHome() {
           </p>
         </Card>
         <Card className="p-4">
-          <h2 className="text-xs font-medium text-brass-ink">Paid</h2>
+          <h2 className="text-xs font-medium text-solar-ink">Paid</h2>
           <p className="mt-2 font-serif text-2xl">
             {formatUsd(home.paidThisMonthCents)}
           </p>
@@ -84,7 +84,7 @@ function AppHome() {
           </p>
         </Card>
         <Card className="p-4">
-          <h2 className="text-xs font-medium text-brass-ink">Expenses</h2>
+          <h2 className="text-xs font-medium text-solar-ink">Expenses</h2>
           <p className="mt-2 font-serif text-2xl">
             {formatUsd(home.expensesThisMonthCents)}
           </p>
@@ -112,7 +112,7 @@ function AppHome() {
           </p>
         </Card>
         <Card className="p-4 sm:col-span-2">
-          <h2 className="text-xs font-medium text-brass-ink">
+          <h2 className="text-xs font-medium text-solar-ink">
             Net profit, year to date
           </h2>
           <p className="mt-2 font-serif text-2xl">

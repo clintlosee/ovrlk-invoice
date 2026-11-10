@@ -150,7 +150,7 @@ export function AppShell({
             : "hidden",
         )}
       >
-        <div className="h-1.5 bg-brass" aria-hidden />
+        <div className="h-1.5 bg-solar" aria-hidden />
         <div className="px-6 py-5">
           <p
             className={cn(
@@ -261,7 +261,7 @@ export function AppShell({
           >
             <Item icon={BarChart3}>Reports</Item>
           </Link>
-          <hr className="my-2 border-brass" />
+          <hr className="my-2 border-solar" />
           <div>
             <button
               type="button"
@@ -314,7 +314,7 @@ export function AppShell({
         </div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="sticky top-0 z-20 flex items-center border-b-2 border-brass bg-background px-4 py-3 md:hidden">
+        <div className="sticky top-0 z-20 flex items-center border-b-2 border-solar bg-background px-4 py-3 md:hidden">
           <Button
             variant="ghost"
             size="sm"

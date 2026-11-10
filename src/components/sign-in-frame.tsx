@@ -19,7 +19,7 @@ export function SignInFrame({ children }: { children: ReactNode }) {
             cy="540"
             rx="310"
             ry="190"
-            className="fill-brass/40"
+            className="fill-solar/40"
           />
           <path
             d="M460 -80 L920 240 L920 -80 Z"
@@ -28,7 +28,7 @@ export function SignInFrame({ children }: { children: ReactNode }) {
         </svg>
         <div className="relative z-10 px-8 pt-16 pb-10 lg:px-12 lg:pb-12">
           <Link to="/" className="mb-4 flex items-center gap-2.5 font-semibold">
-            <span className="grid size-8 place-items-center rounded-lg bg-brass font-serif text-xl leading-none text-brass-foreground">
+            <span className="grid size-8 place-items-center rounded-lg bg-solar font-serif text-xl leading-none text-solar-foreground">
               I
             </span>
             {landingCopy.product}

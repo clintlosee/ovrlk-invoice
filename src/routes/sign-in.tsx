@@ -120,7 +120,7 @@ function SignInPage() {
   return (
     <SignInFrame>
       <h1 className="font-serif text-4xl tracking-tight">Sign in</h1>
-      <div className="mt-3 mb-6 h-0.5 w-16 bg-brass" />
+      <div className="mt-3 mb-6 h-0.5 w-16 bg-solar" />
       {showCode ? (
         <form className="space-y-4" onSubmit={onCode}>
           <div className="space-y-2">

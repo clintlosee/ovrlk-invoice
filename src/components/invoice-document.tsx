@@ -129,7 +129,7 @@ export function InvoiceDocument({
             <dt>Tax</dt>
             <dd>{formatUsd(document.taxCents)}</dd>
           </div>
-          <div className="flex justify-between gap-6 rounded-md bg-brass px-2 py-1 font-medium text-brass-foreground">
+          <div className="flex justify-between gap-6 rounded-md bg-solar px-2 py-1 font-medium text-solar-foreground">
             <dt>Total</dt>
             <dd>{formatUsd(document.totalCents)}</dd>
           </div>

@@ -17,7 +17,7 @@ export const landingCopy = {
     {
       title: "Invoice link",
       body: "A long private link. The Client can view it and pay. They never sign in.",
-      place: "forest",
+      place: "navy",
     },
     {
       title: "Expenses",
@@ -32,7 +32,7 @@ export const landingCopy = {
     {
       title: "Items",
       body: "Saved prices and tax rates, ready for the next invoice.",
-      place: "brass",
+      place: "solar",
     },
   ],
   wayLead: "Your books",
@@ -58,10 +58,10 @@ export const landingCopy = {
 
 const featureSpan = {
   wide: "bg-secondary md:col-span-7",
-  forest: "bg-primary text-primary-foreground md:col-span-5",
+  navy: "bg-primary text-primary-foreground md:col-span-5",
   quarter: "bg-card md:col-span-4",
   chart: "bg-card md:col-span-5",
-  brass: "bg-brass/15 md:col-span-3",
+  solar: "bg-solar/15 md:col-span-3",
 } as const;
 
 export function Landing({ signedIn }: { signedIn: boolean }) {
@@ -88,7 +88,7 @@ export function Landing({ signedIn }: { signedIn: boolean }) {
       <section className="bg-[radial-gradient(880px_460px_at_88%_8%,var(--secondary),transparent_68%)]">
         <div className="mx-auto grid w-[min(72rem,calc(100%-3rem))] items-center gap-10 py-16 lg:grid-cols-2 lg:py-24">
           <div>
-            <p className="text-xs font-semibold tracking-[0.16em] text-brass-ink uppercase">
+            <p className="text-xs font-semibold tracking-[0.16em] text-solar-ink uppercase">
               {landingCopy.eyebrow}
             </p>
             <h1 className="mt-3 font-serif text-5xl tracking-tight sm:text-6xl">
@@ -109,7 +109,7 @@ export function Landing({ signedIn }: { signedIn: boolean }) {
         <h2 className="text-center font-serif text-4xl tracking-tight sm:text-5xl">
           {landingCopy.featuresTitle}
         </h2>
-        <div className="mx-auto mt-4 h-0.5 w-16 bg-brass" />
+        <div className="mx-auto mt-4 h-0.5 w-16 bg-solar" />
         <p className="mx-auto mt-4 max-w-md text-center text-muted-foreground">
           {landingCopy.featuresSub}
         </p>
@@ -127,7 +127,7 @@ export function Landing({ signedIn }: { signedIn: boolean }) {
               ) : (
                 <FeatureText feature={feature} />
               )}
-              {feature.place === "forest" ? (
+              {feature.place === "navy" ? (
                 <p className="mt-auto rounded-lg bg-primary-foreground/15 px-3 py-2.5 text-sm">
                   /p/ · · · · · · · ·
                 </p>
@@ -144,7 +144,7 @@ export function Landing({ signedIn }: { signedIn: boolean }) {
             <h2 className="font-serif text-6xl tracking-tight sm:text-7xl">
               {landingCopy.wayLead}
               <br />
-              <span className="text-brass-ink">{landingCopy.wayAccent}</span>
+              <span className="text-solar">{landingCopy.wayAccent}</span>
             </h2>
           </div>
           <div className="relative min-h-80 lg:min-h-full">
@@ -179,7 +179,7 @@ export function Landing({ signedIn }: { signedIn: boolean }) {
 
 function Mark() {
   return (
-    <span className="grid size-8 place-items-center rounded-lg bg-brass font-serif text-xl leading-none text-brass-foreground">
+    <span className="grid size-8 place-items-center rounded-lg bg-solar font-serif text-xl leading-none text-solar-foreground">
       I
     </span>
   );
@@ -190,12 +190,12 @@ function FeatureText({
 }: {
   feature: (typeof landingCopy.features)[number];
 }) {
-  const onForest = feature.place === "forest";
+  const onNavy = feature.place === "navy";
   return (
     <div>
       <h3 className="font-serif text-3xl">{feature.title}</h3>
       <p
-        className={`mt-2 text-sm ${onForest ? "text-primary-foreground/80" : "text-muted-foreground"}`}
+        className={`mt-2 text-sm ${onNavy ? "text-primary-foreground/80" : "text-muted-foreground"}`}
       >
         {feature.body}
       </p>
@@ -208,12 +208,12 @@ function SampleInvoice() {
     <div className="rounded-xl border border-card-line bg-card p-4 shadow-card">
       <div className="flex items-baseline justify-between font-serif text-lg">
         <span>Invoice</span>
-        <span className="font-sans text-xs tracking-wide text-brass-ink">
+        <span className="font-sans text-xs tracking-wide text-solar-ink">
           0000572
         </span>
       </div>
       <p className="text-xs text-muted-foreground">North Studio</p>
-      <div className="my-3 h-0.5 bg-brass" />
+      <div className="my-3 h-0.5 bg-solar" />
       <InvoiceRow label="Framed print" amount="240.00" />
       <InvoiceRow label="Tax" amount="17.16" />
       <InvoiceRow label="Due" amount="$257.16" strong />
@@ -247,7 +247,7 @@ function ReportBars() {
       {heights.map((height, index) => (
         <i
           key={height}
-          className={`block w-4 rounded-t ${index === 3 ? "bg-brass" : "bg-primary"} ${height}`}
+          className={`block w-4 rounded-t ${index === 3 ? "bg-solar" : "bg-primary"} ${height}`}
         />
       ))}
     </div>
@@ -273,14 +273,14 @@ function HeroCluster() {
         <div className="absolute top-4 right-2 w-56 rounded-xl border border-card-line bg-card p-4 shadow-card sm:top-6 sm:right-8 sm:w-72">
           <div className="flex items-baseline justify-between font-serif text-lg">
             <span>Invoice</span>
-            <span className="font-sans text-xs tracking-wide text-brass-ink">
+            <span className="font-sans text-xs tracking-wide text-solar-ink">
               0000571
             </span>
           </div>
-          <div className="my-3 h-0.5 bg-brass" />
+          <div className="my-3 h-0.5 bg-solar" />
           <InvoiceRow label="Large print, 24×36" amount="180.00" />
           <InvoiceRow label="Shipping" amount="18.00" />
-          <div className="my-3 h-0.5 bg-brass" />
+          <div className="my-3 h-0.5 bg-solar" />
           <InvoiceRow label="Total" amount="$198.00" strong />
           <span className="mt-3 inline-block rounded-full bg-status-sent-bg px-2.5 py-1 text-xs font-semibold text-status-sent-foreground">
             Sent
@@ -292,7 +292,7 @@ function HeroCluster() {
             <i className="block h-[42%] flex-1 rounded-t bg-primary-foreground/80" />
             <i className="block h-[68%] flex-1 rounded-t bg-primary-foreground/80" />
             <i className="block h-[54%] flex-1 rounded-t bg-primary-foreground/80" />
-            <i className="block h-[86%] flex-1 rounded-t bg-brass" />
+            <i className="block h-[86%] flex-1 rounded-t bg-solar" />
           </div>
         </div>
       </div>

@@ -9,7 +9,7 @@ function PrivacyPage() {
   return (
     <Shell>
       <DraftNotice />
-      <h1 className="border-b-2 border-brass pb-3 font-serif text-3xl">
+      <h1 className="border-b-2 border-solar pb-3 font-serif text-3xl">
         Privacy Policy
       </h1>
       <div className="mt-6 space-y-4 text-sm leading-6">

@@ -89,7 +89,7 @@ function NewInvoicePage() {
     <div className="mx-auto max-w-4xl">
       {clients.length === 0 ? (
         <>
-          <h1 className="border-b-2 border-brass pb-3 font-serif text-2xl">
+          <h1 className="border-b-2 border-solar pb-3 font-serif text-2xl">
             New Invoice
           </h1>
           <p className="mt-4 text-sm">

@@ -21,9 +21,9 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-brass: var(--brass);
-  --color-brass-foreground: var(--brass-foreground);
-  --color-brass-ink: var(--brass-ink);
+  --color-solar: var(--solar);
+  --color-solar-foreground: var(--solar-foreground);
+  --color-solar-ink: var(--solar-ink);
   --color-card-line: var(--card-line);
   --shadow-card: var(--card-shadow);
   --color-status-paid: var(--status-paid);
@@ -60,8 +60,8 @@
   copies the dark values onto html.system. Keep that block identical to .dark.
   Porcelain (#f2efe9) is the light field, about 60%. Midnight navy (#14213d)
   is the light type and the primary fill, about 30%. Solar orange is the accent
-  fill, about 10%, and lives on --brass. Text on it uses --brass-foreground.
-  Labels and card titles use --brass-ink, which stays readable on the card.
+  fill, about 10%, and lives on --solar. Text on it uses --solar-foreground.
+  Labels and card titles use --solar-ink, which stays readable on the card.
   Dark mode is a neutral grey. Orange is the only color it shares with light.
 */
 
@@ -91,10 +91,10 @@
   --border: #ddd8cc;
   --input: #5c6578;
   --ring: #14213d;
-  --brass: #ff6b1a;
-  --brass-foreground: #14213d;
-  --brass-ink: #a63b00;
-  --card-line: color-mix(in srgb, var(--brass) 55%, var(--border));
+  --solar: #ff6b1a;
+  --solar-foreground: #14213d;
+  --solar-ink: #a63b00;
+  --card-line: color-mix(in srgb, var(--solar) 55%, var(--border));
   --status-paid: #16a34a;
   --status-paid-foreground: #166534;
   --status-paid-bg: color-mix(in srgb, var(--status-paid) 10%, transparent);
@@ -158,10 +158,10 @@
   --border: #3c3c3c;
   --input: #8c8c8a;
   --ring: #f3f3f2;
-  --brass: #ff6b1a;
-  --brass-foreground: #1f1f1f;
-  --brass-ink: #ff6b1a;
-  --card-line: color-mix(in srgb, var(--brass) 48%, var(--border));
+  --solar: #ff6b1a;
+  --solar-foreground: #1f1f1f;
+  --solar-ink: #ff6b1a;
+  --card-line: color-mix(in srgb, var(--solar) 48%, var(--border));
   --status-paid: #4ade80;
   --status-paid-foreground: #4ade80;
   --status-paid-bg: color-mix(in srgb, var(--status-paid) 16%, transparent);
@@ -226,10 +226,10 @@
     --border: #3c3c3c;
     --input: #8c8c8a;
     --ring: #f3f3f2;
-    --brass: #ff6b1a;
-    --brass-foreground: #1f1f1f;
-    --brass-ink: #ff6b1a;
-    --card-line: color-mix(in srgb, var(--brass) 48%, var(--border));
+    --solar: #ff6b1a;
+    --solar-foreground: #1f1f1f;
+    --solar-ink: #ff6b1a;
+    --card-line: color-mix(in srgb, var(--solar) 48%, var(--border));
     --status-paid: #4ade80;
     --status-paid-foreground: #4ade80;
     --status-paid-bg: color-mix(in srgb, var(--status-paid) 16%, transparent);

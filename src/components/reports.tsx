@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 
 function choiceClass(current: boolean) {
   return current
-    ? "border-b-2 border-brass font-medium text-primary"
+    ? "border-b-2 border-solar font-medium text-primary"
     : "text-primary underline";
 }
 
@@ -56,7 +56,7 @@ export function ReportChrome({
   return (
     <>
       <ReportNav search={search} />
-      <div className="mt-6 flex flex-wrap items-start justify-between gap-4 border-b-2 border-brass pb-3">
+      <div className="mt-6 flex flex-wrap items-start justify-between gap-4 border-b-2 border-solar pb-3">
         <h1 className="font-serif text-3xl">{title}</h1>
         <Button
           type="button"
@@ -126,7 +126,7 @@ export function ExpenseTable({
   return (
     <table className="mt-6 w-full text-sm">
       <thead>
-        <tr className="border-b-2 border-brass text-left text-brass-ink">
+        <tr className="border-b-2 border-solar text-left text-solar-ink">
           <th className="py-2 font-medium">Category</th>
           <th className="py-2 text-right font-medium">Amount</th>
           <th className="py-2 text-right font-medium">Tax paid</th>
@@ -188,7 +188,7 @@ export function RevenueTable({
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-160 text-sm">
             <thead>
-              <tr className="border-b-2 border-brass text-left text-brass-ink">
+              <tr className="border-b-2 border-solar text-left text-solar-ink">
                 <th className="py-2 font-medium">Client</th>
                 <th className="py-2 text-right font-medium">Invoiced</th>
                 <th className="py-2 text-right font-medium">Paid</th>
@@ -261,7 +261,7 @@ export function MonthBars({ months }: { months: MonthBucket[] }) {
           <span className="inline-block h-2 w-2 bg-primary" /> Income
         </span>
         <span className="inline-flex items-center gap-1">
-          <span className="inline-block h-2 w-2 bg-brass" /> Expenses
+          <span className="inline-block h-2 w-2 bg-solar" /> Expenses
         </span>
       </div>
       <div className="mt-4 flex h-40 items-end gap-1">
@@ -280,7 +280,7 @@ export function MonthBars({ months }: { months: MonthBucket[] }) {
               <Bar
                 cents={month.expenseCents}
                 peak={peak}
-                className="bg-brass"
+                className="bg-solar"
                 label={`${month.label} expenses ${formatUsd(month.expenseCents)}`}
               />
             </div>
@@ -393,7 +393,7 @@ function PeriodBar({ search }: { search: ReportQuery }) {
             });
           }}
         >
-          <label className="text-sm text-brass-ink" htmlFor="report-from">
+          <label className="text-sm text-solar-ink" htmlFor="report-from">
             From
             <Input
               id="report-from"
@@ -403,7 +403,7 @@ function PeriodBar({ search }: { search: ReportQuery }) {
               required
             />
           </label>
-          <label className="text-sm text-brass-ink" htmlFor="report-to">
+          <label className="text-sm text-solar-ink" htmlFor="report-to">
             To
             <Input
               id="report-to"
@@ -448,7 +448,7 @@ function Section({ label, rows }: { label: string; rows: CategoryAmount[] }) {
     <>
       <tr>
         <th
-          className="pt-4 pb-1 text-left font-medium text-brass-ink"
+          className="pt-4 pb-1 text-left font-medium text-solar-ink"
           colSpan={2}
         >
           {label}
@@ -489,7 +489,7 @@ function MoneyRow({
       <th
         className={cn(
           "py-2 text-left",
-          strong && "bg-brass font-medium text-brass-foreground",
+          strong && "bg-solar font-medium text-solar-foreground",
         )}
       >
         {label}
@@ -497,7 +497,7 @@ function MoneyRow({
       <td
         className={cn(
           "py-2 text-right",
-          strong && "bg-brass font-medium text-brass-foreground",
+          strong && "bg-solar font-medium text-solar-foreground",
         )}
       >
         {formatUsd(cents)}
@@ -510,7 +510,7 @@ function GroupHeading({ children }: { children: string }) {
   return (
     <tr>
       <th
-        className="pt-4 pb-1 text-left font-medium text-brass-ink"
+        className="pt-4 pb-1 text-left font-medium text-solar-ink"
         colSpan={3}
       >
         {children}
@@ -548,7 +548,7 @@ function TotalRow({
       <td
         className={cn(
           "py-2",
-          strong && "bg-brass font-medium text-brass-foreground",
+          strong && "bg-solar font-medium text-solar-foreground",
         )}
       >
         {label}
@@ -556,7 +556,7 @@ function TotalRow({
       <td
         className={cn(
           "py-2 text-right",
-          strong && "bg-brass font-medium text-brass-foreground",
+          strong && "bg-solar font-medium text-solar-foreground",
         )}
       >
         {formatUsd(amount)}
@@ -564,7 +564,7 @@ function TotalRow({
       <td
         className={cn(
           "py-2 text-right",
-          strong && "bg-brass font-medium text-brass-foreground",
+          strong && "bg-solar font-medium text-solar-foreground",
         )}
       >
         {formatUsd(tax)}

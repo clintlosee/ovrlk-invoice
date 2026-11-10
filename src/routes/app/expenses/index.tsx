@@ -139,7 +139,7 @@ function ExpensesPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between gap-4 border-b-2 border-brass pb-3">
+      <div className="flex items-center justify-between gap-4 border-b-2 border-solar pb-3">
         <h1 className="font-serif text-3xl">Expenses</h1>
         <Button asChild>
           <Link to="/app/expenses/new">New Expense</Link>
@@ -232,7 +232,7 @@ function ExpensesPage() {
               });
             }}
           >
-            <label className="text-sm text-brass-ink" htmlFor="expense-from">
+            <label className="text-sm text-solar-ink" htmlFor="expense-from">
               From
               <Input
                 id="expense-from"
@@ -241,7 +241,7 @@ function ExpensesPage() {
                 onChange={(event) => setFrom(event.target.value)}
               />
             </label>
-            <label className="text-sm text-brass-ink" htmlFor="expense-to">
+            <label className="text-sm text-solar-ink" htmlFor="expense-to">
               To
               <Input
                 id="expense-to"
@@ -251,7 +251,7 @@ function ExpensesPage() {
               />
             </label>
             <label
-              className="text-sm text-brass-ink"
+              className="text-sm text-solar-ink"
               htmlFor="expense-category"
             >
               Category
@@ -388,7 +388,7 @@ function RecentCard({ expense }: { expense: ExpenseRow }) {
       <div className="flex flex-1 flex-col p-3 text-sm">
         <p className="flex items-center gap-1.5 text-muted-foreground">
           {cogs ? (
-            <Package aria-hidden className="size-3.5 shrink-0 text-brass-ink" />
+            <Package aria-hidden className="size-3.5 shrink-0 text-solar-ink" />
           ) : (
             <Receipt aria-hidden className="size-3.5 shrink-0" />
           )}
@@ -402,7 +402,7 @@ function RecentCard({ expense }: { expense: ExpenseRow }) {
         </p>
       </div>
       {cogs ? (
-        <p className="bg-brass/15 py-1.5 text-center text-xs font-medium text-brass-ink">
+        <p className="bg-solar/15 py-1.5 text-center text-xs font-medium text-solar-ink">
           Cost of Goods Sold
         </p>
       ) : null}
@@ -434,7 +434,7 @@ function ExpenseTableRow({
       <TableCell
         className={cn(
           "border-l-4",
-          cogs ? "border-l-brass" : "border-l-transparent",
+          cogs ? "border-l-solar" : "border-l-transparent",
         )}
       >
         <Link
@@ -547,7 +547,7 @@ function TabButton({
       className={cn(
         "-mb-px border-b-2 px-3 py-2 text-sm",
         selected
-          ? "border-brass font-medium text-foreground"
+          ? "border-solar font-medium text-foreground"
           : "border-transparent text-primary",
       )}
       onClick={onClick}

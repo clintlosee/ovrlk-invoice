@@ -90,7 +90,7 @@ function SecurityPage() {
 
   return (
     <>
-      <h1 className="border-b-2 border-brass pb-3 font-serif text-3xl">
+      <h1 className="border-b-2 border-solar pb-3 font-serif text-3xl">
         Security
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">

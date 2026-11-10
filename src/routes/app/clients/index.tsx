@@ -41,7 +41,7 @@ function ClientsPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between gap-4 border-b-2 border-brass pb-3">
+      <div className="flex items-center justify-between gap-4 border-b-2 border-solar pb-3">
         <h1 className="font-serif text-3xl">Clients</h1>
         <Button asChild>
           <Link to="/app/clients/new">New Client</Link>
@@ -64,7 +64,7 @@ function ClientsPage() {
                   className={cn(cardSurface, "block h-full min-w-0 p-4")}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-brass text-xs font-medium text-brass-ink">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-solar text-xs font-medium text-solar-ink">
                       {clientMark(client.name)}
                     </span>
                     <span className="truncate font-medium">{client.name}</span>
@@ -191,7 +191,7 @@ function Total({ label, cents }: { label: string; cents: number }) {
       <p className="font-serif text-2xl text-foreground sm:text-3xl">
         {headlineUsd(cents)}
       </p>
-      <p className="text-sm font-medium text-brass-ink">{label}</p>
+      <p className="text-sm font-medium text-solar-ink">{label}</p>
     </div>
   );
 }

@@ -131,7 +131,7 @@ function InvoicePage() {
           <Link to="/app/invoices" className="text-sm text-primary underline">
             Invoices
           </Link>
-          <h1 className="mt-3 border-b-2 border-brass pb-3 font-serif text-2xl">
+          <h1 className="mt-3 border-b-2 border-solar pb-3 font-serif text-2xl">
             Invoice {invoice.numberLabel}
           </h1>
           <div className="mt-6 space-y-4">
@@ -464,7 +464,7 @@ function PaymentForm({
       }}
     >
       <label
-        className="text-sm text-brass-ink"
+        className="text-sm text-solar-ink"
         htmlFor={`amount-${payment?.id ?? "new"}`}
       >
         Amount
@@ -477,7 +477,7 @@ function PaymentForm({
         />
       </label>
       <label
-        className="text-sm text-brass-ink"
+        className="text-sm text-solar-ink"
         htmlFor={`date-${payment?.id ?? "new"}`}
       >
         Date in the Business time zone
@@ -490,7 +490,7 @@ function PaymentForm({
         />
       </label>
       <label
-        className="text-sm text-brass-ink"
+        className="text-sm text-solar-ink"
         htmlFor={`method-${payment?.id ?? "new"}`}
       >
         Method
@@ -507,7 +507,7 @@ function PaymentForm({
         </select>
       </label>
       <label
-        className="text-sm text-brass-ink"
+        className="text-sm text-solar-ink"
         htmlFor={`note-${payment?.id ?? "new"}`}
       >
         Note
