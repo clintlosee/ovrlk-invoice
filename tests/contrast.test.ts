@@ -221,9 +221,8 @@ describe("color contrast", () => {
     const solarText = files.flatMap((file) => {
       const source = readFileSync(file, "utf8");
       expect(source).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
-      const count = [
-        ...source.matchAll(/text-solar(?!-(?:foreground|ink)\b)/g),
-      ].length;
+      const count = [...source.matchAll(/text-solar(?!-(?:foreground|ink)\b)/g)]
+        .length;
       return count > 0 ? [[file, count] as const] : [];
     });
     // The landing display word stays bright solar on the light field.
