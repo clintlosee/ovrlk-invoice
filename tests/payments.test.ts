@@ -893,4 +893,273 @@ describe("payments", () => {
       (await startPublicCheckout(request("203.0.113.86"), sent.token)).status,
     ).toBe(404);
   });
+
+  it("rolls back every Payment when one Invoice is paid", async () => {
+    const db = getDb();
+    const owner = await insertOwner(
+      "pay-batch-rollback@example.com",
+      "Batch Prints",
+    );
+    const scope = forBusiness(db, owner.businessId);
+    const client = await scope.clients.create({
+      name: "Ada",
+      email: "ada@example.com",
+      phone: null,
+      address: null,
+      taxExempt: true,
+      note: null,
+    });
+    const openSent = await scope.invoices.send(
+      (await scope.invoices.create(input(client.id, 500))).id,
+      owner.userId,
+    );
+    const paidSent = await scope.invoices.send(
+      (await scope.invoices.create(input(client.id, 100))).id,
+      owner.userId,
+    );
+    if (!openSent || !paidSent) throw new Error("send");
+    const open = openSent.invoice;
+    const paid = paidSent.invoice;
+    await scope.payments.recordManual({
+      invoiceId: paid.id,
+      amountCents: cents(100),
+      paidOn: "2026-11-10",
+      method: "cash",
+      note: null,
+      actorUserId: owner.userId,
+    });
+
+    await expect(
+      scope.payments.recordManualBatch({
+        actorUserId: owner.userId,
+        rows: [
+          {
+            invoiceId: open.id,
+            amountCents: 500,
+            paidOn: "2026-11-11",
+            method: "check",
+            note: "1042",
+          },
+          {
+            invoiceId: paid.id,
+            amountCents: 100,
+            paidOn: "2026-11-11",
+            method: "check",
+            note: null,
+          },
+        ],
+      }),
+    ).rejects.toThrow("A Payment can be recorded on a sent Invoice");
+    expect(
+      await db.select().from(payment).where(eq(payment.invoiceId, open.id)),
+    ).toEqual([]);
+  });
+
+  it("stores a partial Payment and a credit above the balance, and omits the note and method from the email", async () => {
+    const owner = await insertOwner(
+      "pay-batch-email@example.com",
+      "Batch Prints",
+    );
+    const scope = forBusiness(getDb(), owner.businessId);
+    const client = await scope.clients.create({
+      name: "Ada",
+      email: "ada@example.com",
+      phone: null,
+      address: null,
+      taxExempt: true,
+      note: null,
+    });
+    const openSent = await scope.invoices.send(
+      (await scope.invoices.create(input(client.id, 500))).id,
+      owner.userId,
+    );
+    const otherSent = await scope.invoices.send(
+      (await scope.invoices.create(input(client.id, 200))).id,
+      owner.userId,
+    );
+    if (!openSent || !otherSent) throw new Error("send");
+    const open = openSent.invoice;
+    const other = otherSent.invoice;
+    const otherTotal = other.document.totalCents;
+
+    let text = "";
+    await scope.payments.recordManualBatch(
+      {
+        actorUserId: owner.userId,
+        notify: true,
+        rows: [
+          {
+            invoiceId: open.id,
+            amountCents: 100,
+            paidOn: "2026-11-11",
+            method: "check",
+            note: "1042",
+          },
+          {
+            invoiceId: other.id,
+            amountCents: otherTotal + 50,
+            paidOn: "2026-11-11",
+            method: "venmo",
+            note: null,
+          },
+        ],
+      },
+      async (message) => {
+        text = message.text;
+      },
+    );
+    expect((await scope.invoices.get(open.id))?.status).toBe("partial");
+    expect((await scope.invoices.get(other.id))?.status).toBe("paid");
+    expect(text).toContain("Invoice 0000001: $1.00");
+    expect(text).not.toContain("1042");
+    expect(text.toLowerCase()).not.toContain("check");
+    expect(text.toLowerCase()).not.toContain("venmo");
+  });
+
+  it("does not call deliver when notify is false or omitted", async () => {
+    const owner = await insertOwner(
+      "pay-batch-quiet@example.com",
+      "Batch Prints",
+    );
+    const scope = forBusiness(getDb(), owner.businessId);
+    const client = await scope.clients.create({
+      name: "Ada",
+      email: "ada@example.com",
+      phone: null,
+      address: null,
+      taxExempt: true,
+      note: null,
+    });
+    const first = await scope.invoices.send(
+      (await scope.invoices.create(input(client.id, 500))).id,
+      owner.userId,
+    );
+    const second = await scope.invoices.send(
+      (await scope.invoices.create(input(client.id, 500))).id,
+      owner.userId,
+    );
+    if (!first || !second) throw new Error("send");
+    let called = 0;
+    const deliver = async () => {
+      called += 1;
+    };
+    await scope.payments.recordManualBatch(
+      {
+        actorUserId: owner.userId,
+        notify: false,
+        rows: [
+          {
+            invoiceId: first.invoice.id,
+            amountCents: 100,
+            paidOn: "2026-11-11",
+            method: "check",
+            note: null,
+          },
+        ],
+      },
+      deliver,
+    );
+    await scope.payments.recordManualBatch(
+      {
+        actorUserId: owner.userId,
+        rows: [
+          {
+            invoiceId: second.invoice.id,
+            amountCents: 100,
+            paidOn: "2026-11-11",
+            method: "check",
+            note: null,
+          },
+        ],
+      },
+      deliver,
+    );
+    expect(called).toBe(0);
+  });
+
+  it("stores the Payment and skips a Client with a blank email", async () => {
+    const owner = await insertOwner(
+      "pay-batch-no-email@example.com",
+      "Batch Prints",
+    );
+    const scope = forBusiness(getDb(), owner.businessId);
+    const client = await scope.clients.create({
+      name: "Silent Prints",
+      email: "",
+      phone: null,
+      address: null,
+      taxExempt: true,
+      note: null,
+    });
+    const sent = await scope.invoices.send(
+      (await scope.invoices.create(input(client.id, 500))).id,
+      owner.userId,
+    );
+    if (!sent) throw new Error("send");
+    const result = await scope.payments.recordManualBatch(
+      {
+        actorUserId: owner.userId,
+        notify: true,
+        rows: [
+          {
+            invoiceId: sent.invoice.id,
+            amountCents: 100,
+            paidOn: "2026-11-11",
+            method: "check",
+            note: null,
+          },
+        ],
+      },
+      async () => {
+        throw new Error("should not send");
+      },
+    );
+    expect((await scope.invoices.get(sent.invoice.id))?.status).toBe("partial");
+    expect(result.skipped).toEqual([
+      { clientName: "Silent Prints", reason: "no-email" },
+    ]);
+  });
+
+  it("leaves Payments in place when deliver throws", async () => {
+    const owner = await insertOwner(
+      "pay-batch-email-fail@example.com",
+      "Batch Prints",
+    );
+    const scope = forBusiness(getDb(), owner.businessId);
+    const client = await scope.clients.create({
+      name: "Ada",
+      email: "ada@example.com",
+      phone: null,
+      address: null,
+      taxExempt: true,
+      note: null,
+    });
+    const sent = await scope.invoices.send(
+      (await scope.invoices.create(input(client.id, 500))).id,
+      owner.userId,
+    );
+    if (!sent) throw new Error("send");
+    const result = await scope.payments.recordManualBatch(
+      {
+        actorUserId: owner.userId,
+        notify: true,
+        rows: [
+          {
+            invoiceId: sent.invoice.id,
+            amountCents: 100,
+            paidOn: "2026-11-11",
+            method: "check",
+            note: null,
+          },
+        ],
+      },
+      async () => {
+        throw new Error("smtp down");
+      },
+    );
+    expect((await scope.invoices.get(sent.invoice.id))?.status).toBe("partial");
+    expect(result.skipped).toEqual([
+      { clientName: "Ada", reason: "email-failed" },
+    ]);
+  });
 });

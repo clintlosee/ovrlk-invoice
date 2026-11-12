@@ -11,7 +11,7 @@ export function takeEmails(): CapturedEmail[] {
   return inbox.splice(0, inbox.length);
 }
 
-type Outbound = {
+export type Outbound = {
   to: string;
   subject: string;
   text: string;
@@ -143,6 +143,36 @@ export async function sendInvoiceListEmail(input: {
             content: file.content,
           }))
         : undefined,
+  });
+}
+
+export async function sendPaymentReceivedEmail(input: {
+  to: string;
+  replyTo?: string;
+  businessName: string;
+  invoices: {
+    number: number;
+    amountCents: number;
+    balanceCents: number;
+  }[];
+  deliver?: (message: Outbound) => Promise<void>;
+}): Promise<void> {
+  const blocks = input.invoices.map((item) => {
+    const numberLabel = formatInvoiceNumber(item.number);
+    const amount = formatUsd(item.amountCents);
+    const balance =
+      item.balanceCents > 0
+        ? `Balance due: ${formatUsd(item.balanceCents)}`
+        : "This invoice is paid.";
+    return `Invoice ${numberLabel}: ${amount}\n${balance}`;
+  });
+  const send = input.deliver ?? deliverEmail;
+  await send({
+    to: input.to,
+    replyTo: input.replyTo,
+    fromName: input.businessName,
+    subject: `Payment received from ${input.businessName}`,
+    text: `${input.businessName} received payment.\n\n${blocks.join("\n\n")}`,
   });
 }
 
