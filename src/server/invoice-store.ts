@@ -575,6 +575,50 @@ export function invoiceMethods(db: AppDb, businessId: string) {
     return { token: created.token, expiresAt };
   }
 
+  async function commitSend(
+    tx: Pick<AppDb, "insert" | "update">,
+    current: InvoiceView,
+    actorUserId: string,
+    prepared: { token: string; tokenHash: string } | undefined,
+    now: Date,
+  ) {
+    const updated = await tx
+      .update(invoice)
+      .set({
+        status: "sent",
+        sentAt: now,
+        snapshot: JSON.stringify(current.document),
+        subtotalCents: current.document.subtotalCents,
+        taxCents: current.document.taxCents,
+        totalCents: current.document.totalCents,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(invoice.id, current.id),
+          eq(invoice.businessId, businessId),
+          eq(invoice.status, "draft"),
+        ),
+      )
+      .returning({ id: invoice.id });
+    if (!updated[0]) throw new Error("Only a draft can be sent");
+    const link = await writeLink(tx, current.id, false, prepared);
+    await tx.insert(auditLog).values({
+      id: crypto.randomUUID(),
+      businessId,
+      actorUserId,
+      action: "invoice.sent",
+      entityType: "invoice",
+      entityId: current.id,
+      amountCents: current.document.totalCents,
+      metadata: JSON.stringify({ number: current.number }),
+      ip: null,
+      userAgent: null,
+      createdAt: now,
+    });
+    return link;
+  }
+
   return {
     async list() {
       const rows = await db
@@ -760,46 +804,40 @@ export function invoiceMethods(db: AppDb, businessId: string) {
       let token = "";
       let expiresAt = now;
       await db.transaction(async (tx) => {
-        const updated = await tx
-          .update(invoice)
-          .set({
-            status: "sent",
-            sentAt: now,
-            snapshot: JSON.stringify(current.document),
-            subtotalCents: current.document.subtotalCents,
-            taxCents: current.document.taxCents,
-            totalCents: current.document.totalCents,
-            updatedAt: now,
-          })
-          .where(
-            and(
-              eq(invoice.id, id),
-              eq(invoice.businessId, businessId),
-              eq(invoice.status, "draft"),
-            ),
-          )
-          .returning({ id: invoice.id });
-        if (!updated[0]) throw new Error("Only a draft can be sent");
-        const link = await writeLink(tx, id, false, prepared);
+        const link = await commitSend(tx, current, actorUserId, prepared, now);
         token = link.token;
         expiresAt = link.expiresAt;
-        await tx.insert(auditLog).values({
-          id: crypto.randomUUID(),
-          businessId,
-          actorUserId,
-          action: "invoice.sent",
-          entityType: "invoice",
-          entityId: id,
-          amountCents: current.document.totalCents,
-          metadata: JSON.stringify({ number: current.number }),
-          ip: null,
-          userAgent: null,
-          createdAt: now,
-        });
       });
       const saved = await load(id);
       if (!saved || !token) throw new Error("Could not send the Invoice");
       return { invoice: saved, token, expiresAt };
+    },
+    async sendAll(
+      actorUserId: string,
+      items: { id: string; prepared: { token: string; tokenHash: string } }[],
+    ) {
+      if (items.length === 0) return;
+      const currents: {
+        current: InvoiceView;
+        prepared: { token: string; tokenHash: string };
+      }[] = [];
+      for (const item of items) {
+        const current = await load(item.id);
+        if (!current) throw new Error("Could not send the Invoice");
+        if (current.status !== "draft") {
+          throw new Error("Only a draft can be sent");
+        }
+        if (current.document.lines.length === 0) {
+          throw new Error("Add a line before sending");
+        }
+        currents.push({ current, prepared: item.prepared });
+      }
+      await db.transaction(async (tx) => {
+        const now = new Date();
+        for (const item of currents) {
+          await commitSend(tx, item.current, actorUserId, item.prepared, now);
+        }
+      });
     },
     async voidInvoice(id: string, reason: string, actorUserId: string) {
       const trimmed = reason.trim();

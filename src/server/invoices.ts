@@ -10,7 +10,7 @@ import {
 } from "../lib/invoice";
 import { renderInvoicePdf } from "../lib/invoice-pdf";
 import { formatCents, parseDollarsToCents } from "../lib/money";
-import { mailDraft } from "./invoice-mail";
+import { mailDraft, sendInvoicesByEmail } from "./invoice-mail";
 import type { InvoiceInput, InvoiceView } from "./invoice-store";
 import { signedInBusiness } from "./membership";
 import { forBusiness } from "./tenancy";
@@ -346,6 +346,31 @@ export const sendInvoice = createServerFn({ method: "POST" })
         url: mailed.url,
         value: present(sent),
       };
+    } catch (error) {
+      return saveError(error);
+    }
+  });
+
+export const sendInvoices = createServerFn({ method: "POST" })
+  .validator((data: { ids: string[]; attachPdf: boolean }) =>
+    z
+      .object({
+        ids: z.array(z.string().min(1)),
+        attachPdf: z.boolean(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const scoped = await scope();
+    if (!scoped) return { ok: false as const, message: "Sign in again." };
+    try {
+      const result = await sendInvoicesByEmail(
+        scoped.db,
+        scoped.current.session.user.id,
+        data.ids,
+        { attachPdf: data.attachPdf },
+      );
+      return { ok: true as const, ...result };
     } catch (error) {
       return saveError(error);
     }
