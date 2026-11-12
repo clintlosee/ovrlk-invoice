@@ -268,6 +268,37 @@ export const deleteInvoice = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+export const destroyInvoices = createServerFn({ method: "POST" })
+  .validator((data: { ids: string[] }) =>
+    z
+      .object({
+        ids: z
+          .array(z.string().min(1))
+          .transform((value) => [...new Set(value)]),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const scoped = await scope();
+    if (!scoped) return { ok: false as const, message: "Sign in again." };
+    try {
+      await scoped.db.invoices.destroy(
+        data.ids,
+        scoped.current.session.user.id,
+      );
+      return { ok: true as const };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (message === "Invoice not found") {
+        return {
+          ok: false as const,
+          message: "That Invoice does not exist.",
+        };
+      }
+      return saveError(error);
+    }
+  });
+
 async function emailInvoice(input: {
   to: string;
   replyTo: string;

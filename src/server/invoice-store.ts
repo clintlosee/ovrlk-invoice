@@ -4,6 +4,7 @@ import {
   auditLog,
   business,
   client,
+  expense,
   invoice,
   invoiceCounter,
   invoiceLine,
@@ -31,6 +32,7 @@ import {
   type PaymentView,
   paymentsByInvoice,
 } from "./payment-store";
+import { discardObject } from "./storage";
 
 export type InvoiceLineInput = {
   name: string;
@@ -787,6 +789,62 @@ export function invoiceMethods(db: AppDb, businessId: string) {
         )
         .returning({ id: invoice.id });
       return rows.length;
+    },
+    async destroy(ids: string[], actorUserId: string) {
+      const unique = [...new Set(ids)];
+      if (unique.length === 0) return;
+      const receiptKeys = await db.transaction(async (tx) => {
+        const rows = await tx
+          .select({ id: invoice.id, number: invoice.number })
+          .from(invoice)
+          .where(
+            and(
+              eq(invoice.businessId, businessId),
+              inArray(invoice.id, unique),
+            ),
+          );
+        if (rows.length !== unique.length) {
+          throw new Error("Invoice not found");
+        }
+        const fees = await tx
+          .select({ receiptKey: expense.receiptKey })
+          .from(expense)
+          .innerJoin(payment, eq(expense.paymentId, payment.id))
+          .where(
+            and(
+              eq(expense.businessId, businessId),
+              eq(payment.businessId, businessId),
+              inArray(payment.invoiceId, unique),
+            ),
+          );
+        const now = new Date();
+        for (const row of rows) {
+          const deleted = await tx
+            .delete(invoice)
+            .where(
+              and(eq(invoice.id, row.id), eq(invoice.businessId, businessId)),
+            )
+            .returning({ id: invoice.id });
+          if (!deleted[0]) throw new Error("Invoice not found");
+          await tx.insert(auditLog).values({
+            id: crypto.randomUUID(),
+            businessId,
+            actorUserId,
+            action: "invoice.destroyed",
+            entityType: "invoice",
+            entityId: row.id,
+            amountCents: null,
+            metadata: JSON.stringify({ number: row.number }),
+            ip: null,
+            userAgent: null,
+            createdAt: now,
+          });
+        }
+        return fees.flatMap((fee) => (fee.receiptKey ? [fee.receiptKey] : []));
+      });
+      for (const key of receiptKeys) {
+        await discardObject(key);
+      }
     },
     async send(
       id: string,
