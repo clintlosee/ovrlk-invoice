@@ -146,7 +146,7 @@ export async function sendInvoicesByEmail(
           replyTo,
           businessName,
           number: only.view.number,
-          totalCents: only.view.document.totalCents,
+          totalCents: only.view.amountDueCents,
           dueDate: only.view.document.dueDate,
           url: only.url,
           pdf: only.pdf,
@@ -160,7 +160,7 @@ export async function sendInvoicesByEmail(
           businessName,
           invoices: prepared.map((item) => ({
             number: item.view.number,
-            totalCents: item.view.document.totalCents,
+            totalCents: item.view.amountDueCents,
             dueDate: item.view.document.dueDate,
             url: item.url,
           })),

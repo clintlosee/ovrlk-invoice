@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { getDb } from "../src/db/client";
 import { invoiceLink } from "../src/db/schema";
 import * as email from "../src/lib/email";
-import { cents } from "../src/lib/money";
+import { cents, formatUsd } from "../src/lib/money";
 import * as invoiceMail from "../src/server/invoice-mail";
 import { mailDraft, sendInvoicesByEmail } from "../src/server/invoice-mail";
 import type { InvoiceInput } from "../src/server/invoice-store";
@@ -355,6 +355,12 @@ describe("invoice send", () => {
     expect(deliveries[0].text).toContain("0000001");
     expect(deliveries[0].text).toContain("0000002");
     expect(deliveries[0].text).toContain("0000003");
+    expect(deliveries[0].text).toContain(
+      `Invoice 0000002\nAmount due: ${formatUsd(cents(1500))}`,
+    );
+    expect(deliveries[0].text).not.toContain(
+      `Invoice 0000002\nAmount due: ${formatUsd(cents(2500))}`,
+    );
     expect((await scope.invoices.get(sentRow.invoice.id))?.status).toBe("sent");
     expect((await scope.invoices.get(partialRow.invoice.id))?.status).toBe(
       "partial",
