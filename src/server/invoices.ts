@@ -409,6 +409,30 @@ export const sendInvoices = createServerFn({ method: "POST" })
     }
   });
 
+export const markInvoicesSent = createServerFn({ method: "POST" })
+  .validator((data: { ids: string[] }) =>
+    z
+      .object({
+        ids: z
+          .array(z.string().min(1))
+          .transform((value) => [...new Set(value)]),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const scoped = await scope();
+    if (!scoped) return { ok: false as const, message: "Sign in again." };
+    try {
+      const result = await scoped.db.invoices.markSent(
+        data.ids,
+        scoped.current.session.user.id,
+      );
+      return { ok: true as const, ...result };
+    } catch (error) {
+      return saveError(error);
+    }
+  });
+
 export const remindInvoice = createServerFn({ method: "POST" })
   .validator((data: { id: string }) => idField.parse(data))
   .handler(async ({ data }) => {

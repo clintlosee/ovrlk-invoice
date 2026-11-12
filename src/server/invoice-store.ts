@@ -577,6 +577,30 @@ export function invoiceMethods(db: AppDb, businessId: string) {
     return { token: created.token, expiresAt };
   }
 
+  async function send(
+    id: string,
+    actorUserId: string,
+    prepared?: { token: string; tokenHash: string },
+  ) {
+    const current = await load(id);
+    if (!current) return null;
+    if (current.status !== "draft") throw new Error("Only a draft can be sent");
+    if (current.document.lines.length === 0) {
+      throw new Error("Add a line before sending");
+    }
+    const now = new Date();
+    let token = "";
+    let expiresAt = now;
+    await db.transaction(async (tx) => {
+      const link = await commitSend(tx, current, actorUserId, prepared, now);
+      token = link.token;
+      expiresAt = link.expiresAt;
+    });
+    const saved = await load(id);
+    if (!saved || !token) throw new Error("Could not send the Invoice");
+    return { invoice: saved, token, expiresAt };
+  }
+
   async function commitSend(
     tx: Pick<AppDb, "insert" | "update">,
     current: InvoiceView,
@@ -846,29 +870,28 @@ export function invoiceMethods(db: AppDb, businessId: string) {
         await discardObject(key);
       }
     },
-    async send(
-      id: string,
-      actorUserId: string,
-      prepared?: { token: string; tokenHash: string },
-    ) {
-      const current = await load(id);
-      if (!current) return null;
-      if (current.status !== "draft")
-        throw new Error("Only a draft can be sent");
-      if (current.document.lines.length === 0) {
-        throw new Error("Add a line before sending");
+    send,
+    async markSent(ids: string[], actorUserId: string) {
+      const sentIds: string[] = [];
+      const skipped: {
+        invoiceId: string;
+        reason: "not-draft" | "no-lines";
+      }[] = [];
+      for (const id of ids) {
+        const current = await load(id);
+        if (!current) continue;
+        if (current.status !== "draft") {
+          skipped.push({ invoiceId: id, reason: "not-draft" });
+          continue;
+        }
+        if (current.document.lines.length === 0) {
+          skipped.push({ invoiceId: id, reason: "no-lines" });
+          continue;
+        }
+        const sent = await send(id, actorUserId);
+        if (sent) sentIds.push(id);
       }
-      const now = new Date();
-      let token = "";
-      let expiresAt = now;
-      await db.transaction(async (tx) => {
-        const link = await commitSend(tx, current, actorUserId, prepared, now);
-        token = link.token;
-        expiresAt = link.expiresAt;
-      });
-      const saved = await load(id);
-      if (!saved || !token) throw new Error("Could not send the Invoice");
-      return { invoice: saved, token, expiresAt };
+      return { sentIds, skipped };
     },
     async sendAll(
       actorUserId: string,

@@ -1,8 +1,10 @@
 import { eq } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { getDb } from "../src/db/client";
 import { invoiceLink } from "../src/db/schema";
+import * as email from "../src/lib/email";
 import { cents } from "../src/lib/money";
+import * as invoiceMail from "../src/server/invoice-mail";
 import { mailDraft, sendInvoicesByEmail } from "../src/server/invoice-mail";
 import type { InvoiceInput } from "../src/server/invoice-store";
 import { createInvoiceToken } from "../src/server/invoice-token";
@@ -451,5 +453,77 @@ describe("invoice send", () => {
     ).rejects.toThrow("Only a draft can be sent");
     expect((await scope.invoices.get(adaA.id))?.status).toBe("draft");
     expect((await scope.invoices.get(adaB.id))?.status).toBe("draft");
+  });
+
+  it("marks drafts sent and leaves partial, paid, void, and empty drafts alone", async () => {
+    const { owner, scope } = await catalog("mark-sent@example.com");
+    const ada = await addClient(scope, "Ada Prints", "ada@example.com");
+    const draft = await scope.invoices.create(invoiceInput(ada.id));
+    const empty = await scope.invoices.create(invoiceInput(ada.id, []));
+    const partialRow = await scope.invoices.send(
+      (await scope.invoices.create(invoiceInput(ada.id))).id,
+      owner.userId,
+    );
+    const paidRow = await scope.invoices.send(
+      (await scope.invoices.create(invoiceInput(ada.id))).id,
+      owner.userId,
+    );
+    const voidRow = await scope.invoices.send(
+      (await scope.invoices.create(invoiceInput(ada.id))).id,
+      owner.userId,
+    );
+    if (!partialRow || !paidRow || !voidRow) throw new Error("send failed");
+    await scope.payments.recordManual({
+      invoiceId: partialRow.invoice.id,
+      amountCents: cents(1000),
+      paidOn: "2026-04-02",
+      method: "check",
+      note: null,
+      actorUserId: owner.userId,
+    });
+    await scope.payments.recordManual({
+      invoiceId: paidRow.invoice.id,
+      amountCents: cents(2500),
+      paidOn: "2026-04-02",
+      method: "check",
+      note: null,
+      actorUserId: owner.userId,
+    });
+    await scope.invoices.voidInvoice(
+      voidRow.invoice.id,
+      "Wrong Client",
+      owner.userId,
+    );
+    const partial = partialRow.invoice;
+    const paid = paidRow.invoice;
+    const voided = voidRow.invoice;
+    const mailDraftSpy = vi.spyOn(invoiceMail, "mailDraft");
+    const deliverSpy = vi.spyOn(email, "deliverEmail");
+    const sendSpy = vi.spyOn(email, "sendInvoiceEmail");
+    const listSpy = vi.spyOn(email, "sendInvoiceListEmail");
+    try {
+      const result = await scope.invoices.markSent(
+        [draft.id, empty.id, partial.id, paid.id, voided.id],
+        owner.userId,
+      );
+      expect(result.sentIds).toEqual([draft.id]);
+      expect((await scope.invoices.get(draft.id))?.status).toBe("sent");
+      expect((await scope.invoices.get(partial.id))?.status).toBe("partial");
+      expect(result.skipped).toEqual([
+        { invoiceId: empty.id, reason: "no-lines" },
+        { invoiceId: partial.id, reason: "not-draft" },
+        { invoiceId: paid.id, reason: "not-draft" },
+        { invoiceId: voided.id, reason: "not-draft" },
+      ]);
+      expect(mailDraftSpy).not.toHaveBeenCalled();
+      expect(deliverSpy).not.toHaveBeenCalled();
+      expect(sendSpy).not.toHaveBeenCalled();
+      expect(listSpy).not.toHaveBeenCalled();
+    } finally {
+      mailDraftSpy.mockRestore();
+      deliverSpy.mockRestore();
+      sendSpy.mockRestore();
+      listSpy.mockRestore();
+    }
   });
 });
