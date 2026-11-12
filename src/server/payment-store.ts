@@ -227,72 +227,103 @@ export function paymentMethods(db: AppDb, businessId: string) {
         return { ids, emailed: [], skipped: [] };
       }
 
-      const groups = new Map<
-        string,
-        {
-          clientName: string;
-          email: string;
-          businessName: string;
-          invoices: {
-            number: number;
-            amountCents: number;
-            balanceCents: number;
-          }[];
-        }
-      >();
-      for (const item of saved) {
-        if (!item.snapshot) continue;
-        const document = JSON.parse(item.snapshot) as InvoiceSnapshot;
-        const line = {
-          number: item.number,
-          amountCents: item.amount,
-          balanceCents: Math.max(0, item.totalCents - item.paid),
-        };
-        const group = groups.get(item.clientId);
-        if (group) {
-          group.invoices.push(line);
-          continue;
-        }
-        groups.set(item.clientId, {
-          clientName: document.client.name,
-          email: document.client.email,
-          businessName: document.business.name,
-          invoices: [line],
-        });
-      }
-
-      const owners = await db
-        .select({ email: user.email })
-        .from(member)
-        .innerJoin(user, eq(user.id, member.userId))
-        .where(
-          and(eq(member.businessId, businessId), eq(member.role, OWNER_ROLE)),
-        )
-        .limit(1);
+      type Group = {
+        clientName: string;
+        email: string;
+        businessName: string;
+        invoices: {
+          number: number;
+          amountCents: number;
+          balanceCents: number;
+        }[];
+      };
+      const groups = new Map<string, Group>();
       const emailed: string[] = [];
       const skipped: {
         clientName: string;
         reason: "no-email" | "email-failed";
       }[] = [];
-      for (const group of groups.values()) {
-        if (!group.email.trim()) {
-          skipped.push({ clientName: group.clientName, reason: "no-email" });
-          continue;
+      try {
+        for (const item of saved) {
+          if (!item.snapshot) continue;
+          const document = JSON.parse(item.snapshot) as InvoiceSnapshot;
+          const line = {
+            number: item.number,
+            amountCents: item.amount,
+            balanceCents: Math.max(0, item.totalCents - item.paid),
+          };
+          const group = groups.get(item.clientId);
+          if (group) {
+            group.invoices.push(line);
+            continue;
+          }
+          groups.set(item.clientId, {
+            clientName: document.client.name,
+            email: document.client.email,
+            businessName: document.business.name,
+            invoices: [line],
+          });
         }
-        try {
-          await sendPaymentReceivedEmail({
-            to: group.email,
-            replyTo: owners[0]?.email,
-            businessName: group.businessName,
-            invoices: group.invoices,
-            deliver,
-          });
-          emailed.push(group.clientName);
-        } catch {
-          skipped.push({
-            clientName: group.clientName,
-            reason: "email-failed",
-          });
+
+        const pending: Group[] = [];
+        for (const group of groups.values()) {
+          if (!group.email.trim()) {
+            skipped.push({
+              clientName: group.clientName,
+              reason: "no-email",
+            });
+          } else {
+            pending.push(group);
+          }
+        }
+
+        if (pending.length > 0) {
+          const owners = await db
+            .select({ email: user.email })
+            .from(member)
+            .innerJoin(user, eq(user.id, member.userId))
+            .where(
+              and(
+                eq(member.businessId, businessId),
+                eq(member.role, OWNER_ROLE),
+              ),
+            )
+            .limit(1);
+          for (const group of pending) {
+            try {
+              await sendPaymentReceivedEmail({
+                to: group.email,
+                replyTo: owners[0]?.email,
+                businessName: group.businessName,
+                invoices: group.invoices,
+                deliver,
+              });
+              emailed.push(group.clientName);
+            } catch {
+              skipped.push({
+                clientName: group.clientName,
+                reason: "email-failed",
+              });
+            }
+          }
+        }
+      } catch {
+        emailed.length = 0;
+        skipped.length = 0;
+        const seen = new Set<string>();
+        for (const item of saved) {
+          if (seen.has(item.clientId)) continue;
+          seen.add(item.clientId);
+          let clientName = groups.get(item.clientId)?.clientName ?? "";
+          if (!clientName && item.snapshot) {
+            try {
+              clientName = (JSON.parse(item.snapshot) as InvoiceSnapshot).client
+                .name;
+            } catch {
+              // The Payment is already stored. A missed notice can be sent again later.
+            }
+          }
+          skipped.push({ clientName, reason: "email-failed" });
         }
       }
       return { ids, emailed, skipped };
