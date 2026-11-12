@@ -355,7 +355,9 @@ export const sendInvoices = createServerFn({ method: "POST" })
   .validator((data: { ids: string[]; attachPdf: boolean }) =>
     z
       .object({
-        ids: z.array(z.string().min(1)),
+        ids: z
+          .array(z.string().min(1))
+          .transform((value) => [...new Set(value)]),
         attachPdf: z.boolean(),
       })
       .parse(data),

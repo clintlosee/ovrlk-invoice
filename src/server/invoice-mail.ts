@@ -69,8 +69,9 @@ export async function sendInvoicesByEmail(
   const skipped: InvoiceEmailSkip[] = [];
   const replyTo = await actorEmail(actorUserId);
   const remaining: InvoiceView[] = [];
+  const ids = [...new Set(invoiceIds)];
 
-  for (const id of invoiceIds) {
+  for (const id of ids) {
     const view = await scope.invoices.get(id);
     if (!view) continue;
     const clientName = view.document.client.name;

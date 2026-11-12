@@ -5,6 +5,7 @@ import { invoiceLink } from "../src/db/schema";
 import { cents } from "../src/lib/money";
 import { mailDraft, sendInvoicesByEmail } from "../src/server/invoice-mail";
 import type { InvoiceInput } from "../src/server/invoice-store";
+import { createInvoiceToken } from "../src/server/invoice-token";
 import { openPublicInvoice } from "../src/server/public-invoice";
 import { forBusiness } from "../src/server/tenancy";
 import { insertOwner } from "./helpers";
@@ -383,5 +384,72 @@ describe("invoice send", () => {
     expect((await scope.invoices.get(adaA.id))?.status).toBe("draft");
     expect((await scope.invoices.get(adaB.id))?.status).toBe("draft");
     expect((await scope.invoices.get(beaDraft.id))?.status).toBe("sent");
+  });
+
+  it("emails a repeated draft id once and marks it sent", async () => {
+    const { owner, scope } = await catalog("bulk-dup@example.com");
+    const ada = await addClient(scope, "Ada Prints", "ada@example.com");
+    const adaA = await scope.invoices.create(invoiceInput(ada.id));
+    const deliveries: { subject: string; text: string }[] = [];
+    const result = await sendInvoicesByEmail(
+      scope,
+      owner.userId,
+      [adaA.id, adaA.id],
+      { attachPdf: false },
+      async (message) => {
+        deliveries.push({ subject: message.subject, text: message.text });
+      },
+    );
+    expect(deliveries).toHaveLength(1);
+    expect(deliveries[0].subject).toBe("Invoice 0000001 from Catalog Prints");
+    expect(deliveries[0].text).toContain("0000001");
+    expect(result.sentIds).toEqual([adaA.id]);
+    expect(result.skipped).toEqual([]);
+    expect((await scope.invoices.get(adaA.id))?.status).toBe("sent");
+  });
+
+  it("emails a draft with an already sent Invoice for the same Client", async () => {
+    const { owner, scope } = await catalog("bulk-mix@example.com");
+    const ada = await addClient(scope, "Ada Prints", "ada@example.com");
+    const sentRow = await scope.invoices.send(
+      (await scope.invoices.create(invoiceInput(ada.id))).id,
+      owner.userId,
+    );
+    if (!sentRow) throw new Error("send failed");
+    const draft = await scope.invoices.create(invoiceInput(ada.id));
+    const deliveries: { subject: string; text: string }[] = [];
+    const result = await sendInvoicesByEmail(
+      scope,
+      owner.userId,
+      [sentRow.invoice.id, draft.id],
+      { attachPdf: false },
+      async (message) => {
+        deliveries.push({ subject: message.subject, text: message.text });
+      },
+    );
+    expect(deliveries).toHaveLength(1);
+    expect(deliveries[0].subject).toBe("Invoices from Catalog Prints");
+    expect(deliveries[0].text).toContain("0000001");
+    expect(deliveries[0].text).toContain("0000002");
+    expect(result.sentIds).toEqual([sentRow.invoice.id, draft.id]);
+    expect(result.skipped).toEqual([]);
+    expect((await scope.invoices.get(sentRow.invoice.id))?.status).toBe("sent");
+    expect((await scope.invoices.get(draft.id))?.status).toBe("sent");
+  });
+
+  it("rolls back every draft in the group when a later sendAll commit throws", async () => {
+    const { owner, scope } = await catalog("bulk-rollback@example.com");
+    const ada = await addClient(scope, "Ada Prints", "ada@example.com");
+    const adaA = await scope.invoices.create(invoiceInput(ada.id));
+    const adaB = await scope.invoices.create(invoiceInput(ada.id));
+    await expect(
+      scope.invoices.sendAll(owner.userId, [
+        { id: adaA.id, prepared: createInvoiceToken() },
+        { id: adaB.id, prepared: createInvoiceToken() },
+        { id: adaA.id, prepared: createInvoiceToken() },
+      ]),
+    ).rejects.toThrow("Only a draft can be sent");
+    expect((await scope.invoices.get(adaA.id))?.status).toBe("draft");
+    expect((await scope.invoices.get(adaB.id))?.status).toBe("draft");
   });
 });
