@@ -546,6 +546,7 @@ export function invoiceMethods(db: AppDb, businessId: string) {
     tx: Pick<AppDb, "insert" | "update">,
     invoiceId: string,
     replace: boolean,
+    prepared?: { token: string; tokenHash: string },
   ) {
     const now = new Date();
     if (replace) {
@@ -560,7 +561,7 @@ export function invoiceMethods(db: AppDb, businessId: string) {
           ),
         );
     }
-    const created = createInvoiceToken();
+    const created = prepared ?? createInvoiceToken();
     const expiresAt = new Date(now.getTime() + INVOICE_LINK_TTL_MS);
     await tx.insert(invoiceLink).values({
       id: crypto.randomUUID(),
@@ -743,7 +744,11 @@ export function invoiceMethods(db: AppDb, businessId: string) {
         .returning({ id: invoice.id });
       return rows.length;
     },
-    async send(id: string, actorUserId: string) {
+    async send(
+      id: string,
+      actorUserId: string,
+      prepared?: { token: string; tokenHash: string },
+    ) {
       const current = await load(id);
       if (!current) return null;
       if (current.status !== "draft")
@@ -775,7 +780,7 @@ export function invoiceMethods(db: AppDb, businessId: string) {
           )
           .returning({ id: invoice.id });
         if (!updated[0]) throw new Error("Only a draft can be sent");
-        const link = await writeLink(tx, id, false);
+        const link = await writeLink(tx, id, false, prepared);
         token = link.token;
         expiresAt = link.expiresAt;
         await tx.insert(auditLog).values({

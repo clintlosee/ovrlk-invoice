@@ -10,6 +10,7 @@ import {
 } from "../lib/invoice";
 import { renderInvoicePdf } from "../lib/invoice-pdf";
 import { formatCents, parseDollarsToCents } from "../lib/money";
+import { mailDraft } from "./invoice-mail";
 import type { InvoiceInput, InvoiceView } from "./invoice-store";
 import { signedInBusiness } from "./membership";
 import { forBusiness } from "./tenancy";
@@ -309,42 +310,41 @@ export const sendInvoice = createServerFn({ method: "POST" })
       if (!updated) {
         return { ok: false as const, message: "That Invoice does not exist." };
       }
-      const sent = await scoped.db.invoices.send(
+      const mailed = await mailDraft(
+        scoped.db,
         id.data.id,
         scoped.current.session.user.id,
+        async (message) => {
+          await sendInvoiceEmail({
+            to: updated.document.client.email,
+            replyTo: scoped.current.session.user.email,
+            businessName: updated.document.business.name,
+            number: updated.number,
+            totalCents: updated.document.totalCents,
+            dueDate: updated.document.dueDate,
+            url: message.url,
+            pdf: message.pdf,
+            reminder: false,
+          });
+        },
       );
-      if (!sent) {
-        return { ok: false as const, message: "That Invoice does not exist." };
-      }
-      const url = `${appUrl()}/p/${sent.token}`;
-      try {
-        await emailInvoice({
-          to: sent.invoice.document.client.email,
-          replyTo: scoped.current.session.user.email,
-          businessName: sent.invoice.document.business.name,
-          number: sent.invoice.number,
-          totalCents: sent.invoice.document.totalCents,
-          dueDate: sent.invoice.document.dueDate,
-          token: sent.token,
-          status: sent.invoice.status,
-          document: sent.invoice.document,
-          reminder: false,
-        });
-      } catch {
+      if (!mailed.emailed) {
         return {
           ok: true as const,
           emailed: false as const,
-          message:
-            "The Invoice is sent, but the email did not go out. Use Reminder to try again.",
-          url,
-          value: present(sent.invoice),
+          message: mailed.message,
+          value: present(updated),
         };
+      }
+      const sent = await scoped.db.invoices.get(id.data.id);
+      if (!sent) {
+        return { ok: false as const, message: "That Invoice does not exist." };
       }
       return {
         ok: true as const,
         emailed: true as const,
-        url,
-        value: present(sent.invoice),
+        url: mailed.url,
+        value: present(sent),
       };
     } catch (error) {
       return saveError(error);
