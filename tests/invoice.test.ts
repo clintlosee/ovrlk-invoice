@@ -1,7 +1,13 @@
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { getDb } from "../src/db/client";
-import { invoice, invoiceLink } from "../src/db/schema";
+import {
+  auditLog,
+  expense,
+  invoice,
+  invoiceLink,
+  payment,
+} from "../src/db/schema";
 import type { InvoiceSnapshot } from "../src/lib/invoice";
 import { cents } from "../src/lib/money";
 import type { InvoiceInput } from "../src/server/invoice-store";
@@ -326,6 +332,130 @@ describe("invoices", () => {
     );
     expect(exemptInvoice.document.taxCents).toBe(0);
     expect(exemptInvoice.document.totalCents).toBe(3000);
+  });
+
+  it("removes the Invoice, its Payments, and the processing fee, and does not reuse the number", async () => {
+    const db = getDb();
+    const owner = await insertOwner("destroy@example.com", "Destroy Prints");
+    const scope = forBusiness(db, owner.businessId);
+    const client = await scope.clients.create({
+      name: "Ada Prints",
+      email: "ada@example.com",
+      phone: null,
+      address: null,
+      taxExempt: false,
+      note: null,
+    });
+    const created = await scope.invoices.create(input(client.id, []));
+    const mailed = await scope.invoices.send(created.id, owner.userId);
+    if (!mailed) throw new Error("send failed");
+    const sent = mailed.invoice;
+    await scope.payments.recordManual({
+      invoiceId: sent.id,
+      amountCents: cents(1000),
+      paidOn: "2026-04-02",
+      method: "check",
+      note: null,
+      actorUserId: owner.userId,
+    });
+    const cardPaymentId = crypto.randomUUID();
+    const now = new Date();
+    await db.insert(payment).values({
+      id: cardPaymentId,
+      businessId: owner.businessId,
+      invoiceId: sent.id,
+      amountCents: cents(2000),
+      paidOn: "2026-04-03",
+      method: "stripe",
+      note: null,
+      stripeCheckoutSessionId: `cs_${cardPaymentId}`,
+      stripePaymentIntentId: `pi_${cardPaymentId}`,
+      stripeChargeId: `ch_${cardPaymentId}`,
+      stripeBalanceTransactionId: `txn_${cardPaymentId}`,
+      feeCents: 175,
+      createdAt: now,
+      updatedAt: now,
+    });
+    const merchantFees = (await scope.categories.list()).find(
+      (row) => row.systemKey === "merchant_fees",
+    );
+    if (!merchantFees) throw new Error("merchant fees");
+    await db.insert(expense).values({
+      id: crypto.randomUUID(),
+      businessId: owner.businessId,
+      spentOn: "2026-04-03",
+      merchant: "Stripe",
+      amountCents: 175,
+      categoryId: merchantFees.id,
+      clientId: client.id,
+      taxPaidCents: 0,
+      note: null,
+      recurring: false,
+      receiptKey: null,
+      receiptContentType: null,
+      paymentId: cardPaymentId,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await scope.invoices.destroy([sent.id], owner.userId);
+    expect(await scope.invoices.get(sent.id)).toBeNull();
+    expect(
+      await db.select().from(payment).where(eq(payment.invoiceId, sent.id)),
+    ).toEqual([]);
+    expect(
+      await db
+        .select()
+        .from(expense)
+        .where(eq(expense.paymentId, cardPaymentId)),
+    ).toEqual([]);
+    expect(await scope.clients.get(client.id)).not.toBeNull();
+    const next = await scope.invoices.create(input(client.id, []));
+    expect(next.number).toBeGreaterThan(sent.number);
+    const audit = await db
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.entityId, sent.id));
+    expect(audit.some((row) => row.action === "invoice.destroyed")).toBe(true);
+  });
+
+  it("destroys nothing when one id is not in this Business", async () => {
+    const db = getDb();
+    const owner = await insertOwner("destroy-keep@example.com", "Keep Prints");
+    const otherOwner = await insertOwner(
+      "destroy-other@example.com",
+      "Other Prints",
+    );
+    const scope = forBusiness(db, owner.businessId);
+    const otherScope = forBusiness(db, otherOwner.businessId);
+    const client = await scope.clients.create({
+      name: "Ada Prints",
+      email: "ada@example.com",
+      phone: null,
+      address: null,
+      taxExempt: false,
+      note: null,
+    });
+    const otherClient = await otherScope.clients.create({
+      name: "Other Client",
+      email: "other@example.com",
+      phone: null,
+      address: null,
+      taxExempt: false,
+      note: null,
+    });
+    const created = await scope.invoices.create(input(client.id, []));
+    const mailed = await scope.invoices.send(created.id, owner.userId);
+    if (!mailed) throw new Error("send failed");
+    const sent = mailed.invoice;
+    const other = await otherScope.invoices.create(
+      input(otherClient.id, [], { lines: [] }),
+    );
+
+    await expect(
+      scope.invoices.destroy([sent.id, other.id], owner.userId),
+    ).rejects.toThrow("Invoice not found");
+    expect(await scope.invoices.get(sent.id)).not.toBeNull();
   });
 
   it("lets a sent Invoice be edited until it is paid", async () => {

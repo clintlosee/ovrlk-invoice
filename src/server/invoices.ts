@@ -10,6 +10,7 @@ import {
 } from "../lib/invoice";
 import { renderInvoicePdf } from "../lib/invoice-pdf";
 import { formatCents, parseDollarsToCents } from "../lib/money";
+import { mailDraft, sendInvoicesByEmail } from "./invoice-mail";
 import type { InvoiceInput, InvoiceView } from "./invoice-store";
 import { signedInBusiness } from "./membership";
 import { forBusiness } from "./tenancy";
@@ -267,6 +268,37 @@ export const deleteInvoice = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+export const destroyInvoices = createServerFn({ method: "POST" })
+  .validator((data: { ids: string[] }) =>
+    z
+      .object({
+        ids: z
+          .array(z.string().min(1))
+          .transform((value) => [...new Set(value)]),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const scoped = await scope();
+    if (!scoped) return { ok: false as const, message: "Sign in again." };
+    try {
+      await scoped.db.invoices.destroy(
+        data.ids,
+        scoped.current.session.user.id,
+      );
+      return { ok: true as const };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (message === "Invoice not found") {
+        return {
+          ok: false as const,
+          message: "That Invoice does not exist.",
+        };
+      }
+      return saveError(error);
+    }
+  });
+
 async function emailInvoice(input: {
   to: string;
   replyTo: string;
@@ -309,43 +341,93 @@ export const sendInvoice = createServerFn({ method: "POST" })
       if (!updated) {
         return { ok: false as const, message: "That Invoice does not exist." };
       }
-      const sent = await scoped.db.invoices.send(
+      const mailed = await mailDraft(
+        scoped.db,
         id.data.id,
         scoped.current.session.user.id,
+        async (message) => {
+          await sendInvoiceEmail({
+            to: updated.document.client.email,
+            replyTo: scoped.current.session.user.email,
+            businessName: updated.document.business.name,
+            number: updated.number,
+            totalCents: updated.document.totalCents,
+            dueDate: updated.document.dueDate,
+            url: message.url,
+            pdf: message.pdf,
+            reminder: false,
+          });
+        },
       );
-      if (!sent) {
-        return { ok: false as const, message: "That Invoice does not exist." };
-      }
-      const url = `${appUrl()}/p/${sent.token}`;
-      try {
-        await emailInvoice({
-          to: sent.invoice.document.client.email,
-          replyTo: scoped.current.session.user.email,
-          businessName: sent.invoice.document.business.name,
-          number: sent.invoice.number,
-          totalCents: sent.invoice.document.totalCents,
-          dueDate: sent.invoice.document.dueDate,
-          token: sent.token,
-          status: sent.invoice.status,
-          document: sent.invoice.document,
-          reminder: false,
-        });
-      } catch {
+      if (!mailed.emailed) {
         return {
           ok: true as const,
           emailed: false as const,
-          message:
-            "The Invoice is sent, but the email did not go out. Use Reminder to try again.",
-          url,
-          value: present(sent.invoice),
+          message: mailed.message,
+          value: present(updated),
         };
+      }
+      const sent = await scoped.db.invoices.get(id.data.id);
+      if (!sent) {
+        return { ok: false as const, message: "That Invoice does not exist." };
       }
       return {
         ok: true as const,
         emailed: true as const,
-        url,
-        value: present(sent.invoice),
+        url: mailed.url,
+        value: present(sent),
       };
+    } catch (error) {
+      return saveError(error);
+    }
+  });
+
+export const sendInvoices = createServerFn({ method: "POST" })
+  .validator((data: { ids: string[]; attachPdf: boolean }) =>
+    z
+      .object({
+        ids: z
+          .array(z.string().min(1))
+          .transform((value) => [...new Set(value)]),
+        attachPdf: z.boolean(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const scoped = await scope();
+    if (!scoped) return { ok: false as const, message: "Sign in again." };
+    try {
+      const result = await sendInvoicesByEmail(
+        scoped.db,
+        scoped.current.session.user.id,
+        data.ids,
+        { attachPdf: data.attachPdf },
+      );
+      return { ok: true as const, ...result };
+    } catch (error) {
+      return saveError(error);
+    }
+  });
+
+export const markInvoicesSent = createServerFn({ method: "POST" })
+  .validator((data: { ids: string[] }) =>
+    z
+      .object({
+        ids: z
+          .array(z.string().min(1))
+          .transform((value) => [...new Set(value)]),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const scoped = await scope();
+    if (!scoped) return { ok: false as const, message: "Sign in again." };
+    try {
+      const result = await scoped.db.invoices.markSent(
+        data.ids,
+        scoped.current.session.user.id,
+      );
+      return { ok: true as const, ...result };
     } catch (error) {
       return saveError(error);
     }

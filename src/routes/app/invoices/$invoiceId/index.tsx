@@ -109,7 +109,7 @@ function InvoicePage() {
         report(result.message);
         return;
       }
-      setLink(result.url);
+      if (result.emailed) setLink(result.url);
       report(result.emailed ? "Sent." : result.message);
       await router.invalidate();
     } catch {

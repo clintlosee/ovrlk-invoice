@@ -9,7 +9,11 @@ import {
   payment,
   user,
 } from "../db/schema";
-import { sendReceiptEmail } from "../lib/email";
+import {
+  type Outbound,
+  sendPaymentReceivedEmail,
+  sendReceiptEmail,
+} from "../lib/email";
 import {
   assertIsoDate,
   type InvoiceSnapshot,
@@ -135,6 +139,194 @@ export function paymentMethods(db: AppDb, businessId: string) {
       });
       await receipt(db, businessId, saved);
       return saved.id;
+    },
+    async recordManualBatch(
+      input: {
+        actorUserId: string;
+        notify?: boolean;
+        rows: {
+          invoiceId: string;
+          amountCents: number;
+          paidOn: string;
+          method: ManualPaymentMethod;
+          note: string | null;
+        }[];
+      },
+      deliver?: (message: Outbound) => Promise<void>,
+    ): Promise<{
+      ids: string[];
+      emailed: string[];
+      skipped: { clientName: string; reason: "no-email" | "email-failed" }[];
+    }> {
+      const saved = await mutate(db, async (tx) => {
+        const now = new Date();
+        const recorded: {
+          id: string;
+          clientId: string;
+          number: number;
+          amount: number;
+          paid: number;
+          totalCents: number;
+          snapshot: string | null;
+        }[] = [];
+        for (const row of input.rows) {
+          const target = await payableInvoice(tx, businessId, row.invoiceId);
+          if (target.status === "paid") {
+            throw new Error("A Payment can be recorded on a sent Invoice");
+          }
+          const amount = positiveCents(row.amountCents);
+          const paidOn = assertIsoDate(row.paidOn);
+          if (!isManualPaymentMethod(row.method)) {
+            throw new Error("Choose a payment method");
+          }
+          const note = boundedNote(row.note);
+          const already = await sumPayments(tx, businessId, target.id);
+          const id = crypto.randomUUID();
+          await tx.insert(payment).values({
+            id,
+            businessId,
+            invoiceId: target.id,
+            amountCents: amount,
+            paidOn,
+            method: row.method,
+            note,
+            stripeCheckoutSessionId: null,
+            stripePaymentIntentId: null,
+            stripeChargeId: null,
+            stripeBalanceTransactionId: null,
+            feeCents: null,
+            createdAt: now,
+            updatedAt: now,
+          });
+          const paid = already + amount;
+          await writeStatus(tx, businessId, target, paid, now);
+          await writeAudit(tx, {
+            businessId,
+            actorUserId: input.actorUserId,
+            action: "payment.recorded",
+            invoiceId: target.id,
+            amountCents: amount,
+            metadata: { method: row.method, number: target.number },
+            at: now,
+          });
+          recorded.push({
+            id,
+            clientId: target.clientId,
+            number: target.number,
+            amount,
+            paid,
+            totalCents: target.totalCents,
+            snapshot: target.snapshot,
+          });
+        }
+        return recorded;
+      });
+
+      const ids = saved.map((item) => item.id);
+      if (!input.notify) {
+        return { ids, emailed: [], skipped: [] };
+      }
+
+      type Group = {
+        clientName: string;
+        email: string;
+        businessName: string;
+        invoices: {
+          number: number;
+          amountCents: number;
+          balanceCents: number;
+        }[];
+      };
+      const groups = new Map<string, Group>();
+      const emailed: string[] = [];
+      const skipped: {
+        clientName: string;
+        reason: "no-email" | "email-failed";
+      }[] = [];
+      try {
+        for (const item of saved) {
+          if (!item.snapshot) continue;
+          const document = JSON.parse(item.snapshot) as InvoiceSnapshot;
+          const line = {
+            number: item.number,
+            amountCents: item.amount,
+            balanceCents: Math.max(0, item.totalCents - item.paid),
+          };
+          const group = groups.get(item.clientId);
+          if (group) {
+            group.invoices.push(line);
+            continue;
+          }
+          groups.set(item.clientId, {
+            clientName: document.client.name,
+            email: document.client.email,
+            businessName: document.business.name,
+            invoices: [line],
+          });
+        }
+
+        const pending: Group[] = [];
+        for (const group of groups.values()) {
+          if (!group.email.trim()) {
+            skipped.push({
+              clientName: group.clientName,
+              reason: "no-email",
+            });
+          } else {
+            pending.push(group);
+          }
+        }
+
+        if (pending.length > 0) {
+          const owners = await db
+            .select({ email: user.email })
+            .from(member)
+            .innerJoin(user, eq(user.id, member.userId))
+            .where(
+              and(
+                eq(member.businessId, businessId),
+                eq(member.role, OWNER_ROLE),
+              ),
+            )
+            .limit(1);
+          for (const group of pending) {
+            try {
+              await sendPaymentReceivedEmail({
+                to: group.email,
+                replyTo: owners[0]?.email,
+                businessName: group.businessName,
+                invoices: group.invoices,
+                deliver,
+              });
+              emailed.push(group.clientName);
+            } catch {
+              skipped.push({
+                clientName: group.clientName,
+                reason: "email-failed",
+              });
+            }
+          }
+        }
+      } catch {
+        emailed.length = 0;
+        skipped.length = 0;
+        const seen = new Set<string>();
+        for (const item of saved) {
+          if (seen.has(item.clientId)) continue;
+          seen.add(item.clientId);
+          let clientName = groups.get(item.clientId)?.clientName ?? "";
+          if (!clientName && item.snapshot) {
+            try {
+              clientName = (JSON.parse(item.snapshot) as InvoiceSnapshot).client
+                .name;
+            } catch {
+              // The Payment is already stored. A missed notice can be sent again later.
+            }
+          }
+          skipped.push({ clientName, reason: "email-failed" });
+        }
+      }
+      return { ids, emailed, skipped };
     },
     async updateManual(
       paymentId: string,
@@ -483,6 +675,11 @@ type Payable = {
   snapshot: string | null;
 };
 
+type LoadedInvoice = Payable & {
+  status: string;
+  clientId: string;
+};
+
 function mutate<T>(db: AppDb, run: (tx: Tx) => Promise<T>): Promise<T> {
   return db.transaction(run);
 }
@@ -491,7 +688,7 @@ async function payableInvoice(
   tx: Tx,
   businessId: string,
   invoiceId: string,
-): Promise<Payable> {
+): Promise<LoadedInvoice> {
   const rows = await tx
     .select({
       id: invoice.id,
@@ -499,6 +696,7 @@ async function payableInvoice(
       status: invoice.status,
       totalCents: invoice.totalCents,
       snapshot: invoice.snapshot,
+      clientId: invoice.clientId,
     })
     .from(invoice)
     .where(and(eq(invoice.id, invoiceId), eq(invoice.businessId, businessId)))

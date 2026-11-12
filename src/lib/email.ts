@@ -11,7 +11,7 @@ export function takeEmails(): CapturedEmail[] {
   return inbox.splice(0, inbox.length);
 }
 
-type Outbound = {
+export type Outbound = {
   to: string;
   subject: string;
   text: string;
@@ -85,8 +85,9 @@ export async function sendInvoiceEmail(input: {
   totalCents: number;
   dueDate: string;
   url: string;
-  pdf: Uint8Array;
+  pdf?: Uint8Array;
   reminder: boolean;
+  deliver?: (message: Outbound) => Promise<void>;
 }): Promise<void> {
   const numberLabel = formatInvoiceNumber(input.number);
   const amount = formatUsd(input.totalCents);
@@ -96,15 +97,82 @@ export async function sendInvoiceEmail(input: {
   const intro = input.reminder
     ? `${input.businessName} is sending a reminder for invoice ${numberLabel}.`
     : `${input.businessName} sent you invoice ${numberLabel}.`;
-  await deliverEmail({
+  const attached = input.pdf ? "\n\nThe PDF is attached." : "";
+  const send = input.deliver ?? deliverEmail;
+  await send({
     to: input.to,
     replyTo: input.replyTo,
     fromName: input.businessName,
     subject,
-    text: `${intro}\n\nAmount due: ${amount}\nDue: ${input.dueDate}\n\nView the invoice: ${input.url}\n\nThe PDF is attached.`,
-    attachments: [
-      { filename: `invoice-${numberLabel}.pdf`, content: input.pdf },
-    ],
+    text: `${intro}\n\nAmount due: ${amount}\nDue: ${input.dueDate}\n\nView the invoice: ${input.url}${attached}`,
+    attachments: input.pdf
+      ? [{ filename: `invoice-${numberLabel}.pdf`, content: input.pdf }]
+      : undefined,
+  });
+}
+
+export async function sendInvoiceListEmail(input: {
+  to: string;
+  replyTo: string;
+  businessName: string;
+  invoices: {
+    number: number;
+    totalCents: number;
+    dueDate: string;
+    url: string;
+  }[];
+  pdfs: { filename: string; content: Buffer | Uint8Array }[];
+  deliver?: (message: Outbound) => Promise<void>;
+}): Promise<void> {
+  const blocks = input.invoices.map((item) => {
+    const numberLabel = formatInvoiceNumber(item.number);
+    return `Invoice ${numberLabel}\nAmount due: ${formatUsd(item.totalCents)}\nDue: ${item.dueDate}\n\nView the invoice: ${item.url}`;
+  });
+  const attached = input.pdfs.length > 0 ? "\n\nThe PDFs are attached." : "";
+  const send = input.deliver ?? deliverEmail;
+  await send({
+    to: input.to,
+    replyTo: input.replyTo,
+    fromName: input.businessName,
+    subject: `Invoices from ${input.businessName}`,
+    text: `${input.businessName} sent you invoices.\n\n${blocks.join("\n\n")}${attached}`,
+    attachments:
+      input.pdfs.length > 0
+        ? input.pdfs.map((file) => ({
+            filename: file.filename,
+            content: file.content,
+          }))
+        : undefined,
+  });
+}
+
+export async function sendPaymentReceivedEmail(input: {
+  to: string;
+  replyTo?: string;
+  businessName: string;
+  invoices: {
+    number: number;
+    amountCents: number;
+    balanceCents: number;
+  }[];
+  deliver?: (message: Outbound) => Promise<void>;
+}): Promise<void> {
+  const blocks = input.invoices.map((item) => {
+    const numberLabel = formatInvoiceNumber(item.number);
+    const amount = formatUsd(item.amountCents);
+    const balance =
+      item.balanceCents > 0
+        ? `Balance due: ${formatUsd(item.balanceCents)}`
+        : "This invoice is paid.";
+    return `Invoice ${numberLabel}: ${amount}\n${balance}`;
+  });
+  const send = input.deliver ?? deliverEmail;
+  await send({
+    to: input.to,
+    replyTo: input.replyTo,
+    fromName: input.businessName,
+    subject: `Payment received from ${input.businessName}`,
+    text: `${input.businessName} received payment.\n\n${blocks.join("\n\n")}`,
   });
 }
 

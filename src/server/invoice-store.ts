@@ -4,6 +4,7 @@ import {
   auditLog,
   business,
   client,
+  expense,
   invoice,
   invoiceCounter,
   invoiceLine,
@@ -31,6 +32,7 @@ import {
   type PaymentView,
   paymentsByInvoice,
 } from "./payment-store";
+import { discardObject } from "./storage";
 
 export type InvoiceLineInput = {
   name: string;
@@ -546,6 +548,7 @@ export function invoiceMethods(db: AppDb, businessId: string) {
     tx: Pick<AppDb, "insert" | "update">,
     invoiceId: string,
     replace: boolean,
+    prepared?: { token: string; tokenHash: string },
   ) {
     const now = new Date();
     if (replace) {
@@ -560,7 +563,7 @@ export function invoiceMethods(db: AppDb, businessId: string) {
           ),
         );
     }
-    const created = createInvoiceToken();
+    const created = prepared ?? createInvoiceToken();
     const expiresAt = new Date(now.getTime() + INVOICE_LINK_TTL_MS);
     await tx.insert(invoiceLink).values({
       id: crypto.randomUUID(),
@@ -572,6 +575,74 @@ export function invoiceMethods(db: AppDb, businessId: string) {
       createdAt: now,
     });
     return { token: created.token, expiresAt };
+  }
+
+  async function send(
+    id: string,
+    actorUserId: string,
+    prepared?: { token: string; tokenHash: string },
+  ) {
+    const current = await load(id);
+    if (!current) return null;
+    if (current.status !== "draft") throw new Error("Only a draft can be sent");
+    if (current.document.lines.length === 0) {
+      throw new Error("Add a line before sending");
+    }
+    const now = new Date();
+    let token = "";
+    let expiresAt = now;
+    await db.transaction(async (tx) => {
+      const link = await commitSend(tx, current, actorUserId, prepared, now);
+      token = link.token;
+      expiresAt = link.expiresAt;
+    });
+    const saved = await load(id);
+    if (!saved || !token) throw new Error("Could not send the Invoice");
+    return { invoice: saved, token, expiresAt };
+  }
+
+  async function commitSend(
+    tx: Pick<AppDb, "insert" | "update">,
+    current: InvoiceView,
+    actorUserId: string,
+    prepared: { token: string; tokenHash: string } | undefined,
+    now: Date,
+  ) {
+    const updated = await tx
+      .update(invoice)
+      .set({
+        status: "sent",
+        sentAt: now,
+        snapshot: JSON.stringify(current.document),
+        subtotalCents: current.document.subtotalCents,
+        taxCents: current.document.taxCents,
+        totalCents: current.document.totalCents,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(invoice.id, current.id),
+          eq(invoice.businessId, businessId),
+          eq(invoice.status, "draft"),
+        ),
+      )
+      .returning({ id: invoice.id });
+    if (!updated[0]) throw new Error("Only a draft can be sent");
+    const link = await writeLink(tx, current.id, false, prepared);
+    await tx.insert(auditLog).values({
+      id: crypto.randomUUID(),
+      businessId,
+      actorUserId,
+      action: "invoice.sent",
+      entityType: "invoice",
+      entityId: current.id,
+      amountCents: current.document.totalCents,
+      metadata: JSON.stringify({ number: current.number }),
+      ip: null,
+      userAgent: null,
+      createdAt: now,
+    });
+    return link;
   }
 
   return {
@@ -743,58 +814,111 @@ export function invoiceMethods(db: AppDb, businessId: string) {
         .returning({ id: invoice.id });
       return rows.length;
     },
-    async send(id: string, actorUserId: string) {
-      const current = await load(id);
-      if (!current) return null;
-      if (current.status !== "draft")
-        throw new Error("Only a draft can be sent");
-      if (current.document.lines.length === 0) {
-        throw new Error("Add a line before sending");
-      }
-      const now = new Date();
-      let token = "";
-      let expiresAt = now;
-      await db.transaction(async (tx) => {
-        const updated = await tx
-          .update(invoice)
-          .set({
-            status: "sent",
-            sentAt: now,
-            snapshot: JSON.stringify(current.document),
-            subtotalCents: current.document.subtotalCents,
-            taxCents: current.document.taxCents,
-            totalCents: current.document.totalCents,
-            updatedAt: now,
-          })
+    async destroy(ids: string[], actorUserId: string) {
+      const unique = [...new Set(ids)];
+      if (unique.length === 0) return;
+      const receiptKeys = await db.transaction(async (tx) => {
+        const rows = await tx
+          .select({ id: invoice.id, number: invoice.number })
+          .from(invoice)
           .where(
             and(
-              eq(invoice.id, id),
               eq(invoice.businessId, businessId),
-              eq(invoice.status, "draft"),
+              inArray(invoice.id, unique),
             ),
-          )
-          .returning({ id: invoice.id });
-        if (!updated[0]) throw new Error("Only a draft can be sent");
-        const link = await writeLink(tx, id, false);
-        token = link.token;
-        expiresAt = link.expiresAt;
-        await tx.insert(auditLog).values({
-          id: crypto.randomUUID(),
-          businessId,
-          actorUserId,
-          action: "invoice.sent",
-          entityType: "invoice",
-          entityId: id,
-          amountCents: current.document.totalCents,
-          metadata: JSON.stringify({ number: current.number }),
-          ip: null,
-          userAgent: null,
-          createdAt: now,
-        });
+          );
+        if (rows.length !== unique.length) {
+          throw new Error("Invoice not found");
+        }
+        const fees = await tx
+          .select({ receiptKey: expense.receiptKey })
+          .from(expense)
+          .innerJoin(payment, eq(expense.paymentId, payment.id))
+          .where(
+            and(
+              eq(expense.businessId, businessId),
+              eq(payment.businessId, businessId),
+              inArray(payment.invoiceId, unique),
+            ),
+          );
+        const now = new Date();
+        for (const row of rows) {
+          const deleted = await tx
+            .delete(invoice)
+            .where(
+              and(eq(invoice.id, row.id), eq(invoice.businessId, businessId)),
+            )
+            .returning({ id: invoice.id });
+          if (!deleted[0]) throw new Error("Invoice not found");
+          await tx.insert(auditLog).values({
+            id: crypto.randomUUID(),
+            businessId,
+            actorUserId,
+            action: "invoice.destroyed",
+            entityType: "invoice",
+            entityId: row.id,
+            amountCents: null,
+            metadata: JSON.stringify({ number: row.number }),
+            ip: null,
+            userAgent: null,
+            createdAt: now,
+          });
+        }
+        return fees.flatMap((fee) => (fee.receiptKey ? [fee.receiptKey] : []));
       });
-      const saved = await load(id);
-      if (!saved || !token) throw new Error("Could not send the Invoice");
-      return { invoice: saved, token, expiresAt };
+      for (const key of receiptKeys) {
+        await discardObject(key);
+      }
+    },
+    send,
+    async markSent(ids: string[], actorUserId: string) {
+      const sentIds: string[] = [];
+      const skipped: {
+        invoiceId: string;
+        reason: "not-draft" | "no-lines";
+      }[] = [];
+      for (const id of ids) {
+        const current = await load(id);
+        if (!current) continue;
+        if (current.status !== "draft") {
+          skipped.push({ invoiceId: id, reason: "not-draft" });
+          continue;
+        }
+        if (current.document.lines.length === 0) {
+          skipped.push({ invoiceId: id, reason: "no-lines" });
+          continue;
+        }
+        const sent = await send(id, actorUserId);
+        if (sent) sentIds.push(id);
+      }
+      return { sentIds, skipped };
+    },
+    async sendAll(
+      actorUserId: string,
+      items: { id: string; prepared: { token: string; tokenHash: string } }[],
+    ) {
+      if (items.length === 0) return;
+      const currents: {
+        current: InvoiceView;
+        prepared: { token: string; tokenHash: string };
+      }[] = [];
+      for (const item of items) {
+        const current = await load(item.id);
+        if (!current) throw new Error("Could not send the Invoice");
+        if (current.status !== "draft") {
+          throw new Error("Only a draft can be sent");
+        }
+        if (current.document.lines.length === 0) {
+          throw new Error("Add a line before sending");
+        }
+        currents.push({ current, prepared: item.prepared });
+      }
+      await db.transaction(async (tx) => {
+        const now = new Date();
+        for (const item of currents) {
+          await commitSend(tx, item.current, actorUserId, item.prepared, now);
+        }
+      });
     },
     async voidInvoice(id: string, reason: string, actorUserId: string) {
       const trimmed = reason.trim();
