@@ -156,7 +156,15 @@ export function InvoiceBulkBar({
           <DropdownMenuItem onSelect={() => void onMarkSent()}>
             Mark as Sent
           </DropdownMenuItem>
-          <DropdownMenuItem disabled={!actions.addPayment}>
+          <DropdownMenuItem
+            disabled={!actions.addPayment}
+            onSelect={() => {
+              void navigate({
+                to: "/app/invoices/payments",
+                search: { ids: ids.join(",") },
+              });
+            }}
+          >
             Add a Payment
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => void onDelete()}>

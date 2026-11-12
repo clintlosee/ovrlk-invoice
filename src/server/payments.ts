@@ -89,6 +89,38 @@ const batchFields = z.object({
   ),
 });
 
+export const getPaymentInvoices = createServerFn({ method: "GET" })
+  .validator((data: unknown) => z.object({ ids: z.string() }).parse(data))
+  .handler(async ({ data }) => {
+    const scoped = await scope();
+    if (!scoped) return null;
+    const biz = await scoped.db.business.get();
+    if (!biz) return null;
+    const ids = [
+      ...new Set(
+        data.ids
+          .split(",")
+          .map((id) => id.trim())
+          .filter(Boolean),
+      ),
+    ];
+    const listed = await scoped.db.invoices.list();
+    const byId = new Map(listed.map((view) => [view.id, view]));
+    const invoices = [];
+    for (const id of ids) {
+      const view = byId.get(id);
+      if (!view) continue;
+      invoices.push({
+        id: view.id,
+        clientName: view.document.client.name,
+        numberLabel: view.numberLabel,
+        amountDueCents: view.amountDueCents,
+        status: view.status,
+      });
+    }
+    return { timeZone: biz.timeZone, invoices };
+  });
+
 export const recordInvoicePayments = createServerFn({ method: "POST" })
   .validator((data: unknown) => data)
   .handler(async ({ data }) => {
