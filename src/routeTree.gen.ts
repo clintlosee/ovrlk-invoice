@@ -36,6 +36,7 @@ import { Route as AppExpensesCategoriesRouteImport } from './routes/app/expenses
 import { Route as AppExpensesNewRouteImport } from './routes/app/expenses/new'
 import { Route as AppInvoicesIndexRouteImport } from './routes/app/invoices/index'
 import { Route as AppInvoicesNewRouteImport } from './routes/app/invoices/new'
+import { Route as AppInvoicesPdfsRouteImport } from './routes/app/invoices/pdfs'
 import { Route as AppItemsIndexRouteImport } from './routes/app/items/index'
 import { Route as AppItemsItemIdRouteImport } from './routes/app/items/$itemId'
 import { Route as AppItemsNewRouteImport } from './routes/app/items/new'
@@ -192,6 +193,11 @@ const AppInvoicesNewRoute = AppInvoicesNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AppInvoicesRouteRoute,
 } as any)
+const AppInvoicesPdfsRoute = AppInvoicesPdfsRouteImport.update({
+  id: '/pdfs',
+  path: '/pdfs',
+  getParentRoute: () => AppInvoicesRouteRoute,
+} as any)
 const AppItemsIndexRoute = AppItemsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -321,6 +327,7 @@ export interface FileRoutesByFullPath {
   '/app/expenses/categories': typeof AppExpensesCategoriesRoute
   '/app/expenses/new': typeof AppExpensesNewRoute
   '/app/invoices/new': typeof AppInvoicesNewRoute
+  '/app/invoices/pdfs': typeof AppInvoicesPdfsRoute
   '/app/items/$itemId': typeof AppItemsItemIdRoute
   '/app/items/new': typeof AppItemsNewRoute
   '/app/reports/clients': typeof AppReportsClientsRoute
@@ -364,6 +371,7 @@ export interface FileRoutesByTo {
   '/app/expenses/categories': typeof AppExpensesCategoriesRoute
   '/app/expenses/new': typeof AppExpensesNewRoute
   '/app/invoices/new': typeof AppInvoicesNewRoute
+  '/app/invoices/pdfs': typeof AppInvoicesPdfsRoute
   '/app/items/$itemId': typeof AppItemsItemIdRoute
   '/app/items/new': typeof AppItemsNewRoute
   '/app/reports/clients': typeof AppReportsClientsRoute
@@ -414,6 +422,7 @@ export interface FileRoutesById {
   '/app/expenses/categories': typeof AppExpensesCategoriesRoute
   '/app/expenses/new': typeof AppExpensesNewRoute
   '/app/invoices/new': typeof AppInvoicesNewRoute
+  '/app/invoices/pdfs': typeof AppInvoicesPdfsRoute
   '/app/items/$itemId': typeof AppItemsItemIdRoute
   '/app/items/new': typeof AppItemsNewRoute
   '/app/reports/clients': typeof AppReportsClientsRoute
@@ -465,6 +474,7 @@ export interface FileRouteTypes {
     | '/app/expenses/categories'
     | '/app/expenses/new'
     | '/app/invoices/new'
+    | '/app/invoices/pdfs'
     | '/app/items/$itemId'
     | '/app/items/new'
     | '/app/reports/clients'
@@ -508,6 +518,7 @@ export interface FileRouteTypes {
     | '/app/expenses/categories'
     | '/app/expenses/new'
     | '/app/invoices/new'
+    | '/app/invoices/pdfs'
     | '/app/items/$itemId'
     | '/app/items/new'
     | '/app/reports/clients'
@@ -557,6 +568,7 @@ export interface FileRouteTypes {
     | '/app/expenses/categories'
     | '/app/expenses/new'
     | '/app/invoices/new'
+    | '/app/invoices/pdfs'
     | '/app/items/$itemId'
     | '/app/items/new'
     | '/app/reports/clients'
@@ -790,6 +802,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppInvoicesNewRouteImport
       parentRoute: typeof AppInvoicesRouteRoute
     }
+    '/app/invoices/pdfs': {
+      id: '/app/invoices/pdfs'
+      path: '/pdfs'
+      fullPath: '/app/invoices/pdfs'
+      preLoaderRoute: typeof AppInvoicesPdfsRouteImport
+      parentRoute: typeof AppInvoicesRouteRoute
+    }
     '/app/items/': {
       id: '/app/items/'
       path: '/'
@@ -970,6 +989,7 @@ const AppExpensesRouteRouteWithChildren =
 
 interface AppInvoicesRouteRouteChildren {
   AppInvoicesNewRoute: typeof AppInvoicesNewRoute
+  AppInvoicesPdfsRoute: typeof AppInvoicesPdfsRoute
   AppInvoicesIndexRoute: typeof AppInvoicesIndexRoute
   AppInvoicesInvoiceIdPdfRoute: typeof AppInvoicesInvoiceIdPdfRoute
   AppInvoicesInvoiceIdIndexRoute: typeof AppInvoicesInvoiceIdIndexRoute
@@ -977,6 +997,7 @@ interface AppInvoicesRouteRouteChildren {
 
 const AppInvoicesRouteRouteChildren: AppInvoicesRouteRouteChildren = {
   AppInvoicesNewRoute: AppInvoicesNewRoute,
+  AppInvoicesPdfsRoute: AppInvoicesPdfsRoute,
   AppInvoicesIndexRoute: AppInvoicesIndexRoute,
   AppInvoicesInvoiceIdPdfRoute: AppInvoicesInvoiceIdPdfRoute,
   AppInvoicesInvoiceIdIndexRoute: AppInvoicesInvoiceIdIndexRoute,
