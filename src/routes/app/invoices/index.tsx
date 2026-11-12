@@ -89,7 +89,7 @@ function InvoicesPage() {
       return b.numberLabel.localeCompare(a.numberLabel);
     });
   const selected = selectedIds.flatMap((id) => {
-    const invoice = invoices.find((row) => row.id === id);
+    const invoice = shown.find((row) => row.id === id);
     if (!invoice) return [];
     const row: BulkInvoice = {
       id: invoice.id,
