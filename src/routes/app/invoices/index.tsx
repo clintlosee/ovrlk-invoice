@@ -1,6 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronDown, ChevronUp, Search } from "lucide-react";
 import { useState } from "react";
+import {
+  type BulkInvoice,
+  InvoiceBulkBar,
+} from "@/components/invoice-bulk-bar";
 import { InvoiceStatusBadge } from "@/components/invoice-status-badge";
 import { Button } from "@/components/ui/button";
 import { cardSurface } from "@/components/ui/card";
@@ -13,7 +17,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { type InvoiceDisplayStatus, statusLabel } from "@/lib/invoice";
+import {
+  type InvoiceDisplayStatus,
+  type InvoiceStatus,
+  statusLabel,
+} from "@/lib/invoice";
 import { formatUsd } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { getInvoices } from "@/server/invoices";
@@ -44,6 +52,8 @@ function InvoicesPage() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"all" | InvoiceDisplayStatus>("all");
   const [newestIssueFirst, setNewestIssueFirst] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [message, setMessage] = useState<string | null>(null);
   if (!data) return <p>Sign in again.</p>;
 
   const invoices = data.invoices;
@@ -78,6 +88,25 @@ function InvoicesPage() {
       if (dated !== 0) return dated;
       return b.numberLabel.localeCompare(a.numberLabel);
     });
+  const selected = selectedIds.flatMap((id) => {
+    const invoice = invoices.find((row) => row.id === id);
+    if (!invoice) return [];
+    const row: BulkInvoice = {
+      id: invoice.id,
+      status: listStatus(invoice.displayStatus),
+      clientName: invoice.clientName,
+      numberLabel: invoice.numberLabel,
+    };
+    return [row];
+  });
+
+  function toggleSelected(id: string) {
+    setSelectedIds((current) =>
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id],
+    );
+  }
 
   return (
     <>
@@ -134,7 +163,20 @@ function InvoicesPage() {
           </section>
           <section className="mt-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="font-serif text-xl">All Invoices</h2>
+              <div className="flex flex-wrap items-center gap-3">
+                <h2 className="font-serif text-xl">
+                  {selected.length > 0
+                    ? `Selected ${selected.length}`
+                    : "All Invoices"}
+                </h2>
+                {selected.length > 0 ? (
+                  <InvoiceBulkBar
+                    invoices={selected}
+                    onClear={() => setSelectedIds([])}
+                    onMessage={setMessage}
+                  />
+                ) : null}
+              </div>
               <div className="flex flex-wrap items-center gap-2">
                 <div className="relative">
                   <Search
@@ -168,6 +210,7 @@ function InvoicesPage() {
                 </select>
               </div>
             </div>
+            {message ? <p className="mt-4 text-sm">{message}</p> : null}
             {shown.length === 0 ? (
               <p className="mt-4 text-sm">No Invoices match.</p>
             ) : (
@@ -175,9 +218,13 @@ function InvoicesPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Client / Invoice Number</TableHead>
+                      <TableHead className="w-10" />
+                      <TableHead className="w-full">
+                        Client / Invoice Number
+                      </TableHead>
                       <TableHead>Description</TableHead>
                       <TableHead
+                        className="whitespace-nowrap"
                         aria-sort={
                           newestIssueFirst ? "descending" : "ascending"
                         }
@@ -198,7 +245,7 @@ function InvoicesPage() {
                           Due Date
                         </span>
                       </TableHead>
-                      <TableHead className="text-right">
+                      <TableHead className="whitespace-nowrap text-right">
                         Amount
                         <span className="block font-normal text-muted-foreground">
                           Status
@@ -212,6 +259,8 @@ function InvoicesPage() {
                         key={invoice.id}
                         invoice={invoice}
                         today={data.today}
+                        selected={selectedIds.includes(invoice.id)}
+                        onToggle={() => toggleSelected(invoice.id)}
                       />
                     ))}
                   </TableBody>
@@ -239,13 +288,26 @@ function Total({ label, cents }: { label: string; cents: number }) {
 function InvoiceTableRow({
   invoice,
   today,
+  selected,
+  onToggle,
 }: {
   invoice: InvoiceRow;
   today: string;
+  selected: boolean;
+  onToggle: () => void;
 }) {
   return (
     <TableRow className="relative hover:bg-accent">
-      <TableCell>
+      <TableCell className="relative z-10 w-10">
+        <input
+          type="checkbox"
+          className="size-4 accent-primary"
+          checked={selected}
+          aria-label={`Select ${invoice.numberLabel}`}
+          onChange={onToggle}
+        />
+      </TableCell>
+      <TableCell className="w-full">
         <Link
           to="/app/invoices/$invoiceId"
           params={{ invoiceId: invoice.id }}
@@ -258,18 +320,26 @@ function InvoiceTableRow({
       <TableCell className="max-w-64 truncate" title={invoice.summary}>
         {invoice.summary || "—"}
       </TableCell>
-      <TableCell>
+      <TableCell className="whitespace-nowrap">
         <p>{shortDate(invoice.issueDate)}</p>
         <p className="text-muted-foreground">
           {dueLine(invoice.displayStatus, invoice.dueDate, today)}
         </p>
       </TableCell>
-      <TableCell className="text-right">
+      <TableCell className="whitespace-nowrap text-right">
         <p>{formatUsd(invoice.totalCents)}</p>
         <InvoiceStatusBadge status={invoice.displayStatus} />
       </TableCell>
     </TableRow>
   );
+}
+
+function listStatus(display: InvoiceDisplayStatus): InvoiceStatus {
+  if (display === "draft" || display === "partial" || display === "void") {
+    return display;
+  }
+  if (display === "paid" || display === "overpaid") return "paid";
+  return "sent";
 }
 
 function sum(rows: InvoiceRow[], pick: (row: InvoiceRow) => number) {
