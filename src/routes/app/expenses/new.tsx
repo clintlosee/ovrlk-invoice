@@ -91,6 +91,7 @@ function NewExpensePage() {
             submitLabel="Save Expense"
             receipt={{
               configured: form.storageConfigured,
+              file,
               onFile: setFile,
             }}
             onSubmit={(values) => void onSubmit(values)}
