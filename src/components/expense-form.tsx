@@ -128,7 +128,7 @@ export function ExpenseForm({
                 note and Client.
               </p>
             ) : null}
-            <div className="flex min-h-0 flex-col sm:min-h-[28rem]">
+            <div className="flex min-h-0 flex-col sm:min-h-112">
               <div className="flex items-start gap-4">
                 <div className="min-w-0 flex-1 space-y-4">
                   <div className="space-y-1">
