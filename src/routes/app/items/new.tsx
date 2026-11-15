@@ -40,7 +40,7 @@ function NewItemPage() {
       <h1 className="mt-3 border-b-2 border-solar pb-3 font-serif text-3xl">
         New Item
       </h1>
-      <Card>
+      <Card className="mt-6">
         <ItemForm
           initial={{ name: "", description: "", unitPrice: "", taxRateIds: [] }}
           taxRates={taxRates}

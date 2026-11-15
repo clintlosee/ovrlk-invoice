@@ -41,7 +41,7 @@ function NewTaxRatePage() {
       <h1 className="mt-3 border-b-2 border-solar pb-3 font-serif text-3xl">
         New Tax Rate
       </h1>
-      <Card>
+      <Card className="mt-6">
         <TaxRateForm
           initial={{ name: "", rate: "" }}
           pending={pending}

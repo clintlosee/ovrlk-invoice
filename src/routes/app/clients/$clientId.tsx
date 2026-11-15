@@ -76,35 +76,37 @@ function EditClientPage() {
       <h1 className="mt-3 border-b-2 border-solar pb-3 font-serif text-3xl">
         {client.name}
       </h1>
-      {client.archived ? (
-        <p className="mt-2 text-sm text-muted-foreground">Archived</p>
-      ) : null}
-      <Card>
-        <ClientForm
-          key={client.id}
-          initial={{
-            name: client.name,
-            email: client.email,
-            phone: client.phone,
-            address: client.address,
-            taxExempt: client.taxExempt,
-            note: client.note,
-          }}
-          pending={pending}
-          message={message}
-          submitLabel="Save Client"
-          onSubmit={(values) => void onSubmit(values)}
-        />
-        <Button
-          type="button"
-          variant="outline"
-          className="mt-3"
-          disabled={pending}
-          onClick={() => void onArchive()}
-        >
-          {client.archived ? "Unarchive" : "Archive"}
-        </Button>
-      </Card>
+      <div className="mt-6 space-y-4">
+        {client.archived ? (
+          <p className="text-sm text-muted-foreground">Archived</p>
+        ) : null}
+        <Card>
+          <ClientForm
+            key={client.id}
+            initial={{
+              name: client.name,
+              email: client.email,
+              phone: client.phone,
+              address: client.address,
+              taxExempt: client.taxExempt,
+              note: client.note,
+            }}
+            pending={pending}
+            message={message}
+            submitLabel="Save Client"
+            onSubmit={(values) => void onSubmit(values)}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-3"
+            disabled={pending}
+            onClick={() => void onArchive()}
+          >
+            {client.archived ? "Unarchive" : "Archive"}
+          </Button>
+        </Card>
+      </div>
     </>
   );
 }

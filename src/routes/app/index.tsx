@@ -27,7 +27,7 @@ function AppHome() {
       <h1 className="border-b-2 border-solar pb-3 font-serif text-3xl">
         Dashboard
       </h1>
-      <p className="mt-2 text-sm text-muted-foreground">
+      <p className="mt-6 text-sm text-muted-foreground">
         Cash basis · {home.currency} · {home.timeZone}
       </p>
       <p className="mt-1 text-sm text-muted-foreground">

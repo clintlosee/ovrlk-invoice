@@ -167,11 +167,11 @@ export function AddPayments({
         Add Payments <span className="font-bold">({included})</span>
       </h1>
       {rejected.length > 0 ? (
-        <p className="mt-4 text-sm">
+        <p className="mt-6 text-sm">
           Left out: {rejected.map((row) => row.clientName).join(", ")}.
         </p>
       ) : null}
-      {message ? <p className="mt-4 text-sm">{message}</p> : null}
+      {message ? <p className="mt-6 text-sm">{message}</p> : null}
       {saved || included === 0 ? (
         <p className="mt-6">
           <Button asChild variant="outline">

@@ -93,7 +93,7 @@ function SecurityPage() {
       <h1 className="border-b-2 border-solar pb-3 font-serif text-3xl">
         Security
       </h1>
-      <p className="mt-2 text-sm text-muted-foreground">
+      <p className="mt-6 text-sm text-muted-foreground">
         Email codes are required and cannot be turned off.
       </p>
       <Card className="mt-6 space-y-4">

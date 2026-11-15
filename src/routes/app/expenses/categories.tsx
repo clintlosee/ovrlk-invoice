@@ -45,7 +45,7 @@ function CategoriesPage() {
       <h1 className="mt-3 border-b-2 border-solar pb-3 font-serif text-3xl">
         Categories
       </h1>
-      <p className="mt-2 text-sm text-muted-foreground">
+      <p className="mt-6 text-sm text-muted-foreground">
         Schedule C defaults and Cost of Goods Sold. Archive a Category that is
         in use. Merchant fees stays available for card Payments.
       </p>

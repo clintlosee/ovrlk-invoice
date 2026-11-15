@@ -92,7 +92,7 @@ function NewInvoicePage() {
           <h1 className="border-b-2 border-solar pb-3 font-serif text-2xl">
             New Invoice
           </h1>
-          <p className="mt-4 text-sm">
+          <p className="mt-6 text-sm">
             Add a{" "}
             <Link to="/app/clients/new" className="text-primary underline">
               Client

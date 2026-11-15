@@ -21,7 +21,7 @@ function ItemsPage() {
           <Link to="/app/items/new">New Item</Link>
         </Button>
       </div>
-      <p className="mt-2 text-sm text-muted-foreground">
+      <p className="mt-6 text-sm text-muted-foreground">
         Saved names and prices used to fill Invoice Lines.
       </p>
       {items.length === 0 ? (

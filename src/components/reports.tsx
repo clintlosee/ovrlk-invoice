@@ -70,12 +70,22 @@ export function ReportChrome({
         </Button>
       </div>
       {definition ? (
-        <p className="mt-3 text-sm text-muted-foreground">{definition}</p>
+        <p className="mt-6 text-sm text-muted-foreground">{definition}</p>
       ) : null}
       {note ? (
-        <p className="mt-2 text-sm text-muted-foreground">{note}</p>
+        <p
+          className={cn(
+            "text-sm text-muted-foreground",
+            definition ? "mt-2" : "mt-6",
+          )}
+        >
+          {note}
+        </p>
       ) : null}
-      <PeriodBar search={search} />
+      <PeriodBar
+        search={search}
+        className={definition || note ? "mt-4" : "mt-6"}
+      />
       {showBasis ? <BasisBar search={search} /> : null}
       {range ? (
         <p className="mt-3 text-sm">
@@ -355,7 +365,13 @@ function ReportNav({ search }: { search: ReportQuery }) {
   );
 }
 
-function PeriodBar({ search }: { search: ReportQuery }) {
+function PeriodBar({
+  search,
+  className,
+}: {
+  search: ReportQuery;
+  className?: string;
+}) {
   const navigate = useNavigate();
   const [from, setFrom] = useState(search.from);
   const [to, setTo] = useState(search.to);
@@ -368,7 +384,7 @@ function PeriodBar({ search }: { search: ReportQuery }) {
     setTo(search.to);
   }
   return (
-    <div className="mt-4">
+    <div className={className}>
       <div className="flex flex-wrap gap-x-3 gap-y-2 text-sm">
         {REPORT_PRESETS.map((preset) => (
           <Link

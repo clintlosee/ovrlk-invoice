@@ -72,7 +72,7 @@ function NewExpensePage() {
           </Link>
         </p>
       ) : (
-        <Card>
+        <Card className="mt-6">
           <ExpenseForm
             initial={{
               spentOn: form.today,

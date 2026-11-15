@@ -146,12 +146,12 @@ function ExpensesPage() {
         </Button>
       </div>
       {!data.storageConfigured ? (
-        <p className="mt-3 text-sm">
+        <p className="mt-6 text-sm">
           Receipt upload needs Cloudflare R2, which is not configured.
         </p>
       ) : null}
       {recent.length > 0 ? (
-        <section className="mt-8">
+        <section className={data.storageConfigured ? "mt-6" : "mt-8"}>
           <h2 className="font-serif text-xl">Recently Updated</h2>
           <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {recent.map((expense) => (
@@ -165,7 +165,10 @@ function ExpensesPage() {
       <div
         role="tablist"
         aria-label="Expenses"
-        className="mt-8 flex gap-2 border-b border-border"
+        className={cn(
+          "flex gap-2 border-b border-border",
+          recent.length > 0 || !data.storageConfigured ? "mt-8" : "mt-6",
+        )}
       >
         <TabButton
           selected={tab === "expenses"}
