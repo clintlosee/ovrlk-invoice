@@ -61,13 +61,18 @@ describe("chosenReceipt", () => {
 
   it("keeps only the first file", () => {
     expect(
-      chosenReceipt([jpeg, { name: "notes.txt", size: 10, type: "text/plain" }]),
+      chosenReceipt([
+        jpeg,
+        { name: "notes.txt", size: 10, type: "text/plain" },
+      ]),
     ).toEqual({ ok: true, file: jpeg });
   });
 
   it("rejects a file over 10 MB", () => {
     expect(
-      chosenReceipt([{ name: "big.jpg", size: 10 * 1024 * 1024 + 1, type: "image/jpeg" }]),
+      chosenReceipt([
+        { name: "big.jpg", size: 10 * 1024 * 1024 + 1, type: "image/jpeg" },
+      ]),
     ).toEqual({ ok: false, message: "File must be 10 MB or smaller." });
   });
 
