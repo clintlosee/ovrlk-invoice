@@ -58,7 +58,7 @@ export function ReceiptDropzone({
     <div className="space-y-2">
       <label
         className={cn(
-          "flex min-h-28 cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-card px-4 py-4 text-center text-sm focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring",
+          "flex min-h-28 cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-card px-4 py-4 text-center text-sm focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring",
           over && "border-primary",
           pending && "pointer-events-none opacity-50",
         )}
