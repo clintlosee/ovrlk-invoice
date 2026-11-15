@@ -6,7 +6,12 @@ import { expense } from "../src/db/schema";
 import { EXPENSE_CATEGORY_SEEDS } from "../src/lib/expense-categories";
 import { acceptUpload } from "../src/lib/files";
 import { cents } from "../src/lib/money";
-import { issueSignedGet, saveLogo, saveReceipt } from "../src/server/files";
+import {
+  issueSignedGet,
+  readReceipt,
+  saveLogo,
+  saveReceipt,
+} from "../src/server/files";
 import { storageConfigured } from "../src/server/storage";
 import { forBusiness } from "../src/server/tenancy";
 import { insertOwner } from "./helpers";
@@ -245,6 +250,11 @@ describe("expenses", () => {
     const replaced = await a.expenses.get(created.id);
     expect(replaced?.receiptKey).not.toBe(key);
     expect(replaced?.receiptContentType).toBe("application/pdf");
+    const stored = await readReceipt(alpha.businessId, created.id);
+    expect(stored?.contentType).toBe("application/pdf");
+    expect(stored?.body).toEqual(PDF);
+    expect(await readReceipt(beta.businessId, created.id)).toBeNull();
+    expect(await readReceipt(alpha.businessId, "missing")).toBeNull();
     const removed = await a.expenses.remove(created.id, alpha.userId);
     const { discardObject } = await import("../src/server/storage");
     await discardObject(removed?.receiptKey ?? null);

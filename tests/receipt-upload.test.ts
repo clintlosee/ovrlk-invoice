@@ -63,6 +63,15 @@ describe("receiptPreview", () => {
     ).toEqual({ kind: "none", label: "scan" });
   });
 
+  it("treats a .pdf name as a PDF when the browser omits the type", () => {
+    expect(
+      receiptPreview({
+        file: { name: "booth.PDF", type: "" },
+        remoteContentType: null,
+      }),
+    ).toEqual({ kind: "pdf", label: "booth.PDF" });
+  });
+
   it("is empty when there is no file and no stored Receipt", () => {
     expect(receiptPreview({ file: null, remoteContentType: null })).toEqual({
       kind: "none",

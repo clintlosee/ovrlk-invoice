@@ -16,6 +16,7 @@ describe("security headers", () => {
     expect(headers["x-content-type-options"]).toBe("nosniff");
     expect(headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
     expect(headers["x-frame-options"]).toBe("DENY");
+    expect(headers["content-security-policy"]).toContain("object-src 'none'");
     expect(headers["strict-transport-security"]).toContain("max-age=31536000");
   });
 

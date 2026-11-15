@@ -33,9 +33,10 @@ export function receiptPreview(input: {
     return { kind: "none", label: null };
   }
   const type = input.file ? input.file.type : input.remoteContentType;
+  const name = input.file?.name.toLowerCase() ?? "";
   const kind = type?.startsWith("image/")
     ? "image"
-    : type === "application/pdf"
+    : type === "application/pdf" || name.endsWith(".pdf")
       ? "pdf"
       : "none";
   return { kind, label: input.file ? input.file.name : "Receipt" };

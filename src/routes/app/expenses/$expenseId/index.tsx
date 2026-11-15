@@ -1,20 +1,15 @@
 import {
   createFileRoute,
-  Link,
   useNavigate,
   useRouter,
 } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ExpenseForm, type ExpenseFormValues } from "@/components/expense-form";
-import { ReceiptDropzone } from "@/components/receipt-dropzone";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { formatCents } from "@/lib/money";
 import { uploadReceipt } from "@/lib/receipt-upload";
 import {
   deleteExpense,
   getExpenseForm,
-  receiptUrl,
   removeReceipt,
   updateExpense,
 } from "@/server/expenses";
@@ -31,6 +26,7 @@ function ExpensePage() {
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
   if (!form) return <p>Sign in again.</p>;
   const expense = form.expense;
   if (!expense) return <p>That Expense does not exist.</p>;
@@ -51,53 +47,59 @@ function ExpensePage() {
     }
   }
 
+  async function onReceipt(next: File) {
+    setFile(next);
+    setPending(true);
+    setMessage(null);
+    const result = await uploadReceipt(expenseId, next);
+    setPending(false);
+    setMessage(result.ok ? "Saved." : result.message);
+    if (!result.ok) return;
+    await router.invalidate();
+    setFile(null);
+  }
+
+  async function onRemoveReceipt() {
+    setPending(true);
+    setMessage(null);
+    if (!expense?.receiptKey) {
+      setFile(null);
+      setPending(false);
+      return;
+    }
+    const result = await removeReceipt({ data: { id: expenseId } });
+    setPending(false);
+    setMessage(result.ok ? "Removed." : result.message);
+    if (!result.ok) return;
+    setFile(null);
+    await router.invalidate();
+  }
+
   return (
-    <>
-      <Link
-        to="/app/expenses"
-        search={{ from: "", to: "", category: "" }}
-        className="text-sm text-primary underline"
-      >
-        Expenses
-      </Link>
-      <h1 className="mt-3 border-b-2 border-solar pb-3 font-serif text-3xl">
-        {expense.merchant}
-      </h1>
-      <Card className="mt-6">
-        <ExpenseForm
-          initial={{
-            spentOn: expense.spentOn,
-            merchant: expense.merchant,
-            amount: formatCents(expense.amountCents),
-            categoryId: expense.categoryId,
-            clientId: expense.clientId ?? "",
-            taxPaid:
-              expense.taxPaidCents > 0 ? formatCents(expense.taxPaidCents) : "",
-            note: expense.note ?? "",
-            recurring: expense.recurring,
-          }}
-          categories={form.categories}
-          clients={form.clients}
-          lockedFee={expense.paymentId != null}
-          pending={pending}
-          message={message}
-          submitLabel="Save Expense"
-          onSubmit={(values) => void onSubmit(values)}
-        />
-        <Receipt
-          expenseId={expenseId}
-          receiptKey={expense.receiptKey}
-          receiptContentType={expense.receiptContentType}
-          hasReceipt={expense.receiptKey != null}
-          storageConfigured={form.storageConfigured}
-        />
-        {expense.paymentId ? null : (
-          <Button
-            type="button"
-            variant="outline"
-            className="mt-4"
-            disabled={pending}
-            onClick={() => {
+    <ExpenseForm
+      key={expenseId}
+      title="Edit Expense"
+      initial={{
+        spentOn: expense.spentOn,
+        merchant: expense.merchant,
+        amount: formatCents(expense.amountCents),
+        categoryId: expense.categoryId,
+        clientId: expense.clientId ?? "",
+        taxPaid:
+          expense.taxPaidCents > 0 ? formatCents(expense.taxPaidCents) : "",
+        note: expense.note ?? "",
+        recurring: expense.recurring,
+      }}
+      categories={form.categories}
+      clients={form.clients}
+      lockedFee={expense.paymentId != null}
+      pending={pending}
+      message={message}
+      onSubmit={(values) => void onSubmit(values)}
+      onDelete={
+        expense.paymentId
+          ? undefined
+          : () => {
               if (!window.confirm("Delete this Expense?")) return;
               setPending(true);
               void deleteExpense({ data: { id: expenseId } }).then(
@@ -113,115 +115,20 @@ function ExpensePage() {
                   });
                 },
               );
-            }}
-          >
-            Delete Expense
-          </Button>
-        )}
-      </Card>
-    </>
-  );
-}
-
-function Receipt({
-  expenseId,
-  receiptKey,
-  receiptContentType,
-  hasReceipt,
-  storageConfigured,
-}: {
-  expenseId: string;
-  receiptKey: string | null;
-  receiptContentType: string | null;
-  hasReceipt: boolean;
-  storageConfigured: boolean;
-}) {
-  const router = useRouter();
-  const [message, setMessage] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-  const [remoteUrl, setRemoteUrl] = useState<string | null>(null);
-  const [file, setFile] = useState<File | null>(null);
-
-  useEffect(() => {
-    if (!receiptKey) {
-      setRemoteUrl(null);
-      return;
-    }
-    let cancelled = false;
-    void receiptUrl({ data: { id: expenseId } }).then((result) => {
-      if (cancelled) return;
-      if (result.ok) setRemoteUrl(result.url);
-      else setMessage(result.message);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [expenseId, receiptKey]);
-
-  if (!storageConfigured) {
-    return (
-      <p className="mt-6 text-sm">
-        Receipt upload needs Cloudflare R2, which is not configured.
-      </p>
-    );
-  }
-  return (
-    <div className="mt-6 space-y-3 border-t border-border pt-4">
-      <h2 className="font-medium">Receipt</h2>
-      <ReceiptDropzone
-        file={file}
-        remoteContentType={hasReceipt ? receiptContentType : null}
-        remoteUrl={remoteUrl}
-        pending={pending}
-        onFile={(next) => {
-          setFile(next);
-          setPending(true);
-          setMessage(null);
-          void uploadReceipt(expenseId, next).then(async (result) => {
-            setPending(false);
-            setMessage(result.ok ? "Saved." : result.message);
-            if (!result.ok) return;
-            setFile(null);
-            await router.invalidate();
-          });
-        }}
-      />
-      {hasReceipt ? (
-        <div className="flex gap-3">
-          <button
-            type="button"
-            className="text-sm text-primary underline"
-            onClick={() => {
-              void receiptUrl({ data: { id: expenseId } }).then((result) => {
-                if (result.ok) window.open(result.url, "_blank", "noopener");
-                else setMessage(result.message);
-              });
-            }}
-          >
-            View Receipt
-          </button>
-          <button
-            type="button"
-            className="text-sm text-primary underline"
-            disabled={pending}
-            onClick={() => {
-              setPending(true);
-              void removeReceipt({ data: { id: expenseId } }).then(
-                async (result) => {
-                  setPending(false);
-                  setMessage(result.ok ? "Removed." : result.message);
-                  if (!result.ok) return;
-                  setFile(null);
-                  await router.invalidate();
-                },
-              );
-            }}
-          >
-            Remove
-          </button>
-        </div>
-      ) : null}
-      {message ? <p className="text-sm">{message}</p> : null}
-    </div>
+            }
+      }
+      receipt={{
+        configured: form.storageConfigured,
+        file,
+        onFile: (next) => void onReceipt(next),
+        onRemove: () => void onRemoveReceipt(),
+        remoteContentType: expense.receiptKey
+          ? expense.receiptContentType
+          : null,
+        remoteUrl: expense.receiptKey
+          ? `/app/expenses/${expenseId}/receipt?v=${encodeURIComponent(expense.updatedAt)}`
+          : null,
+      }}
+    />
   );
 }

@@ -1,7 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { ExpenseForm, type ExpenseFormValues } from "@/components/expense-form";
-import { Card } from "@/components/ui/card";
 import { uploadReceipt } from "@/lib/receipt-upload";
 import { createExpense, getExpenseForm } from "@/server/expenses";
 
@@ -48,56 +47,43 @@ function NewExpensePage() {
     }
   }
 
-  return (
-    <>
+  return savedId ? (
+    <p className="text-sm">
+      {message}{" "}
       <Link
-        to="/app/expenses"
-        search={{ from: "", to: "", category: "" }}
-        className="text-sm text-primary underline"
+        to="/app/expenses/$expenseId"
+        params={{ expenseId: savedId }}
+        className="text-primary underline"
       >
-        Expenses
+        Open the Expense
       </Link>
-      <h1 className="mt-3 border-b-2 border-solar pb-3 font-serif text-3xl">
-        New Expense
-      </h1>
-      {savedId ? (
-        <p className="mt-6 text-sm">
-          {message}{" "}
-          <Link
-            to="/app/expenses/$expenseId"
-            params={{ expenseId: savedId }}
-            className="text-primary underline"
-          >
-            Open the Expense
-          </Link>
-        </p>
-      ) : (
-        <Card className="mt-6">
-          <ExpenseForm
-            initial={{
-              spentOn: form.today,
-              merchant: "",
-              amount: "",
-              categoryId: "",
-              clientId: "",
-              taxPaid: "",
-              note: "",
-              recurring: false,
-            }}
-            categories={form.categories}
-            clients={form.clients}
-            pending={pending}
-            message={message}
-            submitLabel="Save Expense"
-            receipt={{
-              configured: form.storageConfigured,
-              file,
-              onFile: setFile,
-            }}
-            onSubmit={(values) => void onSubmit(values)}
-          />
-        </Card>
-      )}
-    </>
+    </p>
+  ) : (
+    <ExpenseForm
+      title="New Expense"
+      initial={{
+        spentOn: form.today,
+        merchant: "",
+        amount: "",
+        categoryId: "",
+        clientId: "",
+        taxPaid: "",
+        note: "",
+        recurring: false,
+      }}
+      categories={form.categories}
+      clients={form.clients}
+      pending={pending}
+      message={message}
+      onSubmit={(values) => void onSubmit(values)}
+      receipt={{
+        configured: form.storageConfigured,
+        file,
+        onFile: setFile,
+        onRemove: () => setFile(null),
+        remoteContentType: null,
+        remoteUrl: null,
+      }}
+    />
   );
 }

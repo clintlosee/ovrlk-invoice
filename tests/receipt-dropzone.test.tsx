@@ -25,19 +25,22 @@ function markup(
 describe("ReceiptDropzone", () => {
   it("renders a file input inside the drop copy", () => {
     const html = markup({});
-    expect(html).toContain("Drop a Receipt, or click to choose");
+    expect(html).toContain("Add a Receipt");
+    expect(html).toContain("select a file");
     expect(html).toContain("Image or PDF, up to 10 MB.");
     expect(html).toContain('type="file"');
   });
 
-  it("shows a stored PDF in a frame labeled Receipt", () => {
+  it("names a stored PDF while the preview loads", () => {
     const html = markup({
       remoteContentType: "application/pdf",
-      remoteUrl: "https://example.test/receipt.pdf",
+      remoteUrl: "/app/expenses/exp/receipt",
     });
-    expect(html).toContain("<iframe");
-    expect(html).toContain('title="Receipt"');
-    expect(html).not.toContain("Drop a Receipt, or click to choose");
+    expect(html).toContain('data-receipt-kind="pdf"');
+    expect(html).toContain("Receipt");
+    expect(html).toContain("Open");
+    expect(html).toContain('href="/app/expenses/exp/receipt"');
+    expect(html).not.toContain("Add a Receipt");
   });
 
   it("shows a stored image", () => {

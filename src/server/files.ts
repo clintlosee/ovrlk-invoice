@@ -82,6 +82,24 @@ export async function openReceipt(
   return issueSignedGet(businessId, row.receiptKey);
 }
 
+/** Same-origin bytes for a Receipt preview. The Business comes from the session. */
+export async function readReceipt(
+  businessId: string,
+  expenseId: string,
+): Promise<{ body: Uint8Array; contentType: string } | null> {
+  if (!storageConfigured()) return null;
+  const row = await forBusiness(getDb(), businessId).expenses.get(expenseId);
+  if (!row?.receiptKey || !keyOwnedBy(businessId, row.receiptKey, "receipts")) {
+    return null;
+  }
+  const object = await getObject(row.receiptKey);
+  if (!object) return null;
+  return {
+    body: object.body,
+    contentType: row.receiptContentType ?? object.contentType,
+  };
+}
+
 export async function saveLogo(
   businessId: string,
   bytes: Uint8Array,
