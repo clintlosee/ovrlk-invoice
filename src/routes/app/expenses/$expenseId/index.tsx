@@ -4,12 +4,13 @@ import {
   useNavigate,
   useRouter,
 } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ExpenseForm, type ExpenseFormValues } from "@/components/expense-form";
+import { ReceiptDropzone } from "@/components/receipt-dropzone";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatCents } from "@/lib/money";
-import { RECEIPT_ACCEPT, uploadReceipt } from "@/lib/receipt-upload";
+import { uploadReceipt } from "@/lib/receipt-upload";
 import {
   deleteExpense,
   getExpenseForm,
@@ -85,6 +86,8 @@ function ExpensePage() {
         />
         <Receipt
           expenseId={expenseId}
+          receiptKey={expense.receiptKey}
+          receiptContentType={expense.receiptContentType}
           hasReceipt={expense.receiptKey != null}
           storageConfigured={form.storageConfigured}
         />
@@ -122,16 +125,39 @@ function ExpensePage() {
 
 function Receipt({
   expenseId,
+  receiptKey,
+  receiptContentType,
   hasReceipt,
   storageConfigured,
 }: {
   expenseId: string;
+  receiptKey: string | null;
+  receiptContentType: string | null;
   hasReceipt: boolean;
   storageConfigured: boolean;
 }) {
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [remoteUrl, setRemoteUrl] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+
+  useEffect(() => {
+    if (!receiptKey) {
+      setRemoteUrl(null);
+      return;
+    }
+    let cancelled = false;
+    void receiptUrl({ data: { id: expenseId } }).then((result) => {
+      if (cancelled) return;
+      if (result.ok) setRemoteUrl(result.url);
+      else setMessage(result.message);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [expenseId, receiptKey]);
+
   if (!storageConfigured) {
     return (
       <p className="mt-6 text-sm">
@@ -142,9 +168,24 @@ function Receipt({
   return (
     <div className="mt-6 space-y-3 border-t border-border pt-4">
       <h2 className="font-medium">Receipt</h2>
-      <p className="text-sm text-muted-foreground">
-        Image or PDF, up to 10 MB.
-      </p>
+      <ReceiptDropzone
+        file={file}
+        remoteContentType={hasReceipt ? receiptContentType : null}
+        remoteUrl={remoteUrl}
+        pending={pending}
+        onFile={(next) => {
+          setFile(next);
+          setPending(true);
+          setMessage(null);
+          void uploadReceipt(expenseId, next).then(async (result) => {
+            setPending(false);
+            setMessage(result.ok ? "Saved." : result.message);
+            if (!result.ok) return;
+            setFile(null);
+            await router.invalidate();
+          });
+        }}
+      />
       {hasReceipt ? (
         <div className="flex gap-3">
           <button
@@ -169,7 +210,9 @@ function Receipt({
                 async (result) => {
                   setPending(false);
                   setMessage(result.ok ? "Removed." : result.message);
-                  if (result.ok) await router.invalidate();
+                  if (!result.ok) return;
+                  setFile(null);
+                  await router.invalidate();
                 },
               );
             }}
@@ -178,37 +221,6 @@ function Receipt({
           </button>
         </div>
       ) : null}
-      <form
-        className="flex flex-wrap items-center gap-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const input = event.currentTarget.elements.namedItem("receipt");
-          if (!(input instanceof HTMLInputElement) || !input.files?.[0]) return;
-          const form = event.currentTarget;
-          const file = input.files[0];
-          setPending(true);
-          setMessage(null);
-          void uploadReceipt(expenseId, file).then(async (result) => {
-            setPending(false);
-            setMessage(result.ok ? "Saved." : result.message);
-            if (result.ok) {
-              form.reset();
-              await router.invalidate();
-            }
-          });
-        }}
-      >
-        <input
-          name="receipt"
-          type="file"
-          accept={RECEIPT_ACCEPT}
-          required
-          className="text-sm"
-        />
-        <Button type="submit" disabled={pending}>
-          {hasReceipt ? "Replace Receipt" : "Upload Receipt"}
-        </Button>
-      </form>
       {message ? <p className="text-sm">{message}</p> : null}
     </div>
   );

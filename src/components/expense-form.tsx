@@ -1,10 +1,10 @@
 import { useState } from "react";
+import { ReceiptDropzone } from "@/components/receipt-dropzone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { categoryGroupLabel } from "@/lib/expense-categories";
-import { RECEIPT_ACCEPT } from "@/lib/receipt-upload";
 
 export type ExpenseFormValues = {
   spentOn: string;
@@ -46,6 +46,7 @@ export function ExpenseForm({
   onSubmit: (values: ExpenseFormValues) => void;
   receipt?: {
     configured: boolean;
+    file: File | null;
     onFile: (file: File | null) => void;
   };
 }) {
@@ -196,19 +197,13 @@ export function ExpenseForm({
         receipt.configured ? (
           <div className="space-y-2">
             <Label htmlFor="receipt">Receipt</Label>
-            <input
-              id="receipt"
-              name="receipt"
-              type="file"
-              accept={RECEIPT_ACCEPT}
-              className="text-sm"
-              onChange={(event) =>
-                receipt.onFile(event.target.files?.[0] ?? null)
-              }
+            <ReceiptDropzone
+              file={receipt.file}
+              remoteContentType={null}
+              remoteUrl={null}
+              pending={pending}
+              onFile={receipt.onFile}
             />
-            <p className="text-sm text-muted-foreground">
-              Image or PDF, up to 10 MB.
-            </p>
           </div>
         ) : (
           <p className="text-sm">

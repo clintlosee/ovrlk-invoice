@@ -31,7 +31,7 @@ export function bulkActionState(
   edit: boolean;
   addPayment: boolean;
 } {
-  const edit = invoices.length === 1 && EDITABLE.includes(invoices[0]!.status);
+  const edit = invoices.length === 1 && EDITABLE.includes(invoices[0].status);
 
   const addPayment =
     invoices.length > 0 &&
