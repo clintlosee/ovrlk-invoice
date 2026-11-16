@@ -1,4 +1,5 @@
 import { Monitor, Moon, Sun } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,7 +25,18 @@ export function ThemeToggle() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" aria-label="Theme">
-          <Current aria-hidden className="size-4" />
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.span
+              key={theme}
+              className="inline-flex"
+              initial={{ opacity: 0, y: -3 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 3 }}
+              transition={{ duration: 0.14 }}
+            >
+              <Current aria-hidden className="size-4" />
+            </motion.span>
+          </AnimatePresence>
           Theme
         </Button>
       </DropdownMenuTrigger>

@@ -1,4 +1,5 @@
 import { createRouter } from "@tanstack/react-router";
+import { transitionTypes } from "@/lib/motion";
 import { routeTree } from "./routeTree.gen";
 
 export function getRouter() {
@@ -6,6 +7,14 @@ export function getRouter() {
     routeTree,
     scrollRestoration: true,
     defaultPreload: "intent",
+    defaultViewTransition: {
+      types: ({ fromLocation, toLocation, pathChanged }) =>
+        transitionTypes(
+          fromLocation?.pathname,
+          toLocation.pathname,
+          pathChanged,
+        ),
+    },
   });
 }
 

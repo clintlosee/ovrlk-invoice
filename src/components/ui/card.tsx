@@ -10,6 +10,9 @@ export const cardList = cn(
   "divide-y divide-border overflow-hidden",
 );
 
+export const cardLift =
+  "transition-transform duration-200 ease-out hover:-translate-y-0.5 motion-reduce:transform-none";
+
 export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return <div className={cn(cardSurface, "p-6", className)} {...props} />;
 }

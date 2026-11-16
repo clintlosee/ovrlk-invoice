@@ -5,6 +5,7 @@ import {
   Scripts,
   useRouterState,
 } from "@tanstack/react-router";
+import { MotionConfig } from "motion/react";
 import { useState } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { resolveTheme, type Theme } from "@/lib/theme";
@@ -55,9 +56,11 @@ function RootComponent() {
         <HeadContent />
       </head>
       <body>
-        <ThemeProvider theme={saved} setTheme={choose}>
-          <Outlet />
-        </ThemeProvider>
+        <MotionConfig reducedMotion="user">
+          <ThemeProvider theme={saved} setTheme={choose}>
+            <Outlet />
+          </ThemeProvider>
+        </MotionConfig>
         <Scripts />
       </body>
     </html>
