@@ -6,8 +6,9 @@ import {
   InvoiceBulkBar,
 } from "@/components/invoice-bulk-bar";
 import { InvoiceStatusBadge } from "@/components/invoice-status-badge";
+import { Pop } from "@/components/motion";
 import { Button } from "@/components/ui/button";
-import { cardSurface } from "@/components/ui/card";
+import { cardLift, cardSurface } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -135,6 +136,7 @@ function InvoicesPage() {
                     params={{ invoiceId: invoice.id }}
                     className={cn(
                       cardSurface,
+                      cardLift,
                       "flex h-full flex-col overflow-hidden",
                     )}
                   >
@@ -169,13 +171,13 @@ function InvoicesPage() {
                     ? `Selected ${selected.length}`
                     : "All Invoices"}
                 </h2>
-                {selected.length > 0 ? (
+                <Pop show={selected.length > 0}>
                   <InvoiceBulkBar
                     invoices={selected}
                     onClear={() => setSelectedIds([])}
                     onMessage={setMessage}
                   />
-                ) : null}
+                </Pop>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <div className="relative">

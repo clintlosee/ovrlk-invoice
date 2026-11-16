@@ -286,3 +286,158 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
 }
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes root-leave {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes root-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes page-leave {
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes page-leave-deeper {
+  to {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+}
+
+@keyframes page-enter-deeper {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+
+@keyframes page-leave-shallower {
+  to {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+
+@keyframes page-enter-shallower {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .menu-in {
+    animation: menu-in 140ms ease-out;
+  }
+
+  dialog {
+    transition:
+      display 180ms allow-discrete,
+      overlay 180ms allow-discrete,
+      opacity 180ms ease;
+  }
+
+  dialog[open] {
+    opacity: 1;
+  }
+
+  dialog:not([open]) {
+    opacity: 0;
+  }
+
+  @starting-style {
+    dialog[open] {
+      opacity: 0;
+    }
+  }
+
+  dialog::backdrop {
+    background: color-mix(in srgb, var(--foreground) 40%, transparent);
+    opacity: 0;
+    transition:
+      display 180ms allow-discrete,
+      overlay 180ms allow-discrete,
+      opacity 180ms ease;
+  }
+
+  dialog[open]::backdrop {
+    opacity: 1;
+  }
+
+  @starting-style {
+    dialog[open]::backdrop {
+      opacity: 0;
+    }
+  }
+
+  ::view-transition-old(root) {
+    animation: 180ms cubic-bezier(0.22, 1, 0.36, 1) both root-leave;
+  }
+
+  ::view-transition-new(root) {
+    animation: 220ms cubic-bezier(0.22, 1, 0.36, 1) both root-enter;
+  }
+
+  html:active-view-transition-type(app) ::view-transition-old(root),
+  html:active-view-transition-type(app) ::view-transition-new(root) {
+    animation: none;
+  }
+
+  html:active-view-transition-type(app) .app-main {
+    view-transition-name: app-main;
+  }
+
+  html:active-view-transition-type(app) ::view-transition-group(app-main) {
+    overflow: clip;
+  }
+
+  html:active-view-transition-type(app) ::view-transition-old(app-main) {
+    animation: 160ms cubic-bezier(0.22, 1, 0.36, 1) both page-leave;
+  }
+
+  html:active-view-transition-type(app) ::view-transition-new(app-main) {
+    animation: 200ms cubic-bezier(0.22, 1, 0.36, 1) both page-enter;
+  }
+
+  html:active-view-transition-type(deeper) ::view-transition-old(app-main) {
+    animation-name: page-leave-deeper;
+  }
+
+  html:active-view-transition-type(deeper) ::view-transition-new(app-main) {
+    animation-name: page-enter-deeper;
+  }
+
+  html:active-view-transition-type(shallower) ::view-transition-old(app-main) {
+    animation-name: page-leave-shallower;
+  }
+
+  html:active-view-transition-type(shallower) ::view-transition-new(app-main) {
+    animation-name: page-enter-shallower;
+  }
+}

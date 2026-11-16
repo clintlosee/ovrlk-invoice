@@ -16,6 +16,7 @@ import {
   Users,
 } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
+import { NavHighlight, Scrim } from "@/components/motion";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
@@ -29,10 +30,8 @@ import { cn } from "@/lib/utils";
 
 function itemClass(active: boolean) {
   return cn(
-    "flex items-center gap-2 rounded-md px-3 py-2 text-sm",
-    active
-      ? "bg-primary font-medium text-primary-foreground"
-      : "hover:bg-accent",
+    "relative flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors duration-300",
+    active ? "font-medium text-primary-foreground" : "hover:bg-accent",
   );
 }
 
@@ -45,8 +44,8 @@ function Item({
 }) {
   return (
     <>
-      <Icon aria-hidden className="size-4 shrink-0" />
-      <span className="truncate">{children}</span>
+      <Icon aria-hidden className="relative z-10 size-4 shrink-0" />
+      <span className="relative z-10 truncate">{children}</span>
     </>
   );
 }
@@ -96,6 +95,7 @@ export function AppShell({
   const [settingsChoice, setSettingsChoice] = useState<boolean | null>(null);
   const [invoicesChoice, setInvoicesChoice] = useState<boolean | null>(null);
   const [groupsOn, setGroupsOn] = useState(pathname);
+  const [mobile, setMobile] = useState(false);
   if (open && openOn !== pathname) {
     setOpen(false);
     setOpenOn(pathname);
@@ -116,6 +116,14 @@ export function AppShell({
   }
 
   useEffect(() => {
+    const query = window.matchMedia("(max-width: 767px)");
+    const sync = () => setMobile(query.matches);
+    sync();
+    query.addEventListener("change", sync);
+    return () => query.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
     if (!open) return;
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") setOpen(false);
@@ -132,22 +140,15 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen">
-      {open ? (
-        <button
-          type="button"
-          className="fixed inset-0 z-30 bg-foreground/40 md:hidden"
-          aria-label="Close menu"
-          onClick={() => setOpen(false)}
-        />
-      ) : null}
+      <Scrim show={open} onClose={() => setOpen(false)} />
       <aside
         id="app-sidebar"
+        inert={mobile && !open ? true : undefined}
         className={cn(
-          "w-60 shrink-0 flex-col border-r border-border bg-card",
-          "md:sticky md:top-0 md:flex md:h-screen",
-          open
-            ? "flex max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-40"
-            : "hidden",
+          "flex h-screen w-60 shrink-0 flex-col border-r border-border bg-card",
+          "max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:transition-transform max-md:duration-200 max-md:ease-out motion-reduce:max-md:transition-none",
+          open ? "max-md:translate-x-0" : "max-md:-translate-x-full",
+          "md:sticky md:top-0",
         )}
       >
         <div className="h-1.5 bg-solar" aria-hidden />
@@ -175,6 +176,7 @@ export function AppShell({
             className={itemClass(current === "/app")}
             aria-current={current === "/app" ? "page" : undefined}
           >
+            {current === "/app" ? <NavHighlight /> : null}
             <Item icon={LayoutDashboard}>Dashboard</Item>
           </Link>
           <Link
@@ -183,21 +185,23 @@ export function AppShell({
             className={itemClass(current === "/app/clients")}
             aria-current={current === "/app/clients" ? "page" : undefined}
           >
+            {current === "/app/clients" ? <NavHighlight /> : null}
             <Item icon={Users}>Clients</Item>
           </Link>
           <div>
             <div
               className={cn(
-                "flex items-center rounded-md",
+                "relative flex items-center rounded-md transition-colors duration-300",
                 current === "/app/invoices"
-                  ? "bg-primary font-medium text-primary-foreground"
+                  ? "font-medium text-primary-foreground"
                   : "hover:bg-accent",
               )}
             >
+              {current === "/app/invoices" ? <NavHighlight /> : null}
               <Link
                 to="/app/invoices"
                 onClick={() => setOpen(false)}
-                className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-sm"
+                className="relative z-10 flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-sm"
                 aria-current={current === "/app/invoices" ? "page" : undefined}
               >
                 <Item icon={FileText}>Invoices</Item>
@@ -205,7 +209,7 @@ export function AppShell({
               <button
                 type="button"
                 className={cn(
-                  "rounded-md px-3 py-2",
+                  "relative z-10 rounded-md px-3 py-2",
                   current === "/app/invoices"
                     ? "hover:bg-primary-foreground/15"
                     : "hover:bg-foreground/10",
@@ -231,6 +235,7 @@ export function AppShell({
                 className={cn(itemClass(current === "/app/items"), "pl-9")}
                 aria-current={current === "/app/items" ? "page" : undefined}
               >
+                {current === "/app/items" ? <NavHighlight /> : null}
                 <Item icon={Package}>Items</Item>
               </Link>
               <Link
@@ -239,6 +244,7 @@ export function AppShell({
                 className={cn(itemClass(current === "/app/tax-rates"), "pl-9")}
                 aria-current={current === "/app/tax-rates" ? "page" : undefined}
               >
+                {current === "/app/tax-rates" ? <NavHighlight /> : null}
                 <Item icon={Percent}>Tax Rates</Item>
               </Link>
             </NavGroup>
@@ -250,6 +256,7 @@ export function AppShell({
             className={itemClass(current === "/app/expenses")}
             aria-current={current === "/app/expenses" ? "page" : undefined}
           >
+            {current === "/app/expenses" ? <NavHighlight /> : null}
             <Item icon={Receipt}>Expenses</Item>
           </Link>
           <Link
@@ -259,6 +266,7 @@ export function AppShell({
             className={itemClass(current === "/app/reports")}
             aria-current={current === "/app/reports" ? "page" : undefined}
           >
+            {current === "/app/reports" ? <NavHighlight /> : null}
             <Item icon={BarChart3}>Reports</Item>
           </Link>
           <hr className="my-2 border-solar" />
@@ -288,6 +296,7 @@ export function AppShell({
                 className={cn(itemClass(current === "/app/settings"), "pl-9")}
                 aria-current={current === "/app/settings" ? "page" : undefined}
               >
+                {current === "/app/settings" ? <NavHighlight /> : null}
                 <Item icon={Building2}>Business</Item>
               </Link>
               <Link
@@ -296,6 +305,7 @@ export function AppShell({
                 className={cn(itemClass(current === "/app/security"), "pl-9")}
                 aria-current={current === "/app/security" ? "page" : undefined}
               >
+                {current === "/app/security" ? <NavHighlight /> : null}
                 <Item icon={Shield}>Security</Item>
               </Link>
             </NavGroup>
@@ -326,7 +336,7 @@ export function AppShell({
             <Menu aria-hidden className="size-4" />
           </Button>
         </div>
-        <main className="flex-1 px-6 py-8">{children}</main>
+        <main className="app-main flex-1 px-6 py-8">{children}</main>
       </div>
     </div>
   );

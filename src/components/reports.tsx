@@ -1,5 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { type ReactNode, useState } from "react";
+import { ActiveMark, Swap } from "@/components/motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatUsd } from "@/lib/money";
@@ -16,8 +17,8 @@ import { cn } from "@/lib/utils";
 
 function choiceClass(current: boolean) {
   return current
-    ? "border-b-2 border-solar font-medium text-primary"
-    : "text-primary underline";
+    ? "relative font-medium text-primary"
+    : "relative text-primary underline";
 }
 
 export function saveCsv(filename: string, csv: string) {
@@ -92,8 +93,14 @@ export function ReportChrome({
           {range.from} – {range.to}
         </p>
       ) : null}
-      {error ? <p className="mt-4 text-sm text-destructive">{error}</p> : null}
-      {children}
+      <Swap
+        viewKey={`${search.preset}:${search.basis}:${search.from}:${search.to}:${error ?? ""}`}
+      >
+        {error ? (
+          <p className="mt-4 text-sm text-destructive">{error}</p>
+        ) : null}
+        {children}
+      </Swap>
     </>
   );
 }
@@ -358,6 +365,7 @@ function ReportNav({ search }: { search: ReportQuery }) {
             className={choiceClass(current)}
           >
             {link.label}
+            {current ? <ActiveMark layoutId="report-nav" /> : null}
           </Link>
         );
       })}
@@ -395,6 +403,9 @@ function PeriodBar({
             className={choiceClass(search.preset === preset)}
           >
             {PRESET_LABELS[preset]}
+            {search.preset === preset ? (
+              <ActiveMark layoutId="report-period" />
+            ) : null}
           </Link>
         ))}
       </div>
@@ -446,6 +457,9 @@ function BasisBar({ search }: { search: ReportQuery }) {
         className={choiceClass(search.basis === "cash")}
       >
         Cash basis
+        {search.basis === "cash" ? (
+          <ActiveMark layoutId="report-basis" />
+        ) : null}
       </Link>
       <Link
         to="."
@@ -454,6 +468,9 @@ function BasisBar({ search }: { search: ReportQuery }) {
         className={choiceClass(search.basis === "accrual")}
       >
         Accrual basis
+        {search.basis === "accrual" ? (
+          <ActiveMark layoutId="report-basis" />
+        ) : null}
       </Link>
     </div>
   );

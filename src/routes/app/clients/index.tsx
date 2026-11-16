@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { useState } from "react";
+import { Reveal } from "@/components/motion";
 import { Button } from "@/components/ui/button";
-import { cardSurface } from "@/components/ui/card";
+import { cardLift, cardSurface } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -61,7 +62,11 @@ function ClientsPage() {
                 <Link
                   to="/app/clients/$clientId"
                   params={{ clientId: client.id }}
-                  className={cn(cardSurface, "block h-full min-w-0 p-4")}
+                  className={cn(
+                    cardSurface,
+                    cardLift,
+                    "block h-full min-w-0 p-4",
+                  )}
                 >
                   <div className="flex items-center gap-3">
                     <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-solar text-xs font-medium text-solar-ink">
@@ -113,15 +118,15 @@ function ClientsPage() {
             >
               {showArchived ? "Hide archived Clients" : "View archived Clients"}
             </button>
-            {showArchived ? (
-              archived.length === 0 ? (
+            <Reveal show={showArchived}>
+              {archived.length === 0 ? (
                 <p className="mt-4 text-sm">No Clients match.</p>
               ) : (
                 <div className="mt-3">
                   <ClientTable rows={archived} />
                 </div>
-              )
-            ) : null}
+              )}
+            </Reveal>
           </div>
         ) : null}
       </section>

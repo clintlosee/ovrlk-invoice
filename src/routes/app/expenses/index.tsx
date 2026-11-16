@@ -18,8 +18,9 @@ import {
   ExpenseQuickEdit,
   type QuickExpense,
 } from "@/components/expense-quick-edit";
+import { ActiveMark, Reveal, Swap } from "@/components/motion";
 import { Button } from "@/components/ui/button";
-import { cardSurface } from "@/components/ui/card";
+import { cardLift, cardSurface } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -224,7 +225,7 @@ function ExpensesPage() {
             </Link>
           </div>
         </div>
-        {advanced ? (
+        <Reveal show={advanced}>
           <form
             className="mt-4 flex flex-wrap items-end gap-3"
             onSubmit={(event) => {
@@ -278,100 +279,105 @@ function ExpensesPage() {
               Dates are in this Business's time zone.
             </p>
           </form>
-        ) : null}
+        </Reveal>
         {message ? (
           <p className="mt-4 text-sm text-destructive">{message}</p>
         ) : null}
-        {data.expenses.length === 0 ? (
-          <p className="mt-4 text-sm">No Expenses yet.</p>
-        ) : pool.length === 0 ? (
-          <p className="mt-4 text-sm">No recurring Expenses.</p>
-        ) : shown.length === 0 ? (
-          <p className="mt-4 text-sm">No Expenses match.</p>
-        ) : (
-          <div className="mt-3">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>
-                    Merchant
-                    <span className="block font-normal text-muted-foreground">
-                      Category
-                    </span>
-                  </TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>
-                    Client
-                    <span className="block font-normal text-muted-foreground">
-                      Note
-                    </span>
-                  </TableHead>
-                  <TableHead className="pr-32 text-right">
-                    Amount
-                    <span className="block font-normal text-muted-foreground">
-                      Tax
-                    </span>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {shown.map((expense) =>
-                  editingId === expense.id ? (
-                    <TableRow key={expense.id} className="hover:bg-transparent">
-                      <TableCell colSpan={4} className="p-0">
-                        <ExpenseQuickEdit
-                          expense={expense}
-                          categories={data.categories}
-                          clients={data.clients}
-                          storageConfigured={data.storageConfigured}
-                          onClose={() => setEditingId(null)}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    <ExpenseTableRow
-                      key={expense.id}
-                      expense={expense}
-                      busy={busyId === expense.id}
-                      onEdit={() => {
-                        setMessage(null);
-                        setEditingId(expense.id);
-                      }}
-                      onCopy={() => void copyExpense(expense)}
-                      onDelete={() => void removeExpense(expense)}
-                      onRecurring={() => {
-                        setTab("recurring");
-                        setEditingId(null);
-                      }}
-                      onViewReceipt={() => {
-                        void receiptUrl({ data: { id: expense.id } }).then(
-                          (result) => {
-                            if (result.ok) {
-                              window.open(result.url, "_blank", "noopener");
-                            } else setMessage(result.message);
-                          },
-                        );
-                      }}
-                    />
-                  ),
-                )}
-                <TableRow className="bg-muted/60 hover:bg-muted/60">
-                  <TableCell colSpan={3} className="text-right font-medium">
-                    Total
-                  </TableCell>
-                  <TableCell className="pr-32 text-right font-medium">
-                    <p>{formatUsd(totalCents)}</p>
-                    {taxCents > 0 ? (
-                      <p className="font-normal text-muted-foreground">
-                        {formatUsd(taxCents)} tax
-                      </p>
-                    ) : null}
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </div>
-        )}
+        <Swap viewKey={`${tab}:${search.from}:${search.to}:${search.category}`}>
+          {data.expenses.length === 0 ? (
+            <p className="mt-4 text-sm">No Expenses yet.</p>
+          ) : pool.length === 0 ? (
+            <p className="mt-4 text-sm">No recurring Expenses.</p>
+          ) : shown.length === 0 ? (
+            <p className="mt-4 text-sm">No Expenses match.</p>
+          ) : (
+            <div className="mt-3">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>
+                      Merchant
+                      <span className="block font-normal text-muted-foreground">
+                        Category
+                      </span>
+                    </TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>
+                      Client
+                      <span className="block font-normal text-muted-foreground">
+                        Note
+                      </span>
+                    </TableHead>
+                    <TableHead className="pr-32 text-right">
+                      Amount
+                      <span className="block font-normal text-muted-foreground">
+                        Tax
+                      </span>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {shown.map((expense) =>
+                    editingId === expense.id ? (
+                      <TableRow
+                        key={expense.id}
+                        className="hover:bg-transparent"
+                      >
+                        <TableCell colSpan={4} className="p-0">
+                          <ExpenseQuickEdit
+                            expense={expense}
+                            categories={data.categories}
+                            clients={data.clients}
+                            storageConfigured={data.storageConfigured}
+                            onClose={() => setEditingId(null)}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      <ExpenseTableRow
+                        key={expense.id}
+                        expense={expense}
+                        busy={busyId === expense.id}
+                        onEdit={() => {
+                          setMessage(null);
+                          setEditingId(expense.id);
+                        }}
+                        onCopy={() => void copyExpense(expense)}
+                        onDelete={() => void removeExpense(expense)}
+                        onRecurring={() => {
+                          setTab("recurring");
+                          setEditingId(null);
+                        }}
+                        onViewReceipt={() => {
+                          void receiptUrl({ data: { id: expense.id } }).then(
+                            (result) => {
+                              if (result.ok) {
+                                window.open(result.url, "_blank", "noopener");
+                              } else setMessage(result.message);
+                            },
+                          );
+                        }}
+                      />
+                    ),
+                  )}
+                  <TableRow className="bg-muted/60 hover:bg-muted/60">
+                    <TableCell colSpan={3} className="text-right font-medium">
+                      Total
+                    </TableCell>
+                    <TableCell className="pr-32 text-right font-medium">
+                      <p>{formatUsd(totalCents)}</p>
+                      {taxCents > 0 ? (
+                        <p className="font-normal text-muted-foreground">
+                          {formatUsd(taxCents)} tax
+                        </p>
+                      ) : null}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </Swap>
       </section>
     </>
   );
@@ -385,6 +391,7 @@ function RecentCard({ expense }: { expense: ExpenseRow }) {
       params={{ expenseId: expense.id }}
       className={cn(
         cardSurface,
+        cardLift,
         "flex h-full min-w-0 flex-col overflow-hidden",
       )}
     >
@@ -548,14 +555,13 @@ function TabButton({
       role="tab"
       aria-selected={selected}
       className={cn(
-        "-mb-px border-b-2 px-3 py-2 text-sm",
-        selected
-          ? "border-solar font-medium text-foreground"
-          : "border-transparent text-primary",
+        "relative -mb-px px-3 py-2 text-sm",
+        selected ? "font-medium text-foreground" : "text-primary",
       )}
       onClick={onClick}
     >
       {children}
+      {selected ? <ActiveMark layoutId="expense-tab" /> : null}
     </button>
   );
 }

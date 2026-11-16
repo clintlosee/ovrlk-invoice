@@ -8,6 +8,7 @@ import { useState } from "react";
 import { InvoiceDocument } from "@/components/invoice-document";
 import { InvoiceForm } from "@/components/invoice-form";
 import { InvoiceStatusBadge } from "@/components/invoice-status-badge";
+import { Swap } from "@/components/motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatCents, formatUsd } from "@/lib/money";
@@ -133,78 +134,80 @@ function InvoicePage() {
 
   return (
     <div className="mx-auto max-w-4xl">
-      {showForm ? (
-        <InvoiceForm
-          title={`Invoice ${invoice.numberLabel}`}
-          numberLabel={invoice.numberLabel}
-          letterhead={{
-            name: invoice.document.business.name,
-            address: invoice.document.business.address,
-            taxId: invoice.document.business.taxId,
-            logoUrl: invoice.hasLogo ? "/app/logo" : null,
-          }}
-          badge={<InvoiceStatusBadge status={invoice.displayStatus} />}
-          initial={{
-            clientId: invoice.clientId,
-            issueDate: invoice.document.issueDate,
-            dueDate: invoice.document.dueDate,
-            reference: invoice.document.reference ?? "",
-            notes: invoice.document.notes ?? "",
-            terms: invoice.document.terms ?? "",
-            lines: (invoice.editorLines ?? []).map((line) => ({
-              ...line,
-              key: crypto.randomUUID(),
-            })),
-          }}
-          clients={clients}
-          items={items}
-          taxRates={taxRates}
-          pending={pending}
-          message={message}
-          messageTone={tone}
-          paidCents={invoice.paidCents}
-          onSave={(values) => void onSave(values)}
-          onSend={
-            invoice.status === "draft"
-              ? (values) => void onSend(values)
-              : undefined
-          }
-          onCancel={canEdit ? () => setEditing(false) : undefined}
-          onDelete={
-            invoice.status === "draft" ? () => void onDelete() : undefined
-          }
-        />
-      ) : (
-        <>
-          <Link to="/app/invoices" className="text-sm text-primary underline">
-            Invoices
-          </Link>
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-b-2 border-solar pb-3">
-            <h1 className="font-serif text-2xl">
-              Invoice {invoice.numberLabel}
-            </h1>
-            {canEdit ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setEditing(true)}
-              >
-                Edit
-              </Button>
-            ) : null}
-          </div>
-          <div className="mt-6">
-            <InvoiceDocument
-              document={invoice.document}
-              displayStatus={invoice.displayStatus}
-              voidReason={invoice.voidReason}
-              amountDueCents={invoice.amountDueCents}
-              paidCents={invoice.paidCents}
-              logoUrl={invoice.hasLogo ? "/app/logo" : null}
-            />
-          </div>
-        </>
-      )}
+      <Swap viewKey={showForm ? "edit" : "read"}>
+        {showForm ? (
+          <InvoiceForm
+            title={`Invoice ${invoice.numberLabel}`}
+            numberLabel={invoice.numberLabel}
+            letterhead={{
+              name: invoice.document.business.name,
+              address: invoice.document.business.address,
+              taxId: invoice.document.business.taxId,
+              logoUrl: invoice.hasLogo ? "/app/logo" : null,
+            }}
+            badge={<InvoiceStatusBadge status={invoice.displayStatus} />}
+            initial={{
+              clientId: invoice.clientId,
+              issueDate: invoice.document.issueDate,
+              dueDate: invoice.document.dueDate,
+              reference: invoice.document.reference ?? "",
+              notes: invoice.document.notes ?? "",
+              terms: invoice.document.terms ?? "",
+              lines: (invoice.editorLines ?? []).map((line) => ({
+                ...line,
+                key: crypto.randomUUID(),
+              })),
+            }}
+            clients={clients}
+            items={items}
+            taxRates={taxRates}
+            pending={pending}
+            message={message}
+            messageTone={tone}
+            paidCents={invoice.paidCents}
+            onSave={(values) => void onSave(values)}
+            onSend={
+              invoice.status === "draft"
+                ? (values) => void onSend(values)
+                : undefined
+            }
+            onCancel={canEdit ? () => setEditing(false) : undefined}
+            onDelete={
+              invoice.status === "draft" ? () => void onDelete() : undefined
+            }
+          />
+        ) : (
+          <>
+            <Link to="/app/invoices" className="text-sm text-primary underline">
+              Invoices
+            </Link>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-b-2 border-solar pb-3">
+              <h1 className="font-serif text-2xl">
+                Invoice {invoice.numberLabel}
+              </h1>
+              {canEdit ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditing(true)}
+                >
+                  Edit
+                </Button>
+              ) : null}
+            </div>
+            <div className="mt-6">
+              <InvoiceDocument
+                document={invoice.document}
+                displayStatus={invoice.displayStatus}
+                voidReason={invoice.voidReason}
+                amountDueCents={invoice.amountDueCents}
+                paidCents={invoice.paidCents}
+                logoUrl={invoice.hasLogo ? "/app/logo" : null}
+              />
+            </div>
+          </>
+        )}
+      </Swap>
       {invoice.locked ? (
         <div className="mt-6 space-y-4">
           <Payments
