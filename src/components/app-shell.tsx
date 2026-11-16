@@ -139,16 +139,15 @@ export function AppShell({
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-dvh overflow-hidden">
       <Scrim show={open} onClose={() => setOpen(false)} />
       <aside
         id="app-sidebar"
         inert={mobile && !open ? true : undefined}
         className={cn(
-          "flex h-screen w-60 shrink-0 flex-col border-r border-border bg-card",
+          "flex h-full w-60 shrink-0 flex-col border-r border-border bg-card",
           "max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:transition-transform max-md:duration-200 max-md:ease-out motion-reduce:max-md:transition-none",
           open ? "max-md:translate-x-0" : "max-md:-translate-x-full",
-          "md:sticky md:top-0",
         )}
       >
         <div className="h-1.5 bg-solar" aria-hidden />
@@ -323,8 +322,8 @@ export function AppShell({
           </button>
         </div>
       </aside>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="sticky top-0 z-20 flex items-center border-b-2 border-solar bg-background px-4 py-3 md:hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="z-20 flex shrink-0 items-center border-b-2 border-solar bg-background px-4 py-3 md:hidden">
           <Button
             variant="ghost"
             size="sm"
@@ -336,7 +335,12 @@ export function AppShell({
             <Menu aria-hidden className="size-4" />
           </Button>
         </div>
-        <main className="app-main flex-1 px-6 py-8">{children}</main>
+        <main
+          data-scroll-restoration-id="app-main"
+          className="app-main min-h-0 flex-1 overflow-y-auto px-6 py-8"
+        >
+          {children}
+        </main>
       </div>
     </div>
   );

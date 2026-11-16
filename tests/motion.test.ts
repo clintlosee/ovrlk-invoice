@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { routeShift, shellKey, transitionTypes } from "../src/lib/motion";
+import { shellKey, transitionTypes } from "../src/lib/motion";
 
 describe("shell key", () => {
   it("keeps the signed-in app on one shell", () => {
@@ -15,20 +15,6 @@ describe("shell key", () => {
   });
 });
 
-describe("route shift", () => {
-  it("reads depth along one branch", () => {
-    expect(routeShift("/app/invoices", "/app/invoices/new")).toBe("deeper");
-    expect(routeShift("/app", "/app/clients")).toBe("deeper");
-    expect(routeShift("/app/invoices/abc", "/app/invoices")).toBe("shallower");
-  });
-
-  it("treats siblings as peers", () => {
-    expect(routeShift("/app/clients", "/app/invoices")).toBe("peer");
-    expect(routeShift("/app/invoices/new", "/app/clients")).toBe("peer");
-    expect(routeShift("/app/reports", "/app/reports")).toBe("peer");
-  });
-});
-
 describe("transition types", () => {
   it("skips search and hash updates", () => {
     expect(transitionTypes("/app/reports", "/app/reports", false)).toBe(false);
@@ -38,15 +24,11 @@ describe("transition types", () => {
   it("names in-app moves separately from shell moves", () => {
     expect(transitionTypes("/app/invoices", "/app/clients", true)).toEqual([
       "app",
-      "peer",
     ]);
     expect(transitionTypes("/app/invoices", "/app/invoices/new", true)).toEqual(
-      ["app", "deeper"],
+      ["app"],
     );
-    expect(transitionTypes("/", "/sign-in", true)).toEqual(["shell", "deeper"]);
-    expect(transitionTypes("/app", "/sign-in", true)).toEqual([
-      "shell",
-      "peer",
-    ]);
+    expect(transitionTypes("/", "/sign-in", true)).toEqual(["shell"]);
+    expect(transitionTypes("/app", "/sign-in", true)).toEqual(["shell"]);
   });
 });

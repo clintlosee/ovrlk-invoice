@@ -6,6 +6,7 @@ export function getRouter() {
   return createRouter({
     routeTree,
     scrollRestoration: true,
+    scrollToTopSelectors: ['[data-scroll-restoration-id="app-main"]'],
     defaultPreload: "intent",
     defaultViewTransition: {
       types: ({ fromLocation, toLocation, pathChanged }) =>
