@@ -19,7 +19,9 @@ if (existsSync(".env")) process.loadEnvFile(".env");
 
 const csvPath = process.argv[2];
 if (!csvPath) {
-  console.error("Usage: tsx scripts/import-freshbooks-invoices.ts <invoices.csv>");
+  console.error(
+    "Usage: tsx scripts/import-freshbooks-invoices.ts <invoices.csv>",
+  );
   process.exit(1);
 }
 
@@ -294,7 +296,9 @@ await db.transaction(async (tx) => {
 
     if (status === "paid") {
       if (!entry.paidOn) {
-        throw new Error(`Invoice ${entry.numberLabel} is paid with no Date Paid`);
+        throw new Error(
+          `Invoice ${entry.numberLabel} is paid with no Date Paid`,
+        );
       }
       if (priced.totalCents > 0) {
         const paidAt = new Date(`${entry.paidOn}T12:00:00.000Z`);
@@ -410,7 +414,9 @@ function groupInvoices(data: CsvRow[]): ParsedInvoice[] {
         throw new Error(`Invoice ${label} is not USD`);
       }
       if (Number(line["Discount Percentage"]) !== 0) {
-        throw new Error(`Invoice ${label} has a discount, which this app does not store`);
+        throw new Error(
+          `Invoice ${label} has a discount, which this app does not store`,
+        );
       }
     }
     const parsedLines = lines.map((line) => parseLine(label, line));
@@ -492,7 +498,8 @@ function roundDollarsToCents(value: string): number {
   const unsigned = negative ? value.slice(1) : value;
   const match = /^(\d+)\.(\d+)$/.exec(unsigned);
   if (!match) return parseDollarsToCents(unsigned) * (negative ? -1 : 1);
-  const cents = Number(match[1]) * 100 + Number(match[2].slice(0, 2).padEnd(2, "0"));
+  const cents =
+    Number(match[1]) * 100 + Number(match[2].slice(0, 2).padEnd(2, "0"));
   const roundUp = Number(match[2][2] ?? "0") >= 5;
   const rounded = cents + (roundUp ? 1 : 0);
   return negative ? -rounded : rounded;
@@ -552,6 +559,8 @@ function parseCsv(csv: string): CsvRow[] {
     .slice(1)
     .filter((cells) => cells.some((cell) => cell.trim()))
     .map((cells) =>
-      Object.fromEntries(header.map((name, index) => [name, cells[index] ?? ""])),
+      Object.fromEntries(
+        header.map((name, index) => [name, cells[index] ?? ""]),
+      ),
     );
 }

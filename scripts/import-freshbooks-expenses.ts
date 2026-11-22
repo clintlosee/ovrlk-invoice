@@ -223,11 +223,15 @@ function parseExpense(row: CsvRow): ParsedExpense {
   }
   const categoryName = row.Subcategory?.trim() ?? "";
   if (!categoryName || categoryName.length > 80) {
-    throw new Error(`Expense on ${spentOn} for ${merchant} needs a subcategory`);
+    throw new Error(
+      `Expense on ${spentOn} for ${merchant} needs a subcategory`,
+    );
   }
   const note = noteFor(row);
   if (note && note.length > 2000) {
-    throw new Error(`Expense on ${spentOn} for ${merchant} has a note that is too long`);
+    throw new Error(
+      `Expense on ${spentOn} for ${merchant} has a note that is too long`,
+    );
   }
   return {
     spentOn,
@@ -236,7 +240,10 @@ function parseExpense(row: CsvRow): ParsedExpense {
     taxPaidCents,
     note,
     categoryName,
-    categoryGroup: categoryGroup(row["Account Sub Type"]?.trim() ?? "", merchant),
+    categoryGroup: categoryGroup(
+      row["Account Sub Type"]?.trim() ?? "",
+      merchant,
+    ),
     clientName: row.Client?.trim() || null,
     key: expenseKey(spentOn, merchant, amountCents, note, categoryName),
   };
@@ -264,7 +271,9 @@ function expenseKey(
   note: string | null,
   categoryName: string,
 ) {
-  return [spentOn, merchant, amountCents, note ?? "", categoryName].join("\u001f");
+  return [spentOn, merchant, amountCents, note ?? "", categoryName].join(
+    "\u001f",
+  );
 }
 
 function placeholderEmail(name: string): string {
@@ -310,6 +319,8 @@ function parseCsv(csv: string): CsvRow[] {
     .slice(1)
     .filter((cells) => cells.some((cell) => cell.trim()))
     .map((cells) =>
-      Object.fromEntries(header.map((name, index) => [name, cells[index] ?? ""])),
+      Object.fromEntries(
+        header.map((name, index) => [name, cells[index] ?? ""]),
+      ),
     );
 }
