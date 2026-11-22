@@ -1,6 +1,19 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { ChevronDown, ChevronUp, Search } from "lucide-react";
+import {
+  createFileRoute,
+  Link,
+  useNavigate,
+  useRouter,
+} from "@tanstack/react-router";
+import {
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  Pencil,
+  Search,
+  Trash2,
+} from "lucide-react";
 import { useState } from "react";
+import { HoverAction, HoverActions } from "@/components/hover-actions";
 import {
   type BulkInvoice,
   InvoiceBulkBar,
@@ -19,13 +32,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  addCalendarDays,
   type InvoiceDisplayStatus,
   type InvoiceStatus,
   statusLabel,
 } from "@/lib/invoice";
 import { formatUsd } from "@/lib/money";
 import { cn } from "@/lib/utils";
-import { getInvoices } from "@/server/invoices";
+import {
+  createInvoice,
+  deleteInvoice,
+  destroyInvoices,
+  getInvoice,
+  getInvoices,
+} from "@/server/invoices";
 
 export const Route = createFileRoute("/app/invoices/")({
   loader: () => getInvoices(),
@@ -50,13 +70,17 @@ type InvoiceRow = NonNullable<
 
 function InvoicesPage() {
   const data = Route.useLoaderData();
+  const router = useRouter();
+  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"all" | InvoiceDisplayStatus>("all");
   const [newestIssueFirst, setNewestIssueFirst] = useState(true);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   if (!data) return <p>Sign in again.</p>;
 
+  const today = data.today;
   const invoices = data.invoices;
   const overdueCents = sum(
     invoices.filter((invoice) => invoice.displayStatus === "overdue"),
@@ -107,6 +131,72 @@ function InvoicesPage() {
         ? current.filter((item) => item !== id)
         : [...current, id],
     );
+  }
+
+  async function copyInvoice(invoice: InvoiceRow) {
+    setBusyId(invoice.id);
+    setMessage(null);
+    try {
+      const source = await getInvoice({ data: { id: invoice.id } });
+      if (!source?.editorLines) {
+        setMessage("Could not copy that Invoice.");
+        setBusyId(null);
+        return;
+      }
+      const span = calendarDays(
+        source.document.issueDate,
+        source.document.dueDate,
+      );
+      const result = await createInvoice({
+        data: {
+          clientId: source.clientId,
+          issueDate: today,
+          dueDate: addCalendarDays(today, span),
+          reference: source.document.reference ?? "",
+          notes: source.document.notes ?? "",
+          terms: source.document.terms ?? "",
+          lines: source.editorLines,
+        },
+      });
+      if (!result.ok) {
+        setMessage(result.message);
+        setBusyId(null);
+        return;
+      }
+      await router.invalidate();
+      setBusyId(null);
+    } catch {
+      setMessage("Could not copy that Invoice.");
+      setBusyId(null);
+    }
+  }
+
+  async function removeInvoice(invoice: InvoiceRow) {
+    const draft = listStatus(invoice.displayStatus) === "draft";
+    const confirmed = window.confirm(
+      draft
+        ? "Delete this Invoice?"
+        : "Delete this Invoice? Payments recorded on it are removed too.",
+    );
+    if (!confirmed) return;
+    setBusyId(invoice.id);
+    setMessage(null);
+    try {
+      const result = draft
+        ? await deleteInvoice({ data: { id: invoice.id } })
+        : await destroyInvoices({ data: { ids: [invoice.id] } });
+      if (!result.ok) {
+        setMessage(result.message);
+        setBusyId(null);
+        return;
+      }
+      setSelectedIds((current) => current.filter((id) => id !== invoice.id));
+      await router.invalidate();
+      setBusyId(null);
+    } catch {
+      setMessage("Could not delete that Invoice.");
+      setBusyId(null);
+    }
   }
 
   return (
@@ -262,7 +352,16 @@ function InvoicesPage() {
                         invoice={invoice}
                         today={data.today}
                         selected={selectedIds.includes(invoice.id)}
+                        busy={busyId === invoice.id}
                         onToggle={() => toggleSelected(invoice.id)}
+                        onEdit={() =>
+                          void navigate({
+                            to: "/app/invoices/$invoiceId",
+                            params: { invoiceId: invoice.id },
+                          })
+                        }
+                        onCopy={() => void copyInvoice(invoice)}
+                        onDelete={() => void removeInvoice(invoice)}
                       />
                     ))}
                   </TableBody>
@@ -291,15 +390,23 @@ function InvoiceTableRow({
   invoice,
   today,
   selected,
+  busy,
   onToggle,
+  onEdit,
+  onCopy,
+  onDelete,
 }: {
   invoice: InvoiceRow;
   today: string;
   selected: boolean;
+  busy: boolean;
   onToggle: () => void;
+  onEdit: () => void;
+  onCopy: () => void;
+  onDelete: () => void;
 }) {
   return (
-    <TableRow className="relative hover:bg-accent">
+    <TableRow className="group relative hover:bg-accent">
       <TableCell className="relative z-10 w-10">
         <input
           type="checkbox"
@@ -328,9 +435,20 @@ function InvoiceTableRow({
           {dueLine(invoice.displayStatus, invoice.dueDate, today)}
         </p>
       </TableCell>
-      <TableCell className="whitespace-nowrap text-right">
+      <TableCell className="relative z-10 whitespace-nowrap text-right">
         <p>{formatUsd(invoice.totalCents)}</p>
         <InvoiceStatusBadge status={invoice.displayStatus} />
+        <HoverActions>
+          <HoverAction label="Edit" disabled={busy} onClick={onEdit}>
+            <Pencil aria-hidden className="size-4" />
+          </HoverAction>
+          <HoverAction label="Copy" disabled={busy} onClick={onCopy}>
+            <Copy aria-hidden className="size-4" />
+          </HoverAction>
+          <HoverAction label="Delete" disabled={busy} onClick={onDelete}>
+            <Trash2 aria-hidden className="size-4" />
+          </HoverAction>
+        </HoverActions>
       </TableCell>
     </TableRow>
   );

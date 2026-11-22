@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { Plus, X } from "lucide-react";
+import { Copy, Pencil, Plus, Trash2 } from "lucide-react";
 import { type ReactNode, useRef, useState } from "react";
 import { ClientQuickEdit } from "@/components/client-quick-edit";
+import { HoverAction, HoverActions } from "@/components/hover-actions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -123,6 +124,38 @@ export function InvoiceForm({
     setValues((current) => ({
       ...current,
       lines: [...current.lines, { ...line, key }],
+    }));
+  }
+
+  function editLine(key: string) {
+    const field = document.getElementById(`line-name-${key}`);
+    if (!(field instanceof HTMLInputElement)) return;
+    field.focus();
+    field.select();
+  }
+
+  function duplicateLine(key: string) {
+    const nextKey = crypto.randomUUID();
+    setFocusKey(nextKey);
+    setValues((current) => {
+      const index = current.lines.findIndex((line) => line.key === key);
+      const source = current.lines[index];
+      if (!source) return current;
+      const copy: LineValues = {
+        ...source,
+        key: nextKey,
+        taxRateIds: [...(source.taxRateIds ?? [])],
+      };
+      const lines = [...current.lines];
+      lines.splice(index + 1, 0, copy);
+      return { ...current, lines };
+    });
+  }
+
+  function removeLine(key: string) {
+    setValues((current) => ({
+      ...current,
+      lines: current.lines.filter((candidate) => candidate.key !== key),
     }));
   }
 
@@ -342,18 +375,19 @@ export function InvoiceForm({
                     >
                       Line total
                     </th>
-                    <th className="w-10 px-1 py-1.5">
-                      <span className="sr-only">Remove</span>
-                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {values.lines.map((line, index) => {
                     const money = priced[index];
                     return (
-                      <tr key={line.key} className="border-b border-border">
+                      <tr
+                        key={line.key}
+                        className="group border-b border-border hover:bg-accent"
+                      >
                         <td className="py-1.5 pr-2 align-top">
                           <Input
+                            id={`line-name-${line.key}`}
                             aria-label={`Invoice Line ${index + 1} name`}
                             className="h-9 px-2"
                             required
@@ -416,25 +450,31 @@ export function InvoiceForm({
                             }
                           />
                         </td>
-                        <td className="px-2 py-1.5 text-right align-middle text-sm tabular-nums">
+                        <td className="relative px-2 py-1.5 text-right align-middle text-sm tabular-nums">
                           {money ? formatUsd(money.amountCents) : "—"}
-                        </td>
-                        <td className="px-1 py-1.5 align-middle">
-                          <button
-                            type="button"
-                            className="inline-flex size-8 items-center justify-center rounded-md border border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                            aria-label={`Remove Invoice Line ${index + 1}`}
-                            onClick={() =>
-                              setValues((current) => ({
-                                ...current,
-                                lines: current.lines.filter(
-                                  (candidate) => candidate.key !== line.key,
-                                ),
-                              }))
-                            }
-                          >
-                            <X aria-hidden className="size-4" />
-                          </button>
+                          <HoverActions>
+                            <HoverAction
+                              label="Edit"
+                              ariaLabel={`Edit Invoice Line ${index + 1}`}
+                              onClick={() => editLine(line.key)}
+                            >
+                              <Pencil aria-hidden className="size-4" />
+                            </HoverAction>
+                            <HoverAction
+                              label="Copy"
+                              ariaLabel={`Copy Invoice Line ${index + 1}`}
+                              onClick={() => duplicateLine(line.key)}
+                            >
+                              <Copy aria-hidden className="size-4" />
+                            </HoverAction>
+                            <HoverAction
+                              label="Delete"
+                              ariaLabel={`Delete Invoice Line ${index + 1}`}
+                              onClick={() => removeLine(line.key)}
+                            >
+                              <Trash2 aria-hidden className="size-4" />
+                            </HoverAction>
+                          </HoverActions>
                         </td>
                       </tr>
                     );

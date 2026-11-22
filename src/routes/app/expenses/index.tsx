@@ -13,11 +13,12 @@ import {
   Search,
   Trash2,
 } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
 import {
   ExpenseQuickEdit,
   type QuickExpense,
 } from "@/components/expense-quick-edit";
+import { HoverAction, HoverActions } from "@/components/hover-actions";
 import { ActiveMark, Reveal, Swap } from "@/components/motion";
 import { Button } from "@/components/ui/button";
 import { cardLift, cardSurface } from "@/components/ui/card";
@@ -308,7 +309,7 @@ function ExpensesPage() {
                         Note
                       </span>
                     </TableHead>
-                    <TableHead className="pr-32 text-right">
+                    <TableHead className="text-right">
                       Amount
                       <span className="block font-normal text-muted-foreground">
                         Tax
@@ -364,7 +365,7 @@ function ExpensesPage() {
                     <TableCell colSpan={3} className="text-right font-medium">
                       Total
                     </TableCell>
-                    <TableCell className="pr-32 text-right font-medium">
+                    <TableCell className="text-right font-medium">
                       <p>{formatUsd(totalCents)}</p>
                       {taxCents > 0 ? (
                         <p className="font-normal text-muted-foreground">
@@ -476,67 +477,37 @@ function ExpenseTableRow({
           {expense.note || "—"}
         </p>
       </TableCell>
-      <TableCell className="relative pr-32 text-right">
+      <TableCell className="relative text-right">
         <p>{formatUsd(expense.amountCents)}</p>
         <p className="text-muted-foreground">
           {expense.taxPaidCents > 0
             ? `${formatUsd(expense.taxPaidCents)} tax`
             : "—"}
         </p>
-        <div className="pointer-events-none absolute top-1/2 right-2 z-10 flex -translate-y-1/2 rounded-md border border-border bg-card opacity-0 shadow-card group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100">
-          <ActionButton label="Edit" disabled={busy} onClick={onEdit}>
+        <HoverActions>
+          <HoverAction label="Edit" disabled={busy} onClick={onEdit}>
             <Pencil aria-hidden className="size-4" />
-          </ActionButton>
+          </HoverAction>
           {expense.receiptKey ? (
-            <ActionButton
+            <HoverAction
               label="View Receipt"
               disabled={busy}
               onClick={onViewReceipt}
             >
               <Receipt aria-hidden className="size-4" />
-            </ActionButton>
+            </HoverAction>
           ) : null}
-          <ActionButton label="Copy" disabled={busy} onClick={onCopy}>
+          <HoverAction label="Copy" disabled={busy} onClick={onCopy}>
             <Copy aria-hidden className="size-4" />
-          </ActionButton>
+          </HoverAction>
           {fee ? null : (
-            <ActionButton label="Delete" disabled={busy} onClick={onDelete}>
+            <HoverAction label="Delete" disabled={busy} onClick={onDelete}>
               <Trash2 aria-hidden className="size-4" />
-            </ActionButton>
+            </HoverAction>
           )}
-        </div>
+        </HoverActions>
       </TableCell>
     </TableRow>
-  );
-}
-
-function ActionButton({
-  label,
-  disabled,
-  onClick,
-  children,
-}: {
-  label: string;
-  disabled: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      disabled={disabled}
-      onClick={onClick}
-      className="group/tip relative inline-flex size-8 items-center justify-center text-muted-foreground first:rounded-l-md last:rounded-r-md hover:bg-primary hover:text-primary-foreground focus-visible:z-20 focus-visible:bg-primary focus-visible:text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
-    >
-      {children}
-      <span
-        role="tooltip"
-        className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1.5 -translate-x-1/2 rounded-md border border-border bg-card px-2 py-1 text-xs font-medium whitespace-nowrap text-foreground opacity-0 shadow-card group-hover/tip:opacity-100 group-focus-visible/tip:opacity-100"
-      >
-        {label}
-      </span>
-    </button>
   );
 }
 

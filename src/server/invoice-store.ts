@@ -431,10 +431,7 @@ export function invoiceMethods(db: AppDb, businessId: string) {
           updatedAt: row.updatedAt,
           payments,
           document,
-          editorLines:
-            row.status === "sent" || row.status === "partial"
-              ? editorLinesFor(row.id)
-              : null,
+          editorLines: editorLinesFor(row.id),
         };
       }
       const selected = clientById.get(row.clientId);
