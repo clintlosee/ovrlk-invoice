@@ -31,11 +31,13 @@
 ### Task 1: Commit a draft send only after the email succeeds
 
 **Files:**
+
 - Modify: `src/server/invoice-store.ts` (`send`, `writeLink`)
 - Modify: `src/server/invoices.ts` (`sendInvoice`)
 - Test: `tests/invoice-send.test.ts`
 
 **Interfaces:**
+
 - Consumes: `createInvoiceToken()`, `scope.invoices.send`, `deliverEmail`, `renderInvoicePdf`
 - Produces: `send(id: string, actorUserId: string, prepared?: { token: string; tokenHash: string }): Promise<{ invoice: InvoiceView; token: string } | null>`. When `prepared` is set, `writeLink` stores that hash instead of creating a new token. `sendInvoice` still returns `{ ok: true, emailed: true, url, value }` on success. On email failure it returns `{ ok: true, emailed: false, message: "The email did not go out. The Invoice is still a draft.", value }` and does not include a url.
 
@@ -128,12 +130,14 @@ git commit -m "Keep a draft unsent when its invoice email fails."
 ### Task 2: Send a selection by email
 
 **Files:**
+
 - Modify: `src/server/invoice-mail.ts`
 - Modify: `src/lib/email.ts`
 - Modify: `src/server/invoices.ts`
 - Test: `tests/invoice-send.test.ts`
 
 **Interfaces:**
+
 - Consumes: `mailDraft`'s token-then-send rule, `scope.invoices.send`, `sendInvoiceEmail`
 - Produces:
   - `sendInvoiceListEmail({ to, replyTo, businessName, invoices: { number, totalCents, dueDate, url }[], pdfs: { filename, content }[] }): Promise<void>`
@@ -222,11 +226,13 @@ git commit -m "Send selected Invoices one email per Client."
 ### Task 3: Download one PDF per Invoice as a zip
 
 **Files:**
+
 - Create: `src/lib/zip.ts`
 - Create: `src/routes/app/invoices/pdfs.ts`
 - Test: `tests/zip.test.ts`
 
 **Interfaces:**
+
 - Consumes: `renderInvoicePdf`, `ownedInvoiceForPdf` (call it once per id from the signed-in Business; do not add a public route)
 - Produces: `zipStored(files: { name: string; data: Uint8Array }[]): Uint8Array`. GET `/app/invoices/pdfs?ids=` returns `application/zip` as `invoices.zip`. Each entry is `invoice-${numberLabel}.pdf`.
 
@@ -270,11 +276,13 @@ git commit -m "Download selected Invoices as a zip of PDFs."
 ### Task 4: Destroy an Invoice and everything that belongs to it
 
 **Files:**
+
 - Modify: `src/server/invoice-store.ts`
 - Modify: `src/server/invoices.ts`
 - Test: `tests/invoice.test.ts`
 
 **Interfaces:**
+
 - Consumes: invoice row delete, which already cascades lines, line taxes, links, Payments, and the merchant-fee Expense
 - Produces: `destroy(ids: string[], actorUserId: string): Promise<void>`. Throws `Invoice not found` if any id is missing from this Business, and writes nothing. `destroyInvoices` server function, POST `{ ids: string[] }`, returns `{ ok: true }` or `{ ok: false, message: "That Invoice does not exist." }`. Audit action `invoice.destroyed`, `entityType: "invoice"`, metadata `{ number }`.
 
@@ -336,11 +344,13 @@ git commit -m "Destroy an Invoice and the Payments recorded on it."
 ### Task 5: Mark drafts sent without emailing
 
 **Files:**
+
 - Modify: `src/server/invoice-store.ts`
 - Modify: `src/server/invoices.ts`
 - Test: `tests/invoice-send.test.ts`
 
 **Interfaces:**
+
 - Consumes: `scope.invoices.send` with no prepared token
 - Produces: `markSent(ids: string[], actorUserId: string): Promise<{ sentIds: string[]; skipped: { invoiceId: string; reason: "not-draft" | "no-lines" }[] }>`. `markInvoicesSent` server function, POST `{ ids: string[] }`.
 
@@ -390,12 +400,14 @@ git commit -m "Mark selected drafts sent without emailing."
 ### Task 6: Record manual Payments for several Invoices
 
 **Files:**
+
 - Modify: `src/server/payment-store.ts`
 - Modify: `src/lib/email.ts`
 - Modify: `src/server/payments.ts`
 - Test: `tests/payments.test.ts`
 
 **Interfaces:**
+
 - Consumes: `payableInvoice`, `writeStatus`, `positiveCents`, `isManualPaymentMethod`. Does not call `receipt` or `sendReceiptEmail`.
 - Produces:
   - `recordManualBatch(input: { actorUserId: string; notify: boolean; rows: { invoiceId: string; amountCents: number; paidOn: string; method: ManualPaymentMethod; note: string | null }[] }, deliver?: (message: Outbound) => Promise<void>): Promise<{ ids: string[]; emailed: string[]; skipped: { clientName: string; reason: "no-email" | "email-failed" }[] }>`. `notify` defaults to false when omitted. `deliver` runs only when `notify` is true.
@@ -494,10 +506,12 @@ git commit -m "Record manual Payments for several Invoices at once."
 ### Task 7: Decide which bulk actions are available
 
 **Files:**
+
 - Create: `src/lib/invoice-bulk.ts`
 - Test: `tests/invoice-bulk.test.ts`
 
 **Interfaces:**
+
 - Consumes: stored status `draft | sent | partial | paid | void`
 - Produces:
 
@@ -562,10 +576,12 @@ git commit -m "Decide when Edit and Add a Payment are available."
 ### Task 8: Invoice list selection and Bulk Actions
 
 **Files:**
+
 - Modify: `src/routes/app/invoices/index.tsx`
 - Create: `src/components/invoice-bulk-bar.tsx`
 
 **Interfaces:**
+
 - Consumes: `bulkActionState`, `sendInvoices`, `markInvoicesSent`, `destroyInvoices`, GET `/app/invoices/pdfs?ids=`
 - Produces: a checkbox on every row, including paid, draft, and void. The stretched row link must not cover the checkbox (`relative z-10` on the checkbox cell). When the count is greater than zero, the section heading shows `Selected ${n}` and a Bulk Actions menu.
 
@@ -596,12 +612,14 @@ git commit -m "Select Invoices and run bulk actions from the list."
 ### Task 9: Add Payments screen
 
 **Files:**
+
 - Create: `src/routes/app/invoices/payments.tsx`
 - Create: `src/components/add-payments.tsx`
 - Modify: `src/components/invoice-bulk-bar.tsx` (Add a Payment links here)
 - Modify: `src/server/payments.ts` if the loader needs a new getter
 
 **Interfaces:**
+
 - Consumes: `recordInvoicePayments`, `todayInTimeZone`, `MANUAL_PAYMENT_METHODS`, `formatUsd`
 - Produces: route `/app/invoices/payments` with search `{ ids: string }`. The loader returns only Invoices in this Business whose stored status is `sent` or `partial`. Any other id is omitted and named in `rejected: { id, clientName }[]`.
 
