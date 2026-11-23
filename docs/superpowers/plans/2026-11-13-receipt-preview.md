@@ -32,10 +32,12 @@
 ### Task 1: Choose a Receipt file and describe its preview
 
 **Files:**
+
 - Modify: `src/lib/receipt-upload.ts`
 - Test: `tests/receipt-upload.test.ts`
 
 **Interfaces:**
+
 - Consumes: `MAX_BYTES` (10 * 1024 * 1024) already in this file. Export nothing new about the byte limit.
 - Produces:
   - `chosenReceipt<T extends { size: number; type: string }>(files: ArrayLike<T>): { ok: true; file: T } | { ok: false; message: string } | null`
@@ -145,12 +147,14 @@ git commit -m "Choose a Receipt file and describe its preview."
 ### Task 2: Drop area on the new Expense form and the Expense page
 
 **Files:**
+
 - Create: `src/components/receipt-dropzone.tsx`
 - Modify: `src/components/expense-form.tsx` (the Receipt file input)
 - Modify: `src/routes/app/expenses/new.tsx` (pass the chosen `file` into the form)
 - Modify: `src/routes/app/expenses/$expenseId/index.tsx` (`Receipt`)
 
 **Interfaces:**
+
 - Consumes: `chosenReceipt`, `receiptPreview`, `RECEIPT_ACCEPT`, `uploadReceipt` from `@/lib/receipt-upload`. `receiptUrl` and `removeReceipt` from `@/server/expenses`. `expense.receiptKey` and `expense.receiptContentType` on the Expense page.
 - Produces: `ReceiptDropzone({ file, remoteContentType, remoteUrl, pending, onFile }: { file: File | null; remoteContentType: string | null; remoteUrl: string | null; pending: boolean; onFile: (file: File) => void })`.
 
