@@ -1,7 +1,8 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { type ReactNode, useState } from "react";
+import { type CSSProperties, type ReactNode, useState } from "react";
 import { ActiveMark, Swap } from "@/components/motion";
 import { Button } from "@/components/ui/button";
+import { cardSurface } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { formatUsd } from "@/lib/money";
 import {
@@ -262,7 +263,7 @@ export function MonthBars({ months }: { months: MonthBucket[] }) {
   const first = months[0]?.label;
   const last = months.at(-1)?.label;
   return (
-    <figure className="mt-10">
+    <figure className={cn(cardSurface, "mt-10 p-6")}>
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h2 className="font-serif text-xl">Income and expenses</h2>
         <p className="text-sm text-muted-foreground">
@@ -275,37 +276,24 @@ export function MonthBars({ months }: { months: MonthBucket[] }) {
       </p>
       <div className="mt-3 flex gap-4 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1">
-          <span className="inline-block h-2 w-2 bg-primary" /> Income
+          <span className="inline-block h-2 w-2 rounded-sm bg-primary" /> Income
         </span>
         <span className="inline-flex items-center gap-1">
-          <span className="inline-block h-2 w-2 bg-solar" /> Expenses
+          <span className="inline-block h-2 w-2 rounded-sm bg-solar" /> Expenses
         </span>
       </div>
-      <div className="mt-4 flex h-40 items-end gap-1">
-        {months.map((month) => (
-          <div
-            key={month.key}
-            className="flex h-full min-w-0 flex-1 flex-col justify-end"
-          >
-            <div className="flex h-32 items-end justify-center gap-0.5">
-              <Bar
-                cents={month.incomeCents}
-                peak={peak}
-                className="bg-primary"
-                label={`${month.label} income ${formatUsd(month.incomeCents)}`}
-              />
-              <Bar
-                cents={month.expenseCents}
-                peak={peak}
-                className="bg-solar"
-                label={`${month.label} expenses ${formatUsd(month.expenseCents)}`}
-              />
-            </div>
-            <span className="mt-1 truncate text-center text-[10px] text-muted-foreground">
-              {month.shortLabel}
-            </span>
-          </div>
-        ))}
+      <div className="mt-4 rounded-md border border-border bg-background px-1.5 pt-2 pb-2">
+        <div className="flex">
+          {months.map((month, index) => (
+            <MonthColumn
+              key={month.key}
+              month={month}
+              peak={peak}
+              index={index}
+              count={months.length}
+            />
+          ))}
+        </div>
       </div>
       <figcaption className="sr-only">
         {months
@@ -319,23 +307,114 @@ export function MonthBars({ months }: { months: MonthBucket[] }) {
   );
 }
 
+function MonthColumn({
+  month,
+  peak,
+  index,
+  count,
+}: {
+  month: MonthBucket;
+  peak: number;
+  index: number;
+  count: number;
+}) {
+  const income = formatUsd(month.incomeCents);
+  const expenses = formatUsd(month.expenseCents);
+  return (
+    <button
+      type="button"
+      className="group/month relative z-0 flex min-w-0 flex-1 flex-col rounded-sm p-0 font-sans outline-none hover:z-20 focus-visible:z-20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      aria-label={`${month.label}. Income ${income}. Expenses ${expenses}.`}
+    >
+      <div
+        className="relative flex h-32 items-end justify-center gap-0.5 border-b border-border group-hover/month:bg-foreground/5 group-focus-visible/month:bg-foreground/5"
+        style={{ "--lift": `${taller(month, peak)}%` } as CSSProperties}
+      >
+        <MonthTip
+          label={month.label}
+          income={income}
+          expenses={expenses}
+          place={tipPlace(index, count)}
+        />
+        <Bar cents={month.incomeCents} peak={peak} className="bg-primary" />
+        <Bar cents={month.expenseCents} peak={peak} className="bg-solar" />
+      </div>
+      <span className="mt-1 truncate text-center text-[10px] text-muted-foreground">
+        {month.shortLabel}
+      </span>
+    </button>
+  );
+}
+
+function MonthTip({
+  label,
+  income,
+  expenses,
+  place,
+}: {
+  label: string;
+  income: string;
+  expenses: string;
+  place: string;
+}) {
+  return (
+    <span
+      aria-hidden
+      style={{
+        // Above the taller bar, pinned inside the plot when that bar is tall.
+        bottom: "min(calc(var(--lift) + 0.25rem), calc(100% - 4.5rem))",
+      }}
+      className={cn(
+        "pointer-events-none absolute z-20 grid w-max grid-cols-[auto_auto] gap-x-4 gap-y-0.5 rounded-md border border-border bg-popover px-2.5 py-1.5 text-xs text-popover-foreground opacity-0 shadow-card transition-opacity duration-150 group-hover/month:opacity-100 group-focus-visible/month:opacity-100 motion-reduce:transition-none",
+        place,
+      )}
+    >
+      <span className="col-span-2 font-medium">{label}</span>
+      <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+        <span className="inline-block size-2 rounded-sm bg-primary" />
+        Income
+      </span>
+      <span className="text-right font-medium tabular-nums">{income}</span>
+      <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+        <span className="inline-block size-2 rounded-sm bg-solar" />
+        Expenses
+      </span>
+      <span className="text-right font-medium tabular-nums">{expenses}</span>
+    </span>
+  );
+}
+
+function taller(month: MonthBucket, peak: number): number {
+  return Math.max(
+    barHeight(month.incomeCents, peak),
+    barHeight(month.expenseCents, peak),
+  );
+}
+
+function tipPlace(index: number, count: number): string {
+  if (index <= 0) return "left-0";
+  if (index >= count - 1) return "right-0";
+  return "left-1/2 -translate-x-1/2";
+}
+
+function barHeight(cents: number, peak: number): number {
+  return cents <= 0 ? 0 : Math.max(4, Math.round((cents / peak) * 100));
+}
+
 function Bar({
   cents,
   peak,
   className,
-  label,
 }: {
   cents: number;
   peak: number;
   className: string;
-  label: string;
 }) {
-  const height = cents <= 0 ? 0 : Math.max(4, Math.round((cents / peak) * 100));
+  const height = barHeight(cents, peak);
   return (
-    <div
+    <span
       className={cn("w-2 rounded-sm", className)}
       style={{ height: `${height}%` }}
-      title={label}
     />
   );
 }
