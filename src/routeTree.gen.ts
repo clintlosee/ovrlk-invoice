@@ -56,6 +56,8 @@ import { Route as PTokenPayRouteImport } from './routes/p/$token/pay'
 import { Route as PTokenPdfRouteImport } from './routes/p/$token/pdf'
 import { Route as AppExpensesExpenseIdIndexRouteImport } from './routes/app/expenses/$expenseId/index'
 import { Route as AppExpensesExpenseIdReceiptRouteImport } from './routes/app/expenses/$expenseId/receipt'
+import { Route as AppExpensesRecurringRecurringExpenseIdRouteImport } from './routes/app/expenses/recurring/$recurringExpenseId'
+import { Route as AppExpensesRecurringNewRouteImport } from './routes/app/expenses/recurring/new'
 import { Route as AppInvoicesInvoiceIdIndexRouteImport } from './routes/app/invoices/$invoiceId/index'
 import { Route as AppInvoicesInvoiceIdPdfRouteImport } from './routes/app/invoices/$invoiceId/pdf'
 
@@ -296,6 +298,17 @@ const AppExpensesExpenseIdReceiptRoute =
     path: '/$expenseId/receipt',
     getParentRoute: () => AppExpensesRouteRoute,
   } as any)
+const AppExpensesRecurringRecurringExpenseIdRoute =
+  AppExpensesRecurringRecurringExpenseIdRouteImport.update({
+    id: '/recurring/$recurringExpenseId',
+    path: '/recurring/$recurringExpenseId',
+    getParentRoute: () => AppExpensesRouteRoute,
+  } as any)
+const AppExpensesRecurringNewRoute = AppExpensesRecurringNewRouteImport.update({
+  id: '/recurring/new',
+  path: '/recurring/new',
+  getParentRoute: () => AppExpensesRouteRoute,
+} as any)
 const AppInvoicesInvoiceIdIndexRoute =
   AppInvoicesInvoiceIdIndexRouteImport.update({
     id: '/$invoiceId/',
@@ -355,6 +368,8 @@ export interface FileRoutesByFullPath {
   '/app/tax-rates/': typeof AppTaxRatesIndexRoute
   '/p/$token/': typeof PTokenIndexRoute
   '/app/expenses/$expenseId/receipt': typeof AppExpensesExpenseIdReceiptRoute
+  '/app/expenses/recurring/$recurringExpenseId': typeof AppExpensesRecurringRecurringExpenseIdRoute
+  '/app/expenses/recurring/new': typeof AppExpensesRecurringNewRoute
   '/app/invoices/$invoiceId/pdf': typeof AppInvoicesInvoiceIdPdfRoute
   '/app/expenses/$expenseId/': typeof AppExpensesExpenseIdIndexRoute
   '/app/invoices/$invoiceId/': typeof AppInvoicesInvoiceIdIndexRoute
@@ -400,6 +415,8 @@ export interface FileRoutesByTo {
   '/app/tax-rates': typeof AppTaxRatesIndexRoute
   '/p/$token': typeof PTokenIndexRoute
   '/app/expenses/$expenseId/receipt': typeof AppExpensesExpenseIdReceiptRoute
+  '/app/expenses/recurring/$recurringExpenseId': typeof AppExpensesRecurringRecurringExpenseIdRoute
+  '/app/expenses/recurring/new': typeof AppExpensesRecurringNewRoute
   '/app/invoices/$invoiceId/pdf': typeof AppInvoicesInvoiceIdPdfRoute
   '/app/expenses/$expenseId': typeof AppExpensesExpenseIdIndexRoute
   '/app/invoices/$invoiceId': typeof AppInvoicesInvoiceIdIndexRoute
@@ -452,6 +469,8 @@ export interface FileRoutesById {
   '/app/tax-rates/': typeof AppTaxRatesIndexRoute
   '/p/$token/': typeof PTokenIndexRoute
   '/app/expenses/$expenseId/receipt': typeof AppExpensesExpenseIdReceiptRoute
+  '/app/expenses/recurring/$recurringExpenseId': typeof AppExpensesRecurringRecurringExpenseIdRoute
+  '/app/expenses/recurring/new': typeof AppExpensesRecurringNewRoute
   '/app/invoices/$invoiceId/pdf': typeof AppInvoicesInvoiceIdPdfRoute
   '/app/expenses/$expenseId/': typeof AppExpensesExpenseIdIndexRoute
   '/app/invoices/$invoiceId/': typeof AppInvoicesInvoiceIdIndexRoute
@@ -505,6 +524,8 @@ export interface FileRouteTypes {
     | '/app/tax-rates/'
     | '/p/$token/'
     | '/app/expenses/$expenseId/receipt'
+    | '/app/expenses/recurring/$recurringExpenseId'
+    | '/app/expenses/recurring/new'
     | '/app/invoices/$invoiceId/pdf'
     | '/app/expenses/$expenseId/'
     | '/app/invoices/$invoiceId/'
@@ -550,6 +571,8 @@ export interface FileRouteTypes {
     | '/app/tax-rates'
     | '/p/$token'
     | '/app/expenses/$expenseId/receipt'
+    | '/app/expenses/recurring/$recurringExpenseId'
+    | '/app/expenses/recurring/new'
     | '/app/invoices/$invoiceId/pdf'
     | '/app/expenses/$expenseId'
     | '/app/invoices/$invoiceId'
@@ -601,6 +624,8 @@ export interface FileRouteTypes {
     | '/app/tax-rates/'
     | '/p/$token/'
     | '/app/expenses/$expenseId/receipt'
+    | '/app/expenses/recurring/$recurringExpenseId'
+    | '/app/expenses/recurring/new'
     | '/app/invoices/$invoiceId/pdf'
     | '/app/expenses/$expenseId/'
     | '/app/invoices/$invoiceId/'
@@ -954,6 +979,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppExpensesExpenseIdReceiptRouteImport
       parentRoute: typeof AppExpensesRouteRoute
     }
+    '/app/expenses/recurring/$recurringExpenseId': {
+      id: '/app/expenses/recurring/$recurringExpenseId'
+      path: '/recurring/$recurringExpenseId'
+      fullPath: '/app/expenses/recurring/$recurringExpenseId'
+      preLoaderRoute: typeof AppExpensesRecurringRecurringExpenseIdRouteImport
+      parentRoute: typeof AppExpensesRouteRoute
+    }
+    '/app/expenses/recurring/new': {
+      id: '/app/expenses/recurring/new'
+      path: '/recurring/new'
+      fullPath: '/app/expenses/recurring/new'
+      preLoaderRoute: typeof AppExpensesRecurringNewRouteImport
+      parentRoute: typeof AppExpensesRouteRoute
+    }
     '/app/invoices/$invoiceId/': {
       id: '/app/invoices/$invoiceId/'
       path: '/$invoiceId'
@@ -992,6 +1031,8 @@ interface AppExpensesRouteRouteChildren {
   AppExpensesNewRoute: typeof AppExpensesNewRoute
   AppExpensesIndexRoute: typeof AppExpensesIndexRoute
   AppExpensesExpenseIdReceiptRoute: typeof AppExpensesExpenseIdReceiptRoute
+  AppExpensesRecurringRecurringExpenseIdRoute: typeof AppExpensesRecurringRecurringExpenseIdRoute
+  AppExpensesRecurringNewRoute: typeof AppExpensesRecurringNewRoute
   AppExpensesExpenseIdIndexRoute: typeof AppExpensesExpenseIdIndexRoute
 }
 
@@ -1000,6 +1041,9 @@ const AppExpensesRouteRouteChildren: AppExpensesRouteRouteChildren = {
   AppExpensesNewRoute: AppExpensesNewRoute,
   AppExpensesIndexRoute: AppExpensesIndexRoute,
   AppExpensesExpenseIdReceiptRoute: AppExpensesExpenseIdReceiptRoute,
+  AppExpensesRecurringRecurringExpenseIdRoute:
+    AppExpensesRecurringRecurringExpenseIdRoute,
+  AppExpensesRecurringNewRoute: AppExpensesRecurringNewRoute,
   AppExpensesExpenseIdIndexRoute: AppExpensesExpenseIdIndexRoute,
 }
 

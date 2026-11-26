@@ -69,7 +69,6 @@ function NewExpensePage() {
         clientId: "",
         taxPaid: "",
         note: "",
-        recurring: false,
       }}
       categories={form.categories}
       clients={form.clients}

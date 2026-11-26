@@ -88,7 +88,6 @@ function ExpensePage() {
         taxPaid:
           expense.taxPaidCents > 0 ? formatCents(expense.taxPaidCents) : "",
         note: expense.note ?? "",
-        recurring: expense.recurring,
       }}
       categories={form.categories}
       clients={form.clients}
@@ -111,7 +110,7 @@ function ExpensePage() {
                   }
                   await navigate({
                     to: "/app/expenses",
-                    search: { from: "", to: "", category: "" },
+                    search: { from: "", to: "", category: "", tab: "expenses" },
                   });
                 },
               );

@@ -275,44 +275,179 @@ describe("expenses", () => {
     expect((await readLogo(alpha.businessId))?.contentType).toBe("image/png");
   });
 
-  it("stores a Recurring mark and can clear it", async () => {
+  it("creates an Expense for each due date and leaves a normal Expense alone", async () => {
     const owner = await insertOwner("exp-recur@example.com", "Recur Prints");
+    const other = await insertOwner("exp-recur-b@example.com", "Other Prints");
     const scope = forBusiness(getDb(), owner.businessId);
+    const outsider = forBusiness(getDb(), other.businessId);
     const insurance = (await scope.categories.list()).find(
       (row) => row.systemKey === "insurance",
     );
     if (!insurance) throw new Error("insurance");
-    const created = await scope.expenses.create({
-      spentOn: "2026-06-01",
+    const schedule = await scope.recurringExpenses.create({
       merchant: "State Farm",
       amountCents: cents(2117),
       categoryId: insurance.id,
       clientId: null,
       taxPaidCents: 0,
       note: "Monthly premium",
-      recurring: true,
+      intervalCount: 1,
+      intervalUnit: "month",
+      nextOn: "2026-01-31",
+      remainingCount: null,
+      paused: false,
       actorUserId: owner.userId,
     });
-    expect(created.recurring).toBe(true);
-    const listed = await scope.expenses.list({
+    expect(await outsider.recurringExpenses.postDue("2026-04-15")).toBe(0);
+    expect(await scope.recurringExpenses.postDue("2026-04-15")).toBe(3);
+    expect(await scope.recurringExpenses.postDue("2026-04-15")).toBe(0);
+    const posted = await scope.expenses.list({
       from: null,
       to: null,
       categoryId: null,
     });
-    expect(listed.find((row) => row.id === created.id)?.recurring).toBe(true);
-    const cleared = await scope.expenses.update(created.id, {
-      spentOn: "2026-06-01",
+    expect(posted.map((row) => row.spentOn)).toEqual([
+      "2026-03-31",
+      "2026-02-28",
+      "2026-01-31",
+    ]);
+    expect(posted.every((row) => row.recurringExpenseId === schedule.id)).toBe(
+      true,
+    );
+    expect(
+      await outsider.expenses.list({ from: null, to: null, categoryId: null }),
+    ).toEqual([]);
+    const edited = await scope.expenses.update(posted[0]?.id ?? "", {
+      spentOn: "2026-03-31",
+      merchant: "State Farm",
+      amountCents: cents(2200),
+      categoryId: insurance.id,
+      clientId: null,
+      taxPaidCents: 0,
+      note: "Adjusted",
+      actorUserId: owner.userId,
+    });
+    expect(edited?.recurringExpenseId).toBe(schedule.id);
+    expect((await scope.recurringExpenses.get(schedule.id))?.amountCents).toBe(
+      cents(2117),
+    );
+    await scope.recurringExpenses.update(schedule.id, {
       merchant: "State Farm",
       amountCents: cents(2117),
       categoryId: insurance.id,
       clientId: null,
       taxPaidCents: 0,
       note: "Monthly premium",
-      recurring: false,
+      intervalCount: 1,
+      intervalUnit: "month",
+      nextOn: "2026-07-01",
+      remainingCount: null,
+      paused: false,
       actorUserId: owner.userId,
     });
-    expect(cleared?.recurring).toBe(false);
-    expect(created.updatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    const finite = await scope.recurringExpenses.create({
+      merchant: "Photoshelter",
+      amountCents: cents(1392),
+      categoryId: insurance.id,
+      clientId: null,
+      taxPaidCents: 0,
+      note: null,
+      intervalCount: 1,
+      intervalUnit: "week",
+      nextOn: "2026-04-01",
+      remainingCount: 2,
+      paused: false,
+      actorUserId: owner.userId,
+    });
+    expect(await scope.recurringExpenses.postDue("2026-05-01")).toBe(2);
+    expect((await scope.recurringExpenses.get(finite.id))?.remainingCount).toBe(
+      0,
+    );
+    const paused = await scope.recurringExpenses.create({
+      merchant: "Adobe",
+      amountCents: cents(12881),
+      categoryId: insurance.id,
+      clientId: null,
+      taxPaidCents: 0,
+      note: null,
+      intervalCount: 1,
+      intervalUnit: "year",
+      nextOn: "2026-01-01",
+      remainingCount: null,
+      paused: true,
+      actorUserId: owner.userId,
+    });
+    const before = (
+      await scope.expenses.list({ from: null, to: null, categoryId: null })
+    ).length;
+    expect(await scope.recurringExpenses.postDue("2026-06-01")).toBe(0);
+    expect(
+      (await scope.expenses.list({ from: null, to: null, categoryId: null }))
+        .length,
+    ).toBe(before);
+    const skipped = await scope.recurringExpenses.get(paused.id);
+    expect(skipped && skipped.nextOn > "2026-06-01").toBe(true);
+    expect(await scope.recurringExpenses.remove(schedule.id)).toBe(true);
+    const kept = await scope.expenses.list({
+      from: null,
+      to: null,
+      categoryId: null,
+    });
+    expect(
+      kept.find((row) => row.spentOn === "2026-01-31")?.recurringExpenseId,
+    ).toBeNull();
+  });
+
+  it("advances a schedule when that date was already posted", async () => {
+    const owner = await insertOwner("exp-once@example.com", "Once Prints");
+    const db = getDb();
+    const scope = forBusiness(db, owner.businessId);
+    const insurance = (await scope.categories.list()).find(
+      (row) => row.systemKey === "insurance",
+    );
+    if (!insurance) throw new Error("insurance");
+    const schedule = await scope.recurringExpenses.create({
+      merchant: "State Farm",
+      amountCents: cents(2117),
+      categoryId: insurance.id,
+      clientId: null,
+      taxPaidCents: 0,
+      note: null,
+      intervalCount: 1,
+      intervalUnit: "month",
+      nextOn: "2026-08-01",
+      remainingCount: null,
+      paused: false,
+      actorUserId: owner.userId,
+    });
+    const now = new Date();
+    await db.insert(expense).values({
+      id: crypto.randomUUID(),
+      businessId: owner.businessId,
+      spentOn: "2026-08-01",
+      merchant: "State Farm",
+      amountCents: cents(2117),
+      categoryId: insurance.id,
+      clientId: null,
+      taxPaidCents: 0,
+      note: null,
+      recurringExpenseId: schedule.id,
+      receiptKey: null,
+      receiptContentType: null,
+      paymentId: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+    expect(await scope.recurringExpenses.postDue("2026-08-01")).toBe(0);
+    const rows = await scope.expenses.list({
+      from: null,
+      to: null,
+      categoryId: null,
+    });
+    expect(rows.filter((row) => row.spentOn === "2026-08-01")).toHaveLength(1);
+    expect((await scope.recurringExpenses.get(schedule.id))?.nextOn).toBe(
+      "2026-09-01",
+    );
   });
 
   it("archives a Category that is in use and keeps Merchant fees", async () => {

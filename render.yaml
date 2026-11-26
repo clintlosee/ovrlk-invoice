@@ -42,3 +42,24 @@ services:
         sync: false
       - key: R2_BUCKET
         sync: false
+  # 12:00 UTC is after midnight in every US time zone. Each Business uses its own time zone.
+  - type: cron
+    name: ovrlk-invoice-recurring
+    runtime: node
+    schedule: "0 12 * * *"
+    buildCommand: pnpm install --frozen-lockfile --prod=false
+    preDeployCommand: pnpm db:migrate
+    startCommand: pnpm recurring:post
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: DATABASE_URL
+        fromService:
+          name: ovrlk-invoice
+          type: web
+          envVarKey: DATABASE_URL
+      - key: TURSO_AUTH_TOKEN
+        fromService:
+          name: ovrlk-invoice
+          type: web
+          envVarKey: TURSO_AUTH_TOKEN

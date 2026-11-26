@@ -20,6 +20,7 @@ import {
 } from "@/components/expense-quick-edit";
 import { HoverAction, HoverActions } from "@/components/hover-actions";
 import { ActiveMark, Reveal, Swap } from "@/components/motion";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cardLift, cardSurface } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,11 @@ import {
 } from "@/components/ui/table";
 import { filterExpenseRows, isCogs, recentExpenses } from "@/lib/expense-list";
 import { formatCents, formatUsd } from "@/lib/money";
+import {
+  describeDuration,
+  describeInterval,
+  scheduleStatus,
+} from "@/lib/recurring";
 import { cn } from "@/lib/utils";
 import {
   createExpense,
@@ -46,6 +52,7 @@ export const Route = createFileRoute("/app/expenses/")({
     from: typeof search.from === "string" ? search.from : "",
     to: typeof search.to === "string" ? search.to : "",
     category: typeof search.category === "string" ? search.category : "",
+    tab: search.tab === "recurring" ? "recurring" : "expenses",
   }),
   loaderDeps: ({ search }) => search,
   loader: ({ deps }) => getExpenses({ data: deps }),
@@ -64,7 +71,7 @@ function ExpensesPage() {
   const navigate = useNavigate();
   const router = useRouter();
   const [query, setQuery] = useState("");
-  const [tab, setTab] = useState<"expenses" | "recurring">("expenses");
+  const tab = search.tab;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -77,11 +84,8 @@ function ExpensesPage() {
   if (!data) return <p>Sign in again.</p>;
 
   const recent = recentExpenses(data.expenses);
-  const pool =
-    tab === "recurring"
-      ? data.expenses.filter((expense) => expense.recurring)
-      : data.expenses;
-  const shown = filterExpenseRows(pool, query);
+  const shown = filterExpenseRows(data.expenses, query);
+  const schedules = filterExpenseRows(data.schedules, query);
   const totalCents = shown.reduce((sum, row) => sum + row.amountCents, 0);
   const taxCents = shown.reduce((sum, row) => sum + row.taxPaidCents, 0);
 
@@ -103,7 +107,6 @@ function ExpensesPage() {
           taxPaid:
             expense.taxPaidCents > 0 ? formatCents(expense.taxPaidCents) : "",
           note: expense.note ?? "",
-          recurring: expense.recurring,
         },
       });
       if (!result.ok) {
@@ -143,9 +146,15 @@ function ExpensesPage() {
     <>
       <div className="flex items-center justify-between gap-4 border-b-2 border-solar pb-3">
         <h1 className="font-serif text-3xl">Expenses</h1>
-        <Button asChild>
-          <Link to="/app/expenses/new">New Expense</Link>
-        </Button>
+        {tab === "recurring" ? (
+          <Button asChild>
+            <Link to="/app/expenses/recurring/new">New Recurring Expense</Link>
+          </Button>
+        ) : (
+          <Button asChild>
+            <Link to="/app/expenses/new">New Expense</Link>
+          </Button>
+        )}
       </div>
       {!data.storageConfigured ? (
         <p className="mt-6 text-sm">
@@ -175,8 +184,11 @@ function ExpensesPage() {
         <TabButton
           selected={tab === "expenses"}
           onClick={() => {
-            setTab("expenses");
             setEditingId(null);
+            void navigate({
+              to: "/app/expenses",
+              search: { ...search, tab: "expenses" },
+            });
           }}
         >
           Expenses
@@ -184,8 +196,11 @@ function ExpensesPage() {
         <TabButton
           selected={tab === "recurring"}
           onClick={() => {
-            setTab("recurring");
             setEditingId(null);
+            void navigate({
+              to: "/app/expenses",
+              search: { ...search, tab: "recurring" },
+            });
           }}
         >
           Recurring Expenses
@@ -210,14 +225,16 @@ function ExpensesPage() {
                 onChange={(event) => setQuery(event.target.value)}
               />
             </div>
-            <Button
-              variant="outline"
-              aria-expanded={advanced}
-              onClick={() => setAdvanced((open) => !open)}
-            >
-              <ListFilter aria-hidden className="size-4" />
-              Advanced Search
-            </Button>
+            {tab === "expenses" ? (
+              <Button
+                variant="outline"
+                aria-expanded={advanced}
+                onClick={() => setAdvanced((open) => !open)}
+              >
+                <ListFilter aria-hidden className="size-4" />
+                Advanced Search
+              </Button>
+            ) : null}
             <Link
               to="/app/expenses/categories"
               className="text-sm text-primary underline"
@@ -226,14 +243,14 @@ function ExpensesPage() {
             </Link>
           </div>
         </div>
-        <Reveal show={advanced}>
+        <Reveal show={advanced && tab === "expenses"}>
           <form
             className="mt-4 flex flex-wrap items-end gap-3"
             onSubmit={(event) => {
               event.preventDefault();
               void navigate({
                 to: "/app/expenses",
-                search: { from, to, category },
+                search: { from, to, category, tab },
               });
             }}
           >
@@ -285,10 +302,16 @@ function ExpensesPage() {
           <p className="mt-4 text-sm text-destructive">{message}</p>
         ) : null}
         <Swap viewKey={`${tab}:${search.from}:${search.to}:${search.category}`}>
-          {data.expenses.length === 0 ? (
+          {tab === "recurring" ? (
+            data.schedules.length === 0 ? (
+              <p className="mt-4 text-sm">No Recurring Expenses yet.</p>
+            ) : schedules.length === 0 ? (
+              <p className="mt-4 text-sm">No Recurring Expenses match.</p>
+            ) : (
+              <ScheduleTable schedules={schedules} />
+            )
+          ) : data.expenses.length === 0 ? (
             <p className="mt-4 text-sm">No Expenses yet.</p>
-          ) : pool.length === 0 ? (
-            <p className="mt-4 text-sm">No recurring Expenses.</p>
           ) : shown.length === 0 ? (
             <p className="mt-4 text-sm">No Expenses match.</p>
           ) : (
@@ -345,10 +368,6 @@ function ExpensesPage() {
                         }}
                         onCopy={() => void copyExpense(expense)}
                         onDelete={() => void removeExpense(expense)}
-                        onRecurring={() => {
-                          setTab("recurring");
-                          setEditingId(null);
-                        }}
                         onViewReceipt={() => {
                           void receiptUrl({ data: { id: expense.id } }).then(
                             (result) => {
@@ -407,7 +426,9 @@ function RecentCard({ expense }: { expense: ExpenseRow }) {
         </p>
         <p className="truncate font-medium">{expense.merchant}</p>
         <p className="text-muted-foreground">{shortDate(expense.spentOn)}</p>
-        {expense.recurring ? <p className="text-primary">Recurring</p> : null}
+        {expense.recurringExpenseId ? (
+          <p className="text-primary">Recurring</p>
+        ) : null}
         <p className="mt-auto border-t border-border pt-2 text-right font-medium">
           {formatUsd(expense.amountCents)}
         </p>
@@ -427,7 +448,6 @@ function ExpenseTableRow({
   onEdit,
   onCopy,
   onDelete,
-  onRecurring,
   onViewReceipt,
 }: {
   expense: ExpenseRow;
@@ -435,7 +455,6 @@ function ExpenseTableRow({
   onEdit: () => void;
   onCopy: () => void;
   onDelete: () => void;
-  onRecurring: () => void;
   onViewReceipt: () => void;
 }) {
   const cogs = isCogs(expense.categoryGroup);
@@ -462,10 +481,14 @@ function ExpenseTableRow({
       </TableCell>
       <TableCell>
         <p>{shortDate(expense.spentOn)}</p>
-        {expense.recurring ? (
-          <button type="button" className="text-primary" onClick={onRecurring}>
+        {expense.recurringExpenseId ? (
+          <Link
+            to="/app/expenses/recurring/$recurringExpenseId"
+            params={{ recurringExpenseId: expense.recurringExpenseId }}
+            className="text-primary"
+          >
             Recurring
-          </button>
+          </Link>
         ) : null}
       </TableCell>
       <TableCell>
@@ -508,6 +531,108 @@ function ExpenseTableRow({
         </HoverActions>
       </TableCell>
     </TableRow>
+  );
+}
+
+function ScheduleTable({
+  schedules,
+}: {
+  schedules: {
+    id: string;
+    merchant: string;
+    categoryName: string;
+    clientName: string | null;
+    amountCents: number;
+    intervalCount: number;
+    intervalUnit: "day" | "week" | "month" | "year";
+    nextOn: string;
+    remainingCount: number | null;
+    paused: boolean;
+  }[];
+}) {
+  return (
+    <div className="mt-3">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>
+              Merchant
+              <span className="block font-normal text-muted-foreground">
+                Category
+              </span>
+            </TableHead>
+            <TableHead>Client</TableHead>
+            <TableHead>
+              Frequency
+              <span className="block font-normal text-muted-foreground">
+                Duration
+              </span>
+            </TableHead>
+            <TableHead className="text-right">
+              Amount
+              <span className="block font-normal text-muted-foreground">
+                Status
+              </span>
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {schedules.map((schedule) => {
+            const status = scheduleStatus(schedule);
+            return (
+              <TableRow key={schedule.id}>
+                <TableCell>
+                  <Link
+                    to="/app/expenses/recurring/$recurringExpenseId"
+                    params={{ recurringExpenseId: schedule.id }}
+                    className="font-medium text-primary underline"
+                  >
+                    {schedule.merchant}
+                  </Link>
+                  <p className="text-muted-foreground">
+                    {schedule.categoryName}
+                  </p>
+                </TableCell>
+                <TableCell>{schedule.clientName || "—"}</TableCell>
+                <TableCell>
+                  <p>
+                    {describeInterval(
+                      schedule.intervalCount,
+                      schedule.intervalUnit,
+                    )}
+                  </p>
+                  <p className="text-muted-foreground">
+                    {describeDuration(schedule.remainingCount)}
+                    {status === "active"
+                      ? ` · next ${shortDate(schedule.nextOn)}`
+                      : ""}
+                  </p>
+                </TableCell>
+                <TableCell className="text-right">
+                  <p>{formatUsd(schedule.amountCents)}</p>
+                  <Badge
+                    variant={
+                      status === "active"
+                        ? "default"
+                        : status === "paused"
+                          ? "secondary"
+                          : "outline"
+                    }
+                    className="mt-1"
+                  >
+                    {status === "active"
+                      ? "Active"
+                      : status === "paused"
+                        ? "Paused"
+                        : "Finished"}
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
 

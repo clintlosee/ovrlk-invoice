@@ -22,7 +22,8 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "recurring:post": "tsx scripts/post-recurring-expenses.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1163.0",

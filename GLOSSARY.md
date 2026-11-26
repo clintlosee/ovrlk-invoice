@@ -66,11 +66,11 @@ Derived, never stored: an unpaid, non-void Invoice past its due date.
 ## Expenses and reporting
 
 **Expense**:
-Money the Business spent, with a date, merchant, Category, amount, optional tax paid, optional Client, optional Receipt, and an optional Recurring mark.
+Money the Business spent, with a date, merchant, Category, amount, optional tax paid, optional Client, and optional Receipt. One may have been created by a Recurring Expense.
 _Avoid_: Bill, cost, purchase
 
 **Recurring Expense**:
-An Expense marked so it can be found with the others that repeat. The mark does not post future Expenses.
+A schedule the Owner keeps apart from Expenses. Each date on it adds an Expense. An Expense cannot be turned into one.
 _Avoid_: Subscription, bill
 
 **Category**:

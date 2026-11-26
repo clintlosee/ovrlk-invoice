@@ -13,7 +13,11 @@ import {
 import { assertTimeZone } from "../lib/config";
 import { keyOwnedBy } from "../lib/files";
 import { type Cents, cents } from "../lib/money";
-import { categoryMethods, expenseMethods } from "./expense-store";
+import {
+  categoryMethods,
+  expenseMethods,
+  recurringExpenseMethods,
+} from "./expense-store";
 import { invoiceMethods } from "./invoice-store";
 import { paymentMethods } from "./payment-store";
 import { reportMethods } from "./report-store";
@@ -584,6 +588,7 @@ export function forBusiness(db: AppDb, businessId: string) {
     payments: paymentMethods(db, businessId),
     categories: categoryMethods(db, businessId),
     expenses: expenseMethods(db, businessId),
+    recurringExpenses: recurringExpenseMethods(db, businessId),
     reports: reportMethods(db, businessId),
     audit: {
       async list() {

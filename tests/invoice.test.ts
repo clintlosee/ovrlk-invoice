@@ -390,7 +390,6 @@ describe("invoices", () => {
       clientId: client.id,
       taxPaidCents: 0,
       note: null,
-      recurring: false,
       receiptKey: null,
       receiptContentType: null,
       paymentId: cardPaymentId,

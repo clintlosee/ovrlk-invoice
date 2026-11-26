@@ -34,7 +34,7 @@ export type QuickExpense = {
   clientId: string | null;
   receiptKey: string | null;
   paymentId: string | null;
-  recurring: boolean;
+  recurringExpenseId: string | null;
 };
 
 export function ExpenseQuickEdit({
@@ -60,7 +60,6 @@ export function ExpenseQuickEdit({
     clientId: expense.clientId ?? "",
     taxPaid: expense.taxPaidCents > 0 ? formatCents(expense.taxPaidCents) : "",
     note: expense.note ?? "",
-    recurring: expense.recurring,
   });
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -227,19 +226,6 @@ export function ExpenseQuickEdit({
             }
           />
         </div>
-        {locked ? null : (
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="size-4 accent-primary"
-              checked={values.recurring}
-              onChange={(event) =>
-                setValues({ ...values, recurring: event.target.checked })
-              }
-            />
-            Recurring
-          </label>
-        )}
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
           <ReceiptControl
             expenseId={expense.id}

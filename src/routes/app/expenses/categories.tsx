@@ -37,7 +37,7 @@ function CategoriesPage() {
     <>
       <Link
         to="/app/expenses"
-        search={{ from: "", to: "", category: "" }}
+        search={{ from: "", to: "", category: "", tab: "expenses" }}
         className="text-sm text-primary underline"
       >
         Expenses

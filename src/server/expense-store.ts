@@ -1,4 +1,15 @@
-import { and, asc, desc, eq, gte, isNull, lte } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  gte,
+  isNull,
+  lte,
+  notInArray,
+  or,
+} from "drizzle-orm";
 import type { AppDb } from "../db/client";
 import {
   auditLog,
@@ -7,6 +18,7 @@ import {
   expenseCategory,
   invoice,
   payment,
+  recurringExpense,
 } from "../db/schema";
 import {
   EXPENSE_CATEGORY_SEEDS,
@@ -16,6 +28,13 @@ import {
 import { keyOwnedBy } from "../lib/files";
 import { assertIsoDate, formatInvoiceNumber } from "../lib/invoice";
 import { cents } from "../lib/money";
+import {
+  type IntervalUnit,
+  isIntervalUnit,
+  MAX_INTERVAL_COUNT,
+  MAX_REMAINING,
+  nextOccurrence,
+} from "../lib/recurring";
 
 export type ExpenseInput = {
   spentOn: string;
@@ -25,9 +44,43 @@ export type ExpenseInput = {
   clientId: string | null;
   taxPaidCents: number;
   note: string | null;
-  /** Omitted means not recurring. */
-  recurring?: boolean;
   actorUserId: string;
+};
+
+export type RecurringExpenseInput = {
+  merchant: string;
+  amountCents: number;
+  categoryId: string;
+  clientId: string | null;
+  taxPaidCents: number;
+  note: string | null;
+  intervalCount: number;
+  intervalUnit: IntervalUnit;
+  nextOn: string;
+  /** Null does not end. Otherwise how many Expenses are still to create. */
+  remainingCount: number | null;
+  paused: boolean;
+  actorUserId: string;
+};
+
+export type RecurringExpenseView = {
+  id: string;
+  merchant: string;
+  amountCents: number;
+  taxPaidCents: number;
+  note: string | null;
+  categoryId: string;
+  categoryName: string;
+  categoryGroup: string;
+  clientId: string | null;
+  clientName: string | null;
+  intervalCount: number;
+  intervalUnit: IntervalUnit;
+  anchorOn: string;
+  nextOn: string;
+  remainingCount: number | null;
+  paused: boolean;
+  updatedAt: string;
 };
 
 export type ExpenseFilter = {
@@ -51,7 +104,7 @@ export type ExpenseView = {
   receiptKey: string | null;
   receiptContentType: string | null;
   paymentId: string | null;
-  recurring: boolean;
+  recurringExpenseId: string | null;
   updatedAt: string;
 };
 
@@ -234,7 +287,6 @@ export function expenseMethods(db: AppDb, businessId: string) {
       const current = await oneExpense(db, businessId, expenseId);
       if (!current) return null;
       const fields = await normalize(db, businessId, input, current.categoryId);
-      const recurring = current.paymentId ? false : fields.recurring;
       if (current.paymentId) {
         if (
           fields.spentOn !== current.spentOn ||
@@ -249,7 +301,7 @@ export function expenseMethods(db: AppDb, businessId: string) {
       await db.transaction(async (tx) => {
         const updated = await tx
           .update(expense)
-          .set({ ...fields, recurring, updatedAt: new Date() })
+          .set({ ...fields, updatedAt: new Date() })
           .where(
             and(eq(expense.id, expenseId), eq(expense.businessId, businessId)),
           )
@@ -327,6 +379,102 @@ export function expenseMethods(db: AppDb, businessId: string) {
           and(eq(expense.id, expenseId), eq(expense.businessId, businessId)),
         );
       return { previousKey: current.receiptKey };
+    },
+  };
+}
+
+/** ponytail: 366 steps per call so a distant start date cannot pin a request. The next read or the daily job continues. */
+const DUE_LIMIT = 366;
+
+export function recurringExpenseMethods(db: AppDb, businessId: string) {
+  return {
+    async list(): Promise<RecurringExpenseView[]> {
+      return selectSchedules(
+        db,
+        businessId,
+        eq(recurringExpense.businessId, businessId),
+      );
+    },
+    async get(id: string): Promise<RecurringExpenseView | null> {
+      const rows = await selectSchedules(
+        db,
+        businessId,
+        and(
+          eq(recurringExpense.businessId, businessId),
+          eq(recurringExpense.id, id),
+        ),
+      );
+      return rows[0] ?? null;
+    },
+    async create(input: RecurringExpenseInput) {
+      if (input.remainingCount === 0) {
+        throw new Error("Enter how many Expenses to create");
+      }
+      const fields = await scheduleFields(db, businessId, input, null);
+      const now = new Date();
+      const id = crypto.randomUUID();
+      await db.insert(recurringExpense).values({
+        id,
+        businessId,
+        ...fields,
+        anchorOn: fields.nextOn,
+        createdAt: now,
+        updatedAt: now,
+      });
+      const saved = await this.get(id);
+      if (!saved) throw new Error("Could not save the Recurring Expense");
+      return saved;
+    },
+    async update(id: string, input: RecurringExpenseInput) {
+      const current = await oneSchedule(db, businessId, id);
+      if (!current) return null;
+      const fields = await scheduleFields(
+        db,
+        businessId,
+        input,
+        current.categoryId,
+      );
+      const anchorOn =
+        current.nextOn !== fields.nextOn ||
+        current.intervalCount !== fields.intervalCount ||
+        current.intervalUnit !== fields.intervalUnit
+          ? fields.nextOn
+          : current.anchorOn;
+      await db
+        .update(recurringExpense)
+        .set({ ...fields, anchorOn, updatedAt: new Date() })
+        .where(
+          and(
+            eq(recurringExpense.id, id),
+            eq(recurringExpense.businessId, businessId),
+          ),
+        );
+      return this.get(id);
+    },
+    async remove(id: string) {
+      const removed = await db
+        .delete(recurringExpense)
+        .where(
+          and(
+            eq(recurringExpense.id, id),
+            eq(recurringExpense.businessId, businessId),
+          ),
+        )
+        .returning({ id: recurringExpense.id });
+      return removed.length > 0;
+    },
+    async postDue(today: string): Promise<number> {
+      const todayIso = assertIsoDate(today);
+      const skip = new Set<string>();
+      let created = 0;
+      for (let step = 0; step < DUE_LIMIT; step++) {
+        const schedule = await nextDue(db, businessId, todayIso, skip);
+        if (!schedule) break;
+        const result = await stepSchedule(db, businessId, schedule);
+        if (!result.moved) skip.add(schedule.id);
+        if (result.created) created += 1;
+      }
+      return created;
     },
   };
 }
@@ -418,7 +566,6 @@ export async function syncMerchantFee(
     clientId: target.clientId,
     taxPaidCents: 0,
     note: `Processing fee for Invoice ${formatInvoiceNumber(target.number)}`,
-    recurring: false,
     receiptKey: null,
     receiptContentType: null,
     paymentId: row.id,
@@ -505,7 +652,6 @@ async function normalize(
     note,
     categoryId: category.id,
     clientId,
-    recurring: input.recurring === true,
   };
 }
 
@@ -530,7 +676,7 @@ async function selectExpenses(
       receiptKey: expense.receiptKey,
       receiptContentType: expense.receiptContentType,
       paymentId: expense.paymentId,
-      recurring: expense.recurring,
+      recurringExpenseId: expense.recurringExpenseId,
       updatedAt: expense.updatedAt,
     })
     .from(expense)
@@ -626,6 +772,253 @@ function boundedNote(value: string | null) {
   if (!trimmed) return null;
   if (trimmed.length > NOTE_MAX) throw new Error("Note is too long");
   return trimmed;
+}
+
+async function scheduleFields(
+  db: AppDb,
+  businessId: string,
+  input: RecurringExpenseInput,
+  currentCategoryId: string | null,
+) {
+  const merchant = input.merchant.trim();
+  if (!merchant || merchant.length > MERCHANT_MAX) {
+    throw new Error("Merchant is required");
+  }
+  const amount = cents(input.amountCents);
+  if (amount <= 0) throw new Error("Enter an amount");
+  const taxPaid = cents(input.taxPaidCents);
+  if (taxPaid < 0) throw new Error("Enter a tax amount");
+  const note = boundedNote(input.note);
+  const category = await oneCategory(db, businessId, input.categoryId);
+  if (!category) throw new Error("Choose a Category");
+  if (category.archivedAt && category.id !== currentCategoryId) {
+    throw new Error("Choose a Category");
+  }
+  let clientId: string | null = null;
+  if (input.clientId) {
+    const rows = await db
+      .select({ id: client.id })
+      .from(client)
+      .where(
+        and(eq(client.id, input.clientId), eq(client.businessId, businessId)),
+      )
+      .limit(1);
+    if (!rows[0]) {
+      throw new Error("That Client does not belong to this Business");
+    }
+    clientId = rows[0].id;
+  }
+  if (
+    !isIntervalUnit(input.intervalUnit) ||
+    !Number.isInteger(input.intervalCount) ||
+    input.intervalCount < 1 ||
+    input.intervalCount > MAX_INTERVAL_COUNT
+  ) {
+    throw new Error("Interval is not valid");
+  }
+  if (
+    input.remainingCount !== null &&
+    (!Number.isInteger(input.remainingCount) ||
+      input.remainingCount < 0 ||
+      input.remainingCount > MAX_REMAINING)
+  ) {
+    throw new Error("Enter how many Expenses to create");
+  }
+  return {
+    merchant,
+    amountCents: amount,
+    taxPaidCents: taxPaid,
+    note,
+    categoryId: category.id,
+    clientId,
+    intervalCount: input.intervalCount,
+    intervalUnit: input.intervalUnit,
+    nextOn: assertIsoDate(input.nextOn),
+    remainingCount: input.remainingCount,
+    paused: input.paused === true,
+  };
+}
+
+async function selectSchedules(
+  db: AppDb,
+  businessId: string,
+  where: ReturnType<typeof and> | ReturnType<typeof eq>,
+): Promise<RecurringExpenseView[]> {
+  const rows = await db
+    .select({
+      id: recurringExpense.id,
+      merchant: recurringExpense.merchant,
+      amountCents: recurringExpense.amountCents,
+      taxPaidCents: recurringExpense.taxPaidCents,
+      note: recurringExpense.note,
+      categoryId: recurringExpense.categoryId,
+      categoryName: expenseCategory.name,
+      categoryGroup: expenseCategory.categoryGroup,
+      clientId: recurringExpense.clientId,
+      clientName: client.name,
+      intervalCount: recurringExpense.intervalCount,
+      intervalUnit: recurringExpense.intervalUnit,
+      anchorOn: recurringExpense.anchorOn,
+      nextOn: recurringExpense.nextOn,
+      remainingCount: recurringExpense.remainingCount,
+      paused: recurringExpense.paused,
+      updatedAt: recurringExpense.updatedAt,
+    })
+    .from(recurringExpense)
+    .innerJoin(
+      expenseCategory,
+      and(
+        eq(expenseCategory.id, recurringExpense.categoryId),
+        eq(expenseCategory.businessId, businessId),
+      ),
+    )
+    .leftJoin(
+      client,
+      and(
+        eq(client.id, recurringExpense.clientId),
+        eq(client.businessId, businessId),
+      ),
+    )
+    .where(where)
+    .orderBy(asc(recurringExpense.nextOn), asc(recurringExpense.merchant));
+  return rows.flatMap((row) => {
+    if (!isIntervalUnit(row.intervalUnit)) return [];
+    return [
+      {
+        ...row,
+        intervalUnit: row.intervalUnit,
+        updatedAt: row.updatedAt.toISOString(),
+      },
+    ];
+  });
+}
+
+async function oneSchedule(db: AppDb, businessId: string, id: string) {
+  const rows = await db
+    .select()
+    .from(recurringExpense)
+    .where(
+      and(
+        eq(recurringExpense.id, id),
+        eq(recurringExpense.businessId, businessId),
+      ),
+    )
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+async function nextDue(
+  db: AppDb,
+  businessId: string,
+  today: string,
+  skip: Set<string>,
+) {
+  const rows = await db
+    .select()
+    .from(recurringExpense)
+    .where(
+      and(
+        eq(recurringExpense.businessId, businessId),
+        lte(recurringExpense.nextOn, today),
+        or(
+          isNull(recurringExpense.remainingCount),
+          gt(recurringExpense.remainingCount, 0),
+        ),
+        skip.size > 0 ? notInArray(recurringExpense.id, [...skip]) : undefined,
+      ),
+    )
+    .orderBy(asc(recurringExpense.nextOn), asc(recurringExpense.id))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+async function stepSchedule(
+  db: AppDb,
+  businessId: string,
+  schedule: typeof recurringExpense.$inferSelect,
+): Promise<{ created: boolean; moved: boolean }> {
+  if (!isIntervalUnit(schedule.intervalUnit)) {
+    throw new Error("Interval is not valid");
+  }
+  const following = nextOccurrence(
+    schedule.anchorOn,
+    schedule.nextOn,
+    schedule.intervalCount,
+    schedule.intervalUnit,
+  );
+  if (following <= schedule.nextOn) throw new Error("Interval is not valid");
+  if (schedule.paused) {
+    const updated = await db
+      .update(recurringExpense)
+      .set({ nextOn: following, updatedAt: new Date() })
+      .where(
+        and(
+          eq(recurringExpense.id, schedule.id),
+          eq(recurringExpense.businessId, businessId),
+          eq(recurringExpense.nextOn, schedule.nextOn),
+          eq(recurringExpense.paused, true),
+        ),
+      )
+      .returning({ id: recurringExpense.id });
+    return { created: false, moved: updated.length > 0 };
+  }
+  return db.transaction(async (tx) => {
+    const id = crypto.randomUUID();
+    const now = new Date();
+    const inserted = await tx
+      .insert(expense)
+      .values({
+        id,
+        businessId,
+        spentOn: schedule.nextOn,
+        merchant: schedule.merchant,
+        amountCents: schedule.amountCents,
+        categoryId: schedule.categoryId,
+        clientId: schedule.clientId,
+        taxPaidCents: schedule.taxPaidCents,
+        note: schedule.note,
+        recurringExpenseId: schedule.id,
+        receiptKey: null,
+        receiptContentType: null,
+        paymentId: null,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .onConflictDoNothing()
+      .returning({ id: expense.id });
+    const created = inserted.length > 0;
+    const updated = await tx
+      .update(recurringExpense)
+      .set({
+        nextOn: following,
+        remainingCount:
+          schedule.remainingCount === null ? null : schedule.remainingCount - 1,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(recurringExpense.id, schedule.id),
+          eq(recurringExpense.businessId, businessId),
+          eq(recurringExpense.nextOn, schedule.nextOn),
+          eq(recurringExpense.paused, false),
+          schedule.remainingCount === null
+            ? isNull(recurringExpense.remainingCount)
+            : eq(recurringExpense.remainingCount, schedule.remainingCount),
+        ),
+      )
+      .returning({ id: recurringExpense.id });
+    if (updated[0] && created) {
+      await writeAudit(tx, {
+        businessId,
+        actorUserId: null,
+        action: "expense.created",
+        expenseId: id,
+        amountCents: schedule.amountCents,
+        metadata: { recurringExpenseId: schedule.id },
+      });
+    }
+    return { created: updated[0] ? created : false, moved: updated.length > 0 };
+  });
 }
 
 async function writeAudit(

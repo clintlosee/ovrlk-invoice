@@ -24,12 +24,26 @@ const expenseFields = z.object({
   clientId: z.string(),
   taxPaid: z.string(),
   note: blank(2000, "Note"),
-  recurring: z.boolean(),
+});
+
+const scheduleFields = z.object({
+  merchant: z.string(),
+  amount: z.string(),
+  categoryId: z.string().min(1, "Choose a Category."),
+  clientId: z.string(),
+  taxPaid: z.string(),
+  note: blank(2000, "Note"),
+  nextOn: z.string(),
+  intervalCount: z.number().int().min(1).max(99),
+  intervalUnit: z.enum(["day", "week", "month", "year"]),
+  remainingCount: z.number().int().min(0).max(999).nullable(),
+  paused: z.boolean(),
 });
 
 const idField = z.object({ id: z.string().min(1) });
 
 export type ExpenseFormValues = z.input<typeof expenseFields>;
+export type RecurringExpenseFormValues = z.input<typeof scheduleFields>;
 
 function saveError(error: unknown): { ok: false; message: string } {
   const message = error instanceof Error ? error.message : "";
@@ -42,6 +56,7 @@ function saveError(error: unknown): { ok: false; message: string } {
     message.includes("Note") ||
     message.includes("cents") ||
     message.includes("Expense") ||
+    message.includes("Interval") ||
     message.includes("Payment") ||
     message.includes("File") ||
     message.includes("Receipt") ||
@@ -85,7 +100,12 @@ export const getExpenses = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const current = await scope();
     if (!current) return null;
-    const [rows, categories, clients] = await Promise.all([
+    const business = await current.db.business.get();
+    if (!business) return null;
+    await current.db.recurringExpenses.postDue(
+      todayInTimeZone(business.timeZone),
+    );
+    const [rows, categories, clients, schedules] = await Promise.all([
       current.db.expenses.list({
         from: data.from || null,
         to: data.to || null,
@@ -93,9 +113,11 @@ export const getExpenses = createServerFn({ method: "GET" })
       }),
       current.db.categories.list(),
       current.db.clients.list(),
+      current.db.recurringExpenses.list(),
     ]);
     return {
       expenses: rows,
+      schedules,
       categories,
       clients: clients.map((row) => ({
         id: row.id,
@@ -153,7 +175,6 @@ export const createExpense = createServerFn({ method: "POST" })
         clientId: parsed.data.clientId || null,
         taxPaidCents: dollars(parsed.data.taxPaid, true),
         note: parsed.data.note,
-        recurring: parsed.data.recurring,
         actorUserId: current.actorUserId,
       });
       return { ok: true as const, id: saved.id };
@@ -186,7 +207,6 @@ export const updateExpense = createServerFn({ method: "POST" })
         clientId: parsed.data.clientId || null,
         taxPaidCents: dollars(parsed.data.taxPaid, true),
         note: parsed.data.note,
-        recurring: parsed.data.recurring,
         actorUserId: current.actorUserId,
       });
       if (!saved)
@@ -215,6 +235,133 @@ export const deleteExpense = createServerFn({ method: "POST" })
     } catch (error) {
       return saveError(error);
     }
+  });
+
+function scheduleInput(
+  data: z.infer<typeof scheduleFields>,
+  actorUserId: string,
+) {
+  return {
+    merchant: data.merchant,
+    amountCents: dollars(data.amount, false),
+    categoryId: data.categoryId,
+    clientId: data.clientId || null,
+    taxPaidCents: dollars(data.taxPaid, true),
+    note: data.note,
+    nextOn: data.nextOn,
+    intervalCount: data.intervalCount,
+    intervalUnit: data.intervalUnit,
+    remainingCount: data.remainingCount,
+    paused: data.paused,
+    actorUserId,
+  };
+}
+
+export const getRecurringExpense = createServerFn({ method: "GET" })
+  .validator((data: { id?: string }) => data)
+  .handler(async ({ data }) => {
+    const current = await scope();
+    if (!current) return null;
+    const business = await current.db.business.get();
+    if (!business) return null;
+    const [categories, clients, schedule] = await Promise.all([
+      current.db.categories.list(),
+      current.db.clients.list(),
+      data.id
+        ? current.db.recurringExpenses.get(data.id)
+        : Promise.resolve(null),
+    ]);
+    return {
+      categories,
+      clients: clients.map((row) => ({
+        id: row.id,
+        name: row.name,
+        archived: row.archivedAt != null,
+      })),
+      schedule,
+      today: todayInTimeZone(business.timeZone),
+    };
+  });
+
+export const createRecurringExpense = createServerFn({ method: "POST" })
+  .validator((data: RecurringExpenseFormValues) => data)
+  .handler(async ({ data }) => {
+    const parsed = scheduleFields.safeParse(data);
+    if (!parsed.success) {
+      return {
+        ok: false as const,
+        message:
+          parsed.error.issues[0]?.message ?? "Check the form and try again.",
+      };
+    }
+    const current = await scope();
+    if (!current) return { ok: false as const, message: "Sign in again." };
+    const business = await current.db.business.get();
+    if (!business) return { ok: false as const, message: "Sign in again." };
+    try {
+      const saved = await current.db.recurringExpenses.create(
+        scheduleInput(parsed.data, current.actorUserId),
+      );
+      await current.db.recurringExpenses.postDue(
+        todayInTimeZone(business.timeZone),
+      );
+      return { ok: true as const, id: saved.id };
+    } catch (error) {
+      return saveError(error);
+    }
+  });
+
+export const updateRecurringExpense = createServerFn({ method: "POST" })
+  .validator((data: RecurringExpenseFormValues & { id: string }) => data)
+  .handler(async ({ data }) => {
+    const parsed = scheduleFields.safeParse(data);
+    if (!parsed.success || !data.id) {
+      return {
+        ok: false as const,
+        message: parsed.success
+          ? "That Recurring Expense does not exist."
+          : (parsed.error.issues[0]?.message ??
+            "Check the form and try again."),
+      };
+    }
+    const current = await scope();
+    if (!current) return { ok: false as const, message: "Sign in again." };
+    try {
+      const saved = await current.db.recurringExpenses.update(
+        data.id,
+        scheduleInput(parsed.data, current.actorUserId),
+      );
+      if (!saved) {
+        return {
+          ok: false as const,
+          message: "That Recurring Expense does not exist.",
+        };
+      }
+      const business = await current.db.business.get();
+      if (business) {
+        await current.db.recurringExpenses.postDue(
+          todayInTimeZone(business.timeZone),
+        );
+      }
+      return { ok: true as const, id: saved.id };
+    } catch (error) {
+      return saveError(error);
+    }
+  });
+
+export const deleteRecurringExpense = createServerFn({ method: "POST" })
+  .validator((data: { id: string }) => idField.parse(data))
+  .handler(async ({ data }) => {
+    const current = await scope();
+    if (!current) return { ok: false as const, message: "Sign in again." };
+    const removed = await current.db.recurringExpenses.remove(data.id);
+    if (!removed) {
+      return {
+        ok: false as const,
+        message: "That Recurring Expense does not exist.",
+      };
+    }
+    return { ok: true as const };
   });
 
 export const receiptUrl = createServerFn({ method: "POST" })

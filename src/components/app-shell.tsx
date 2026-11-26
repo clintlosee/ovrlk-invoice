@@ -250,7 +250,7 @@ export function AppShell({
           </div>
           <Link
             to="/app/expenses"
-            search={{ from: "", to: "", category: "" }}
+            search={{ from: "", to: "", category: "", tab: "expenses" }}
             onClick={() => setOpen(false)}
             className={itemClass(current === "/app/expenses")}
             aria-current={current === "/app/expenses" ? "page" : undefined}

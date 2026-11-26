@@ -175,7 +175,6 @@ await db.transaction(async (tx) => {
       clientId,
       taxPaidCents: entry.taxPaidCents,
       note: entry.note,
-      recurring: false,
       receiptKey: null,
       receiptContentType: null,
       paymentId: null,

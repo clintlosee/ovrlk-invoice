@@ -39,6 +39,14 @@ function reportError(error: unknown): { ok: false; message: string } {
   throw error;
 }
 
+async function postDueExpenses(
+  current: NonNullable<Awaited<ReturnType<typeof scope>>>,
+) {
+  await current.db.recurringExpenses.postDue(
+    todayInTimeZone(current.business.timeZone),
+  );
+}
+
 function resolvedRange(timeZone: string, query: ReportQuery) {
   return periodRange(query.preset, todayInTimeZone(timeZone), {
     from: query.from,
@@ -53,6 +61,7 @@ export const getProfitAndLoss = createServerFn({ method: "GET" })
     if (!current) return null;
     const query = parseReportQuery(data);
     try {
+      await postDueExpenses(current);
       const range = resolvedRange(current.business.timeZone, query);
       const report = await current.db.reports.profitAndLoss(query.basis, range);
       return {
@@ -73,6 +82,7 @@ export const getExpenseReport = createServerFn({ method: "GET" })
     if (!current) return null;
     const query = parseReportQuery(data);
     try {
+      await postDueExpenses(current);
       const range = resolvedRange(current.business.timeZone, query);
       const report = await current.db.reports.expensesByCategory(range);
       return {
@@ -113,6 +123,7 @@ export const getDashboard = createServerFn({ method: "GET" }).handler(
   async () => {
     const current = await scope();
     if (!current) return null;
+    await postDueExpenses(current);
     const [dashboard, factors] = await Promise.all([
       current.db.reports.dashboard(),
       ownerFactors(current.userId),

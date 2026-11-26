@@ -451,6 +451,59 @@ export const expenseCategory = sqliteTable(
   ],
 );
 
+/**
+ * A schedule that creates Expenses. anchor_on is the cadence origin so a
+ * short month does not drag the day forward. remaining_count null does not end.
+ */
+export const recurringExpense = sqliteTable(
+  "recurring_expense",
+  {
+    id: text("id").primaryKey(),
+    businessId: text("business_id")
+      .notNull()
+      .references(() => business.id, { onDelete: "cascade" }),
+    merchant: text("merchant").notNull(),
+    amountCents: integer("amount_cents").notNull(),
+    categoryId: text("category_id")
+      .notNull()
+      .references(() => expenseCategory.id),
+    clientId: text("client_id").references(() => client.id),
+    taxPaidCents: integer("tax_paid_cents").notNull().default(0),
+    note: text("note"),
+    intervalCount: integer("interval_count").notNull(),
+    intervalUnit: text("interval_unit").notNull(),
+    anchorOn: text("anchor_on").notNull(),
+    nextOn: text("next_on").notNull(),
+    remainingCount: integer("remaining_count"),
+    paused: integer("paused", { mode: "boolean" }).notNull().default(false),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    index("recurring_expense_due_idx").on(table.businessId, table.nextOn),
+    check(
+      "recurring_expense_amount_cents",
+      sql`${table.amountCents} > 0 AND typeof(${table.amountCents}) = 'integer'`,
+    ),
+    check(
+      "recurring_expense_tax_paid_cents",
+      sql`${table.taxPaidCents} >= 0 AND typeof(${table.taxPaidCents}) = 'integer'`,
+    ),
+    check(
+      "recurring_expense_interval_count",
+      sql`${table.intervalCount} >= 1 AND typeof(${table.intervalCount}) = 'integer'`,
+    ),
+    check(
+      "recurring_expense_interval_unit",
+      sql`${table.intervalUnit} in ('day', 'week', 'month', 'year')`,
+    ),
+    check(
+      "recurring_expense_remaining",
+      sql`${table.remainingCount} is null or (${table.remainingCount} >= 0 AND typeof(${table.remainingCount}) = 'integer')`,
+    ),
+  ],
+);
+
 /** Money the Business spent. receipt_key is an object key, never a public URL. */
 export const expense = sqliteTable(
   "expense",
@@ -468,10 +521,11 @@ export const expense = sqliteTable(
     clientId: text("client_id").references(() => client.id),
     taxPaidCents: integer("tax_paid_cents").notNull().default(0),
     note: text("note"),
-    /** Owner-marked repeat. The mark does not post future Expenses. */
-    recurring: integer("recurring", { mode: "boolean" })
-      .notNull()
-      .default(false),
+    /** Set when a Recurring Expense created this row. */
+    recurringExpenseId: text("recurring_expense_id").references(
+      () => recurringExpense.id,
+      { onDelete: "set null" },
+    ),
     receiptKey: text("receipt_key"),
     receiptContentType: text("receipt_content_type"),
     /** Set when this row is the Merchant Fee for a card Payment. */
@@ -485,6 +539,9 @@ export const expense = sqliteTable(
     index("expense_business_date_idx").on(table.businessId, table.spentOn),
     index("expense_category_idx").on(table.categoryId),
     uniqueIndex("expense_payment_idx").on(table.paymentId),
+    uniqueIndex("expense_recurring_occurrence_idx")
+      .on(table.recurringExpenseId, table.spentOn)
+      .where(sql`${table.recurringExpenseId} IS NOT NULL`),
     check(
       "expense_amount_cents",
       sql`${table.amountCents} > 0 AND typeof(${table.amountCents}) = 'integer'`,

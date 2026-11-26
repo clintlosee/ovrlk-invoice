@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import {
   ChevronLeft,
   ChevronRight,
-  Repeat,
   SlidersHorizontal,
   Trash2,
   Users,
@@ -22,7 +21,6 @@ export type ExpenseFormValues = {
   clientId: string;
   taxPaid: string;
   note: string;
-  recurring: boolean;
 };
 
 type CategoryChoice = {
@@ -99,7 +97,7 @@ export function ExpenseForm({
           <div className="flex items-center gap-4">
             <Link
               to="/app/expenses"
-              search={{ from: "", to: "", category: "" }}
+              search={{ from: "", to: "", category: "", tab: "expenses" }}
               className="text-sm text-primary"
             >
               Cancel
@@ -319,10 +317,8 @@ export function ExpenseForm({
         onToggle={() => setSettingsOpen((open) => !open)}
         values={values}
         clients={clients}
-        lockedFee={lockedFee}
         pending={pending}
         onClient={(clientId) => setValues({ ...values, clientId })}
-        onRecurring={(recurring) => setValues({ ...values, recurring })}
         onDelete={onDelete}
       />
     </form>
@@ -334,20 +330,16 @@ function ExpenseSettings({
   onToggle,
   values,
   clients,
-  lockedFee,
   pending,
   onClient,
-  onRecurring,
   onDelete,
 }: {
   open: boolean;
   onToggle: () => void;
   values: ExpenseFormValues;
   clients: ClientChoice[];
-  lockedFee: boolean;
   pending: boolean;
   onClient: (clientId: string) => void;
-  onRecurring: (recurring: boolean) => void;
   onDelete?: () => void;
 }) {
   return (
@@ -414,30 +406,6 @@ function ExpenseSettings({
               </select>
             </div>
           </div>
-          {lockedFee ? null : (
-            <div className="flex gap-3 py-4">
-              <Repeat aria-hidden className="mt-0.5 size-4 shrink-0" />
-              <div className="space-y-1">
-                <label
-                  className="flex items-center gap-2 text-sm font-medium"
-                  htmlFor="recurring"
-                >
-                  <input
-                    id="recurring"
-                    type="checkbox"
-                    className="size-4 accent-primary"
-                    checked={values.recurring}
-                    onChange={(event) => onRecurring(event.target.checked)}
-                  />
-                  Recurring
-                </label>
-                <p className="text-sm text-muted-foreground">
-                  Shows with the other repeating Expenses. Nothing is posted
-                  ahead.
-                </p>
-              </div>
-            </div>
-          )}
           {onDelete ? (
             <div className="py-4">
               <button
