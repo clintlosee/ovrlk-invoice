@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getDb } from "../src/db/client";
 import { auditLog, expense, payment, stripeEvent } from "../src/db/schema";
+import { addCalendarDays, todayInTimeZone } from "../src/lib/invoice";
 import { cents } from "../src/lib/money";
 import { verifyStripeEvent } from "../src/lib/stripe";
 import type { InvoiceInput } from "../src/server/invoice-store";
@@ -17,7 +18,8 @@ function input(clientId: string, unitPriceCents: number): InvoiceInput {
   return {
     clientId,
     issueDate: "2026-04-01",
-    dueDate: "2026-12-01",
+    // Far enough ahead that "due soon" does not cover a partial or viewed Invoice.
+    dueDate: addCalendarDays(todayInTimeZone("America/Denver"), 30),
     reference: null,
     notes: null,
     terms: null,
